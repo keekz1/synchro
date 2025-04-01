@@ -220,24 +220,39 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
 
   useEffect(() => {
-    setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
-
-    const fetchUserDetails = async () => {
-      try {
-        const response = await fetch("/api/profile");
-        const data = await response.json();
-        if (response.ok) {
-          setUserRole(data.role);
-          setUserName(data.name);
-          setUserImage(data.image);
-        }
-      } catch (error) {
-        console.error("Error fetching user details:", error);
-      }
+    if (!socket || !isConnected) return;
+  
+    const handleLocationUpdate = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const realLocation = { 
+            lat: position.coords.latitude, 
+            lng: position.coords.longitude 
+          };
+          debouncedLocationUpdate(realLocation.lat, realLocation.lng);
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          // Add error state handling
+          setCurrentLocation(null); // Force retry
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
     };
-
-    fetchUserDetails();
-  }, []);
+  
+    // Immediate check if already connected
+    handleLocationUpdate();
+    
+    // Add periodic updates
+    const interval = setInterval(handleLocationUpdate, 15000);
+  
+    // Existing socket listeners...
+  
+    return () => {
+      clearInterval(interval);
+      // Existing cleanup...
+    };
+  }, [socket, isConnected, debouncedLocationUpdate, generatePersistentOffset]);
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -306,7 +321,14 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       setIsCreatingTicket(false);
     }
   };
-  if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
+// Update your loading states
+if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
+if (!isConnected) return (
+  <div className={styles.error}>
+    {connectionError || 'Connecting to server...'}
+    <button onClick={() => socket?.connect()}>Retry</button>
+  </div>
+);
   if (!isConnected) return <div className={styles.error}>{connectionError || 'Connecting...'}</div>;
   if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
 
