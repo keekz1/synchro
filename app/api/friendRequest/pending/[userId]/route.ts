@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
   try {
-    const userId = params.userId; // Extract userId from params
+    const userId = params.userId; // Extract the userId from params
 
     const requests = await db.friendRequest.findMany({
       where: {
