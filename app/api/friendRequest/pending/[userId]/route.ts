@@ -3,21 +3,11 @@ import { db } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params?: { userId: string | string[] } } // Mark params as optional
+  context: { params: { [key: string]: string | string[] } }
 ) {
   try {
-    // Validate userId exists
-    if (!params?.userId) {
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Handle both string and array cases
-    const userId = Array.isArray(params.userId)
-      ? params.userId[0] // Use first element if array
-      : params.userId;
+    // Type assertion for single segment dynamic route
+    const userId = context.params.userId as string;
 
     const requests = await db.friendRequest.findMany({
       where: {
