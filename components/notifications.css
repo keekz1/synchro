@@ -1,0 +1,69 @@
+/* Notifications styling */
+.pending-requests-modal {
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .pending-requests-modal ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .pending-requests-modal li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .pending-requests-modal li strong {
+    font-weight: 600;
+  }
+  
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .accept-btn,
+  .reject-btn {
+    background-color: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .accept-btn {
+    color: green;
+  }
+  
+  .reject-btn {
+    color: red;
+  }
+  
+  .accept-btn:hover,
+  .reject-btn:hover {
+    transform: scale(1.2);
+  }
+  
+  .accept-btn:focus,
+  .reject-btn:focus {
+    outline: none;
+  }
+  
+  .accept-btn:active {
+    color: darkgreen;
+  }
+  
+  .reject-btn:active {
+    color: darkred;
+  }
+  

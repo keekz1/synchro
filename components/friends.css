@@ -1,0 +1,79 @@
+/* General Styles */
+.friends-section {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.friends-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.empty-message {
+  font-size: 16px;
+  color: #888;
+  text-align: center;
+}
+
+/* Friends List */
+.friends-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.friend-item {
+  margin-bottom: 15px;
+}
+
+.friend-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.friend-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.friend-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.friend-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #3b3b3b;
+  margin: 0;
+}
+
+.friend-email {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Loading and Empty States */
+.loading {
+  text-align: center;
+  font-size: 18px;
+  color: #0070f3;
+}
+
+.empty-message {
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+}
