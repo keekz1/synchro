@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { userId: string | string[] } }
+) {
   try {
-    const userId = params.userId; // Extract the userId from params
+    // Since [userId] is a single dynamic segment, it will be a string
+    const userId = Array.isArray(params.userId) ? params.userId[0] : params.userId;
 
     const requests = await db.friendRequest.findMany({
       where: {
