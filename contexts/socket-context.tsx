@@ -21,51 +21,49 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   
     useEffect(() => {
       const token = localStorage.getItem('authToken');
-      socketRef.current = io("https://backendfst1.onrender.com", {
+      
+      const socket = io("https://backendfst1.onrender.com", {
         transports: ["websocket"],
         auth: { token },
-        timeout: 20000,
+        reconnection: true,
         reconnectionAttempts: Infinity,
-        autoConnect: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        randomizationFactor: 0.5,
+        timeout: 20000
       });
   
-      // Presence tracking
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'hidden') {
-          socketRef.current?.emit('presence', 'away');
-        } else {
-          socketRef.current?.emit('presence', 'active');
-        }
-      };
+      // Connection events
+      socket.on('connect', () => {
+        setIsConnected(true);
+        setConnectionError('');
+        socket.emit('presence', 'online');
+      });
   
-      // Heartbeat system
-      const heartbeatInterval = setInterval(() => {
-        if (socketRef.current?.connected) {
-          socketRef.current.emit('heartbeat');
-        }
-      }, 20000);
+      socket.on('connect_error', (err) => {
+        setIsConnected(false);
+        setConnectionError(err.message);
+      });
   
-      document.addEventListener('visibilitychange', handleVisibilityChange);
+      socket.on('disconnect', (reason) => {
+        setIsConnected(false);
+        setConnectionError(reason === 'transport close' 
+          ? 'Reconnecting...' 
+          : `Connection lost: ${reason}`);
+      });
+  
+      socketRef.current = socket;
   
       return () => {
-        clearInterval(heartbeatInterval);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        // Only disconnect on app close, not page navigation
-        socketRef.current?.off('connect');
-        socketRef.current?.off('disconnect');
-        socketRef.current?.disconnect();
+        // Don't disconnect here - let Socket.IO manage reconnections
+        socket.removeAllListeners();
       };
     }, []);
-
-  return (
-    <SocketContext.Provider value={{ 
-      socket: socketRef.current, 
-      isConnected,
-      connectionError
-    }}>
-      {children}
-    </SocketContext.Provider>
-  );
-};
-
+  
+    return (
+      <SocketContext.Provider value={{ socket: socketRef.current, isConnected, connectionError }}>
+        {children}
+      </SocketContext.Provider>
+    );
+  };
 export const useSocket = () => useContext(SocketContext);

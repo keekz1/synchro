@@ -36,6 +36,7 @@ const MapComponent: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 const [newTicketMessage, setNewTicketMessage] = useState('');
 const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+const [connectionTimeout, setConnectionTimeout] = useState(false);
 
   const [isVisible, setIsVisible] = useState(true);
 
@@ -189,7 +190,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       console.error('Invalid coordinates received', realLat, realLng);
       return { lat: 0, lng: 0 };
     }
-  
+
     if (!locationCache.current.has(userId)) {
       const seed = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const randomOffset = (seed % 10) * 0.0001;
@@ -200,7 +201,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     }
     return locationCache.current.get(userId)!;
   }, []);
-  
+
   const debouncedLocationUpdate = useMemo(
     () => debounce((lat: number, lng: number) => {
       if (socket?.connected) {
@@ -210,27 +211,40 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
           lng: Number(lng.toFixed(6)),
           role: userRole || 'user',
           name: userName || 'Anonymous',
-          image: userImage || 'https://i.imgur.com/DUC8BHW.png'
+          image: userImage || '/default-avatar.png'
         });
       }
     }, 500),
     [socket, userRole, userName, userImage]
   );
-  
+
   const handleVisibilityToggle = useCallback(() => {
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
     localStorage.setItem('isVisible', JSON.stringify(newVisibility));
-    if (socket?.connected) {
-      socket.emit('visibility-change', { 
-        isVisible: newVisibility,
-        lastLocation: currentLocation 
-      });
-    }
+    socket?.emit('visibility-change', { 
+      isVisible: newVisibility,
+      lastLocation: currentLocation 
+    });
   }, [socket, isVisible, currentLocation]);
-  
-  const [connectionTimeout, setConnectionTimeout] = useState(false);
-  
+
+  // Connection and geolocation handlers
+  const handleLocationSuccess = useCallback((position: GeolocationPosition) => {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    setCurrentLocation({ lat, lng });
+    debouncedLocationUpdate(lat, lng);
+  }, [debouncedLocationUpdate]);
+
+  const handleLocationError = useCallback((error: GeolocationPositionError) => {
+    console.error("Geolocation error:", error);
+    if (error.code === error.PERMISSION_DENIED) {
+      socket?.emit('location-error', 'permission-denied');
+      setCurrentLocation(null);
+    }
+  }, [socket]);
+
+  // Effects
   useEffect(() => {
     const abortController = new AbortController();
     
@@ -251,24 +265,22 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         }
       }
     };
-  
+
     const storedVisibility = localStorage.getItem("isVisible");
     setIsVisible(storedVisibility ? JSON.parse(storedVisibility) : true);
     
     fetchUserDetails();
     return () => abortController.abort();
   }, []);
-  
+
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (!isConnected) {
-        setConnectionTimeout(true);
-      }
+      if (!isConnected) setConnectionTimeout(true);
     }, 10000);
-  
+
     return () => clearTimeout(timeout);
   }, [isConnected]);
-  
+
   useEffect(() => {
     if (navigator.permissions) {
       navigator.permissions.query({ name: 'geolocation' }).then((result) => {
@@ -279,145 +291,118 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       });
     }
   }, []);
-  
+
   useEffect(() => {
     if (!socket) return;
-  
-    const handleConnect = () => console.log('Socket connected');
-    const handleDisconnect = () => console.log('Socket disconnected');
-  
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-  
-    return () => {
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !socket.connected) {
+        socket.connect();
+      }
     };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => window.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [socket]);
-  // Move these callbacks outside the useEffect
-const handleLocationSuccess = useCallback((position: GeolocationPosition) => {
-  const lat = position.coords.latitude;
-  const lng = position.coords.longitude;
-  setCurrentLocation({ lat, lng });
-  debouncedLocationUpdate(lat, lng);
-}, [debouncedLocationUpdate]);
 
-const handleLocationError = useCallback((error: GeolocationPositionError) => {
-  console.error("Geolocation error:", error);
-  if (error.code === error.PERMISSION_DENIED) {
-    socket?.emit('location-error', 'permission-denied');
-    setCurrentLocation(null);
-  }
-}, [socket]);
+  useEffect(() => {
+    if (!socket?.connected) return;
 
-useEffect(() => {
-  if (!socket?.connected) return;
+    const handleLocationUpdate = () => {
+      navigator.geolocation.getCurrentPosition(
+        handleLocationSuccess,
+        handleLocationError,
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    };
 
-  const handleLocationUpdate = () => {
-    navigator.geolocation.getCurrentPosition(
-      handleLocationSuccess,
-      handleLocationError,
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  if (navigator.geolocation) {
-    handleLocationUpdate();
-  } else {
-    socket.emit('location-error', 'unsupported');
-  }
-
-  const locationInterval = setInterval(handleLocationUpdate, 15000);
-  const heartbeatInterval = setInterval(() => {
-    if (socket.connected) socket.emit('heartbeat');
-  }, 20000);
-
-  const handleNearbyUsers = (users: User[]) => {
-    setNearbyUsers(users.map(user => ({
-      ...user,
-      ...generatePersistentOffset(user.id, user.lat, user.lng)
-    })));
-  };
-
-  const safeListeners = {
-    connect: () => {
+    if (navigator.geolocation) {
       handleLocationUpdate();
-      socket.emit('presence', 'active');
-      socket.emit('visibility-change', {
-        isVisible: JSON.parse(localStorage.getItem('isVisible') ?? 'true')
+    } else {
+      socket.emit('location-error', 'unsupported');
+    }
+
+    const locationInterval = setInterval(handleLocationUpdate, 15000);
+    const heartbeatInterval = setInterval(() => {
+      if (socket.connected) socket.emit('heartbeat');
+    }, 20000);
+
+    const handleNearbyUsers = (users: User[]) => {
+      setNearbyUsers(users.map(user => ({
+        ...user,
+        ...generatePersistentOffset(user.id, user.lat, user.lng)
+      })));
+    };
+
+    const safeListeners = {
+      connect: () => {
+        handleLocationUpdate();
+        socket.emit('presence', 'active');
+        socket.emit('visibility-change', {
+          isVisible: JSON.parse(localStorage.getItem('isVisible') ?? 'true')
+        });
+      },
+      'nearby-users': handleNearbyUsers,
+      'new-ticket': (ticket: Ticket) => setTickets(prev => [...prev, ticket]),
+      'all-tickets': (tickets: Ticket[]) => {
+        setTickets(tickets.filter(t => Date.now() - t.createdAt < 3600000));
+      }
+    };
+
+    Object.entries(safeListeners).forEach(([event, handler]) => {
+      socket.on(event, handler);
+    });
+
+    return () => {
+      clearInterval(locationInterval);
+      clearInterval(heartbeatInterval);
+      Object.entries(safeListeners).forEach(([event, handler]) => {
+        socket.off(event, handler);
       });
-    },
-    'nearby-users': handleNearbyUsers,
-    'new-ticket': (ticket: Ticket) => setTickets(prev => [...prev, ticket]),
-    'all-tickets': (tickets: Ticket[]) => {
-      setTickets(tickets.filter(t => Date.now() - t.createdAt < 3600000));
+      socket.emit('presence', 'away');
+    };
+  }, [socket, debouncedLocationUpdate, generatePersistentOffset, handleLocationSuccess, handleLocationError]);
+
+  // Ticket handlers
+  const handleTicketSubmit = () => {
+    if (currentLocation && newTicketMessage.trim()) {
+      const ticket: Ticket = {
+        id: Date.now().toString(),
+        lat: currentLocation.lat,
+        lng: currentLocation.lng,
+        message: newTicketMessage,
+        creatorId: socket?.id || 'unknown',
+        creatorName: userName || 'Anonymous',
+        createdAt: Date.now()
+      };
+      socket?.emit('create-ticket', ticket);
+      setNewTicketMessage('');
+      setIsCreatingTicket(false);
     }
   };
 
-  Object.entries(safeListeners).forEach(([event, handler]) => {
-    socket.on(event, handler);
-  });
-
-  return () => {
-    clearInterval(locationInterval);
-    clearInterval(heartbeatInterval);
-    Object.entries(safeListeners).forEach(([event, handler]) => {
-      socket.off(event, handler);
-    });
-    socket.emit('presence', 'away');
+  const handleCreateTicket = () => {
+    setIsCreatingTicket((prev) => !prev);
   };
-}, [
-  socket, 
-  debouncedLocationUpdate, 
-  generatePersistentOffset,
-  handleLocationSuccess,
-  handleLocationError
-]);
-  
-  // Render logic
+
+  // Render states
   if (connectionTimeout) return (
     <div className={styles.error}>
       Connection failed - Please check your network
-      <button onClick={() => window.location.reload()}>Retry</button>
+      <button onClick={() => window.location.reload()}>Reload</button>
     </div>
   );
+
+  if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   
-  if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
-  if (!isConnected) return (
-    <div className={styles.error}>
-      {connectionError || 'Connecting to server...'}
-      <button onClick={() => socket?.connect()}>Retry</button>
-    </div>
-  );
-  if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
-
-const handleTicketSubmit = () => {
-  if (currentLocation && newTicketMessage.trim()) {
-    const ticket: Ticket = {
-      id: Date.now().toString(),
-      lat: currentLocation.lat,
-      lng: currentLocation.lng,
-      message: newTicketMessage,
-      creatorId: socket?.id || 'unknown',
-      creatorName: userName || 'Anonymous',
-      createdAt: Date.now()
-    };
-    socket?.emit('create-ticket', ticket);
-    setNewTicketMessage('');
-    setIsCreatingTicket(false);
-  }
-};
-
-const handleCreateTicket = () => {
-  setIsCreatingTicket((prev) => !prev);
-};
-  if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   if (!isConnected) return (
     <div className={styles.error}>
       {connectionError || 'Connecting to server...'}
       <button onClick={() => socket?.connect()}>Retry Connection</button>
     </div>
-  );  if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
+  );
+
+  if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
 
   return (
     <div className={styles.container} ref={mapContainerRef}>
