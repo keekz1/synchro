@@ -12,29 +12,30 @@ const { auth } = NextAuth(authConfig);
 
 export default auth(async (req) => {
     const { nextUrl } = req;
+
+    // Manually check session
     const isLoggedIn = !!req.auth;
 
     const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
     const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
     const isAuthRoute = authRoutes.includes(nextUrl.pathname);
-    
-    // 🛑 **Prevent redirecting API authentication callbacks**
-    if (isApiAuthRoute || nextUrl.pathname.startsWith("/api/auth/callback")) {
-        return; // Allow API calls to function without redirects
+
+    if (isApiAuthRoute) {
+        return; // No response for API auth route, return nothing (void)
     }
 
     if (isAuthRoute) {
         if (isLoggedIn) {
             return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
         }
-        return; // Allow access to login page
+        return; // Allow unauthenticated access to auth routes, return nothing (void)
     }
 
     if (!isLoggedIn && !isPublicRoute) {
         return Response.redirect(new URL("/auth/login", nextUrl));
     }
 
-    return; // No redirection needed
+    return; // Return nothing (void) when no conditions are met
 });
 
 export const config = {
