@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { userId: string } }
-) {
+// Update the function to expect context in the correct shape
+export async function GET(req: Request, { params }: { params: { userId: string } }) {
   try {
-    // Properly destructured params
+    // Destructure the userId from params
     const { userId } = params;
 
     // Get unique friendships using Prisma
