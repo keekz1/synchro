@@ -22,14 +22,6 @@ interface User {
 
 const CollabPage = () => {
   const { data: session, status } = useSession();
-
-  // Ensure user session exists before using userId
-  if (!session || !session.user) {
-    return <div>You must be logged in to access this page.</div>;
-  }
-
-  const userId = session.user.id;
-
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,11 +34,11 @@ const CollabPage = () => {
 
   // Filter requests where user is the receiver
   const receivedRequests = pendingRequests.filter(
-    (request) => request.receiver?.id === userId
+    (request) => request.receiver?.id === session?.user?.id
   );
 
   useEffect(() => {
-    if (!userId) return;
+    if (!session?.user?.id) return;
 
     const fetchUsersAndFriends = async () => {
       try {
@@ -55,7 +47,7 @@ const CollabPage = () => {
         // Fetch users and friends in parallel with error handling
         const [usersResponse, friendsResponse] = await Promise.all([
           axios.get("/api/users").catch(() => ({ data: [] })),
-          axios.get(`/api/users/${userId}/friends`).catch(() => ({ data: [] })),
+          axios.get(`/api/users/${session.user.id}/friends`).catch(() => ({ data: [] })),
         ]);
 
         console.log("Users Response:", usersResponse.data);
@@ -77,14 +69,14 @@ const CollabPage = () => {
     };
 
     fetchUsersAndFriends();
-  }, [userId]);
+  }, [session?.user?.id]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!session?.user?.id) return;
 
     const fetchPendingRequests = async () => {
       try {
-        const response = await axios.get(`/api/friendRequest/pending/${userId}`);
+        const response = await axios.get(`/api/friendRequest/pending/${session?.user?.id}`);
         console.log("Pending Requests API Response:", response);
 
         if (!response.data) throw new Error("No data received");
@@ -96,7 +88,7 @@ const CollabPage = () => {
     };
 
     fetchPendingRequests();
-  }, [userId]);
+  }, [session?.user?.id]);
 
   const handleNavbarClick = (section: string) => {
     setShowFriends(section === "friends");
@@ -108,11 +100,11 @@ const CollabPage = () => {
     setPendingRequests((prev) => prev.filter((request) => request.id !== requestId));
 
     // Refresh friends list after accepting request
-    axios.get(`/api/users/${userId}/friends`).then((res) => setFriends(res.data));
+    axios.get(`/api/users/${session?.user?.id}/friends`).then((res) => setFriends(res.data));
   };
 
   const handleSendFriendRequest = async (receiverId: string) => {
-    if (!userId) {
+    if (!session?.user?.id) {
       alert("You must be logged in to send a friend request.");
       return;
     }
@@ -124,7 +116,7 @@ const CollabPage = () => {
     }
 
     try {
-      await axios.post("/api/friendRequest/send", { senderId: userId, receiverId });
+      await axios.post("/api/friendRequest/send", { senderId: session?.user?.id, receiverId });
       alert("Friend request sent!");
       setSentRequests((prev) => new Set(prev).add(receiverId)); // Track the sent request
     } catch (err) {
@@ -140,11 +132,9 @@ const CollabPage = () => {
     );
   };
 
+  if (status === "loading") return <div>Loading...</div>;
+  if (status === "unauthenticated") return <div>Please log in to view this page.</div>;
 
-  if (status !== "authenticated") {
-    return <div>Loading...</div>;
-  }
-  
   return (
     <div className="collab-page">
       <nav className="discord-navbar">
@@ -189,7 +179,7 @@ const CollabPage = () => {
         {showRequests && (
           <Notification
             pendingRequests={receivedRequests}
-            userId={userId}
+            userId={session?.user?.id}
             onRequestUpdate={handleRequestUpdate}
             setFriends={setFriends} // Add this line
           />
