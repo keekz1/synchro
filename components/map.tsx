@@ -190,18 +190,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   };
 
   // Check if the user was away for more than 1 hour
-  const checkSocketTimeout = () => {
-    const lastLeaveTime = localStorage.getItem("lastLeaveTime");
-    const currentTime = Date.now();
-    if (lastLeaveTime && currentTime - parseInt(lastLeaveTime) > SOCKET_TIMEOUT) {
-      // Disconnect the socket if more than 1 hour has passed
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-        console.log("Socket disconnected due to inactivity.");
-      }
-    }
-  };
+
 
   // generatePersistentOffset with caching logic
   const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
