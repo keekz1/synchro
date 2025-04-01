@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import axios from "axios";
@@ -21,6 +22,14 @@ interface User {
 
 const CollabPage = () => {
   const { data: session, status } = useSession();
+
+  // Ensure user session exists before using userId
+  if (!session || !session.user) {
+    return <div>You must be logged in to access this page.</div>;
+  }
+
+  const userId = session.user.id;
+
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,48 +40,44 @@ const CollabPage = () => {
   const [showSuggestedUsers, setShowSuggestedUsers] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
 
-  const userId = session?.user?.id || null;
-
   // Filter requests where user is the receiver
   const receivedRequests = pendingRequests.filter(
     (request) => request.receiver?.id === userId
   );
+
   useEffect(() => {
     if (!userId) return;
-  
-    // Function to fetch both users and friends
+
     const fetchUsersAndFriends = async () => {
       try {
-        // Start loading state
         setLoading(true);
-  
-        // Fetch users and friends in parallel
+
+        // Fetch users and friends in parallel with error handling
         const [usersResponse, friendsResponse] = await Promise.all([
-          axios.get("/api/users"),
-          axios.get(`/api/users/${userId}/friends`),
+          axios.get("/api/users").catch(() => ({ data: [] })),
+          axios.get(`/api/users/${userId}/friends`).catch(() => ({ data: [] })),
         ]);
-  
-        // Set the friends data first
-        setFriends(friendsResponse.data);
-  
+
+        console.log("Users Response:", usersResponse.data);
+        console.log("Friends Response:", friendsResponse.data);
+
+        setFriends(friendsResponse.data ?? []);
+
         // Filter out users who are already friends
-        const filteredUsers = usersResponse.data.filter(
-          (user: User) => !friendsResponse.data.some((friend: User) => friend.id === user.id)
+        const filteredUsers = (usersResponse.data ?? []).filter(
+          (user: User) => !friendsResponse.data?.some((friend: User) => friend.id === user.id)
         );
-  
-        // Set the filtered suggested users
+
         setSuggestedUsers(filteredUsers);
-  
       } catch (error) {
         console.error("Failed to fetch users or friends", error);
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchUsersAndFriends();
-  }, [userId]); // Only depend on userId to run this when the user logs in or changes
-  
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -80,10 +85,11 @@ const CollabPage = () => {
     const fetchPendingRequests = async () => {
       try {
         const response = await axios.get(`/api/friendRequest/pending/${userId}`);
-        const filteredRequests = response.data.filter(
-          (request: FriendRequest) => request.receiver?.id === userId
-        );
-        setPendingRequests(filteredRequests);
+        console.log("Pending Requests API Response:", response);
+
+        if (!response.data) throw new Error("No data received");
+
+        setPendingRequests(response.data);
       } catch (error) {
         console.error("Error fetching pending requests:", error);
       }
@@ -99,9 +105,10 @@ const CollabPage = () => {
   };
 
   const handleRequestUpdate = (requestId: string) => {
-    setPendingRequests(prev => prev.filter(request => request.id !== requestId));
+    setPendingRequests((prev) => prev.filter((request) => request.id !== requestId));
+
     // Refresh friends list after accepting request
-    axios.get(`/api/users/${userId}/friends`).then(res => setFriends(res.data));
+    axios.get(`/api/users/${userId}/friends`).then((res) => setFriends(res.data));
   };
 
   const handleSendFriendRequest = async (receiverId: string) => {
@@ -109,13 +116,13 @@ const CollabPage = () => {
       alert("You must be logged in to send a friend request.");
       return;
     }
-  
+
     // Check if the request has already been sent
     if (sentRequests.has(receiverId)) {
       alert("You have already sent a friend request to this user.");
       return;
     }
-  
+
     try {
       await axios.post("/api/friendRequest/send", { senderId: userId, receiverId });
       alert("Friend request sent!");
@@ -125,7 +132,7 @@ const CollabPage = () => {
       alert("Failed to send friend request.");
     }
   };
-  
+
   const isRequestSentOrReceived = (userId: string) => {
     return (
       pendingRequests.some((request) => request.sender?.id === userId || request.receiver?.id === userId) ||
@@ -133,9 +140,11 @@ const CollabPage = () => {
     );
   };
 
-  if (status === "loading") return <div>Loading...</div>;
-  if (!userId) return <div>You must be logged in to access this page.</div>;
 
+  if (status !== "authenticated") {
+    return <div>Loading...</div>;
+  }
+  
   return (
     <div className="collab-page">
       <nav className="discord-navbar">
@@ -170,22 +179,20 @@ const CollabPage = () => {
       <div className="main-content">
         {showFriends && <Friends friends={friends} loading={loading} />}
         {showSuggestedUsers && (
-<SuggestedUsers
-  users={suggestedUsers}
-  loading={loading}
-  isRequestSentOrReceived={isRequestSentOrReceived}
-  sendFriendRequest={handleSendFriendRequest}
-/>
-
+          <SuggestedUsers
+            users={suggestedUsers}
+            loading={loading}
+            isRequestSentOrReceived={isRequestSentOrReceived}
+            sendFriendRequest={handleSendFriendRequest}
+          />
         )}
         {showRequests && (
-         <Notification
-         pendingRequests={receivedRequests}
-         userId={userId}
-         onRequestUpdate={handleRequestUpdate}
-         setFriends={setFriends}  // Add this line
-       />
-       
+          <Notification
+            pendingRequests={receivedRequests}
+            userId={userId}
+            onRequestUpdate={handleRequestUpdate}
+            setFriends={setFriends} // Add this line
+          />
         )}
       </div>
     </div>
