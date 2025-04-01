@@ -210,7 +210,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
           lng: Number(lng.toFixed(6)),
           role: userRole || 'user',
           name: userName || 'Anonymous',
-          image: userImage || '/default-avatar.png'
+          image: userImage || 'https://i.imgur.com/DUC8BHW.png'
         });
       }
     }, 500),
@@ -294,79 +294,85 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       socket.off('disconnect', handleDisconnect);
     };
   }, [socket]);
-  
-  useEffect(() => {
-    if (!socket?.connected) return;
-  
-    const handleLocationSuccess = useCallback((position: GeolocationPosition) => {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      setCurrentLocation({ lat, lng });
-      debouncedLocationUpdate(lat, lng);
-    }, [debouncedLocationUpdate]);
-  
-    const handleLocationError = (error: GeolocationPositionError) => {
-      console.error("Geolocation error:", error);
-      if (error.code === error.PERMISSION_DENIED) {
-        socket.emit('location-error', 'permission-denied');
-        setCurrentLocation(null);
-      }
-    };
-  
-    const handleLocationUpdate = () => {
-      navigator.geolocation.getCurrentPosition(
-        handleLocationSuccess,
-        handleLocationError,
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    };
-  
-    if (navigator.geolocation) {
+  // Move these callbacks outside the useEffect
+const handleLocationSuccess = useCallback((position: GeolocationPosition) => {
+  const lat = position.coords.latitude;
+  const lng = position.coords.longitude;
+  setCurrentLocation({ lat, lng });
+  debouncedLocationUpdate(lat, lng);
+}, [debouncedLocationUpdate]);
+
+const handleLocationError = useCallback((error: GeolocationPositionError) => {
+  console.error("Geolocation error:", error);
+  if (error.code === error.PERMISSION_DENIED) {
+    socket?.emit('location-error', 'permission-denied');
+    setCurrentLocation(null);
+  }
+}, [socket]);
+
+useEffect(() => {
+  if (!socket?.connected) return;
+
+  const handleLocationUpdate = () => {
+    navigator.geolocation.getCurrentPosition(
+      handleLocationSuccess,
+      handleLocationError,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  if (navigator.geolocation) {
+    handleLocationUpdate();
+  } else {
+    socket.emit('location-error', 'unsupported');
+  }
+
+  const locationInterval = setInterval(handleLocationUpdate, 15000);
+  const heartbeatInterval = setInterval(() => {
+    if (socket.connected) socket.emit('heartbeat');
+  }, 20000);
+
+  const handleNearbyUsers = (users: User[]) => {
+    setNearbyUsers(users.map(user => ({
+      ...user,
+      ...generatePersistentOffset(user.id, user.lat, user.lng)
+    })));
+  };
+
+  const safeListeners = {
+    connect: () => {
       handleLocationUpdate();
-    } else {
-      socket.emit('location-error', 'unsupported');
-    }
-  
-    const locationInterval = setInterval(handleLocationUpdate, 15000);
-    const heartbeatInterval = setInterval(() => {
-      if (socket.connected) socket.emit('heartbeat');
-    }, 20000);
-  
-    const handleNearbyUsers = (users: User[]) => {
-      setNearbyUsers(users.map(user => ({
-        ...user,
-        ...generatePersistentOffset(user.id, user.lat, user.lng)
-      })));
-    };
-  
-    const safeListeners = {
-      connect: () => {
-        handleLocationUpdate();
-        socket.emit('presence', 'active');
-        socket.emit('visibility-change', {
-          isVisible: JSON.parse(localStorage.getItem('isVisible') ?? 'true')
-        });
-      },
-      'nearby-users': handleNearbyUsers,
-      'new-ticket': (ticket: Ticket) => setTickets(prev => [...prev, ticket]),
-      'all-tickets': (tickets: Ticket[]) => {
-        setTickets(tickets.filter(t => Date.now() - t.createdAt < 3600000));
-      }
-    };
-  
-    Object.entries(safeListeners).forEach(([event, handler]) => {
-      socket.on(event, handler);
-    });
-  
-    return () => {
-      clearInterval(locationInterval);
-      clearInterval(heartbeatInterval);
-      Object.entries(safeListeners).forEach(([event, handler]) => {
-        socket.off(event, handler);
+      socket.emit('presence', 'active');
+      socket.emit('visibility-change', {
+        isVisible: JSON.parse(localStorage.getItem('isVisible') ?? 'true')
       });
-      socket.emit('presence', 'away');
-    };
-  }, [socket, debouncedLocationUpdate, generatePersistentOffset]);
+    },
+    'nearby-users': handleNearbyUsers,
+    'new-ticket': (ticket: Ticket) => setTickets(prev => [...prev, ticket]),
+    'all-tickets': (tickets: Ticket[]) => {
+      setTickets(tickets.filter(t => Date.now() - t.createdAt < 3600000));
+    }
+  };
+
+  Object.entries(safeListeners).forEach(([event, handler]) => {
+    socket.on(event, handler);
+  });
+
+  return () => {
+    clearInterval(locationInterval);
+    clearInterval(heartbeatInterval);
+    Object.entries(safeListeners).forEach(([event, handler]) => {
+      socket.off(event, handler);
+    });
+    socket.emit('presence', 'away');
+  };
+}, [
+  socket, 
+  debouncedLocationUpdate, 
+  generatePersistentOffset,
+  handleLocationSuccess,
+  handleLocationError
+]);
   
   // Render logic
   if (connectionTimeout) return (
@@ -384,7 +390,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     </div>
   );
   if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
-  
+
 const handleTicketSubmit = () => {
   if (currentLocation && newTicketMessage.trim()) {
     const ticket: Ticket = {
