@@ -1,13 +1,16 @@
-// app/api/friendRequest/pending/[userId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { userId: string } } // ✅ Correct parameter extraction
-) {
+// Define the expected type for the context parameter
+interface Context {
+  params: {
+    userId: string;
+  };
+}
+
+export async function GET(request: NextRequest, context: Context) {
   try {
-    const userId = params.userId; // ✅ Now correctly extracted
+    const userId = context.params.userId; // ✅ Correct way to extract userId
 
     const requests = await db.friendRequest.findMany({
       where: {
