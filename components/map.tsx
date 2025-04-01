@@ -4,7 +4,7 @@ import { debounce } from 'lodash'; // Import debounce function
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, Marker, useJsApiLoader, Circle } from '@react-google-maps/api';
-let persistentSocket: ReturnType<typeof io> | null = null;
+let persistentSocket: Socket | null = null;
 
 
 
@@ -185,10 +185,9 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     }
   ];
   
-  
   const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
     if (!userId) return { lat: realLat, lng: realLng };
-    
+
     if (!locationCache.current.has(userId)) {
       const seed = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const randomOffset = (seed % 10) * 0.0001;
@@ -207,9 +206,9 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         socketRef.current.emit('user-location', { 
           lat, 
           lng, 
-          role: userRole, 
-          name: userName, 
-          image: userImage 
+          role: userRole,
+          name: userName,
+          image: userImage
         });
       }
     }, 500), [userRole, userName, userImage]
@@ -299,23 +298,26 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       setNearbyUsers(Array.from(uniqueUsers.values()));
     };
 
+    const handleNewTicket = (ticket: Ticket) => {
+      setTickets((prev) => [...prev, ticket]);
+    };
+
+    // Add event listeners
     socket.on("connect", handleConnect);
     socket.on("connect_error", handleConnectError);
     socket.on("disconnect", handleDisconnect);
     socket.on("nearby-users", handleNearbyUsers);
+    socket.on("new-ticket", handleNewTicket);
     socket.on("all-tickets", setTickets);
-    socket.on("new-ticket", (ticket: Ticket) => {
-      setTickets(prev => [...prev, ticket]);
-    });
 
     return () => {
-      // Cleanup listeners but keep socket connected
+      // Cleanup: Remove listeners but keep socket connected
       socket.off("connect", handleConnect);
       socket.off("connect_error", handleConnectError);
       socket.off("disconnect", handleDisconnect);
       socket.off("nearby-users", handleNearbyUsers);
+      socket.off("new-ticket", handleNewTicket);
       socket.off("all-tickets", setTickets);
-      socket.off("new-ticket");
       
       locationCache.current.clear();
       setCurrentLocation(null);
