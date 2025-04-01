@@ -18,6 +18,8 @@ export const publicRoutes = [
  * @types{string[]}
  */
 export const authRoutes = [
+    "/map",
+    "/profile",
 
     "/auth/login",
     "/auth/register",
