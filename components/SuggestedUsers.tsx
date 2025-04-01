@@ -78,7 +78,7 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
                 >
                   {sentRequests.has(user.id) || isRequestSentOrReceived(user.id)
                     ? "✉️ Request Sent"
-                    : "➕ Add Friend"}
+                    : "Add Friend"}
                 </button>
               </div>
             </div>
