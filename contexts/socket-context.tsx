@@ -21,41 +21,73 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const initializeSocket = () => {
-      if (!socketRef.current) {
-        socketRef.current = io("https://backendfst1.onrender.com", {
-          transports: ["websocket"],
-          timeout: 20000,
-          reconnectionAttempts: 5,
-          autoConnect: true,
-        });
+      const token = localStorage.getItem('authToken');
+      
+      socketRef.current = io("https://backendfst1.onrender.com", {
+        transports: ["websocket"],
+        auth: { token },
+        timeout: 20000,
+        reconnectionAttempts: 5,
+        autoConnect: true,
+      });
 
-        socketRef.current.on('connect', () => {
+      // Presence tracking handlers
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+          socketRef.current?.emit('presence', { status: 'away' });
+        } else {
+          socketRef.current?.emit('presence', { status: 'online' });
+        }
+      };
+
+      const handleBeforeUnload = () => {
+        socketRef.current?.emit('presence', { status: 'offline' });
+      };
+
+      // Core connection handlers
+      socketRef.current
+        .on('connect', () => {
           setIsConnected(true);
           setConnectionError('');
-          const token = localStorage.getItem('authToken');
-          if (token) {
-            socketRef.current?.emit('authenticate', { token });
-          }
-        });
-
-        socketRef.current.on('disconnect', () => {
+          socketRef.current?.emit('presence', { status: 'online' });
+        })
+        .on('disconnect', (reason) => {
           setIsConnected(false);
-          setConnectionError('Reconnecting...');
-        });
-
-        socketRef.current.on('connect_error', (err) => {
+          setConnectionError(reason === 'io server disconnect' 
+            ? 'Disconnected by server' 
+            : 'Reconnecting...');
+        })
+        .on('connect_error', (err) => {
           setIsConnected(false);
           setConnectionError(err.message);
           setTimeout(() => socketRef.current?.connect(), 5000);
         });
-      }
+
+      // Setup presence tracking
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+
+      // Cleanup function
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        
+        if (socketRef.current) {
+          socketRef.current.off('connect');
+          socketRef.current.off('disconnect');
+          socketRef.current.off('connect_error');
+          socketRef.current.disconnect();
+        }
+      };
     };
 
-    initializeSocket();
+    if (!socketRef.current) {
+      initializeSocket();
+    }
 
     return () => {
       // Keep connection alive between page navigations
-      // socketRef.current?.disconnect();
+      // Only clean up when provider unmounts (app closes)
     };
   }, []);
 

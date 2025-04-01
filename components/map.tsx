@@ -15,6 +15,7 @@ interface User {
   image: string;  
 
 }
+
 interface Ticket {
   id: string;
   lat: number;
@@ -22,6 +23,7 @@ interface Ticket {
   message: string;
   creatorId: string;
   creatorName: string;
+  createdAt: number; // Change from Date to number
 }
 
 
@@ -180,7 +182,16 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         }
       ]
     }
-  ];const generatePersistentOffset = useCallback((userId: string, realLat: number, realLng: number) => {
+  ];
+  
+  
+  const generatePersistentOffset = useCallback((userId: string, realLat: number, realLng: number) => {
+    // Add bounds checking for coordinates
+    if (Math.abs(realLat) > 90 || Math.abs(realLng) > 180) {
+      console.error('Invalid coordinates received', realLat, realLng);
+      return { lat: 0, lng: 0 };
+    }
+  
     if (!locationCache.current.has(userId)) {
       const seed = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const randomOffset = (seed % 10) * 0.0001;
@@ -194,15 +205,17 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   
   const debouncedLocationUpdate = useMemo(
     () => debounce((lat: number, lng: number) => {
-      setCurrentLocation({ lat, lng });
-      socket?.emit('user-location', { 
-        lat, 
-        lng, 
-        role: userRole || 'user', 
-        name: userName || 'Anonymous',
-        image: userImage || '/default-avatar.png'
-      });
-    }, 500), 
+      if (socket?.connected) {
+        setCurrentLocation({ lat, lng });
+        socket.volatile.emit('user-location', {  // Use volatile for unreliable but frequent updates
+          lat: Number(lat.toFixed(6)),
+          lng: Number(lng.toFixed(6)),
+          role: userRole || 'user',
+          name: userName || 'Anonymous',
+          image: userImage || '/default-avatar.png'
+        });
+      }
+    }, 500),
     [socket, userRole, userName, userImage]
   );
   
@@ -210,83 +223,120 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
     localStorage.setItem('isVisible', JSON.stringify(newVisibility));
-    socket?.emit('visibility-change', newVisibility);
-  }, [socket, isVisible]);
+    if (socket?.connected) {
+      socket.emit('visibility-change', { 
+        isVisible: newVisibility,
+        lastLocation: currentLocation 
+      });
+    }
+  }, [socket, isVisible, currentLocation]);
   
   useEffect(() => {
-    // Cleanup debounce on unmount
-    return () => debouncedLocationUpdate.cancel();
-  }, [debouncedLocationUpdate]);
-  
-  useEffect(() => {
+    const abortController = new AbortController();
+    
     const fetchUserDetails = async () => {
       try {
-        const response = await fetch("/api/profile");
-        if (!response.ok) throw new Error('Profile fetch failed');
+        const response = await fetch("/api/profile", {
+          signal: abortController.signal,
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        setUserRole(data.role);
-        setUserName(data.name);
-        setUserImage(data.image);
+        setUserRole(data.role?.trim() || 'user');
+        setUserName(data.name?.trim() || 'Anonymous');
+        setUserImage(data.image || '/default-avatar.png');
       } catch (error) {
-        console.error("Profile fetch error:", error);
+        if (!abortController.signal.aborted) {
+          console.error("Profile fetch error:", error);
+        }
       }
     };
   
     const storedVisibility = localStorage.getItem("isVisible");
     setIsVisible(storedVisibility ? JSON.parse(storedVisibility) : true);
+    
     fetchUserDetails();
+    return () => abortController.abort();
   }, []);
   
   useEffect(() => {
-    if (!socket || !isConnected) return;
+    if (!socket?.connected) return;
   
-    const handleLocationUpdate = () => {
-      navigator.geolocation.getCurrentPosition(
-        position => debouncedLocationUpdate(
-          position.coords.latitude,
-          position.coords.longitude
-        ),
-        error => {
-          console.error("Geolocation error:", error);
-          if (error.code === error.PERMISSION_DENIED) {
-            setCurrentLocation(null);
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
+    const handleLocationSuccess = (position: GeolocationPosition) => {
+      debouncedLocationUpdate(
+        position.coords.latitude,
+        position.coords.longitude
       );
     };
   
-    // Initial update
-    handleLocationUpdate();
-    
-    // Periodic updates every 15 seconds
-    const locationInterval = setInterval(handleLocationUpdate, 15000);
-    
-    // Socket event handlers
-    const handleNearbyUsers = (users: User[]) => {
-      const processedUsers = users.map(user => ({
-        ...user,
-        ...generatePersistentOffset(user.id, user.lat, user.lng)
-      }));
-      setNearbyUsers(processedUsers);
+    const handleLocationError = (error: GeolocationPositionError) => {
+      console.error("Geolocation error:", error);
+      if (error.code === error.PERMISSION_DENIED) {
+        socket.emit('location-error', 'permission-denied');
+        setCurrentLocation(null);
+      }
     };
   
-    socket.on('connect', handleLocationUpdate);
-    socket.on('nearby-users', handleNearbyUsers);
-    socket.on('new-ticket', (ticket: Ticket) => {
-      setTickets(prev => [...prev, ticket]);
-    });    
-    socket.on('all-tickets', (tickets: Ticket[]) => {
-      setTickets(tickets);
+    const handleLocationUpdate = () => {
+      navigator.geolocation.getCurrentPosition(
+        handleLocationSuccess,
+        handleLocationError,
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    };
+  
+    // Initial update with status check
+    if (navigator.geolocation) {
+      handleLocationUpdate();
+    } else {
+      socket.emit('location-error', 'unsupported');
+    }
+  
+    // Setup periodic updates
+    const locationInterval = setInterval(handleLocationUpdate, 15000);
+    const watchdogInterval = setInterval(() => {
+      if (!socket.connected) {
+        socket.connect();
+      }
+    }, 5000);
+  
+    // Event listeners with error handling
+    const handleNearbyUsers = (users: User[]) => {
+      setNearbyUsers(users.map(user => ({
+        ...user,
+        ...generatePersistentOffset(user.id, user.lat, user.lng)
+      })));
+    };
+  
+    const safeListeners = {
+      connect: () => {
+        handleLocationUpdate();
+        socket.emit('presence', 'active');
+      },
+      'nearby-users': handleNearbyUsers,
+      'new-ticket': (ticket: Ticket) => {
+        setTickets(prev => [...prev, ticket]);
+      },
+      
+'all-tickets': (tickets: Ticket[]) => {
+  setTickets(tickets.filter(t => 
+    Date.now() - t.createdAt < 3600000 // Direct timestamp comparison
+  ));
+}
+    };
+  
+    Object.entries(safeListeners).forEach(([event, handler]) => {
+      socket.on(event, handler);
     });
+  
     return () => {
       clearInterval(locationInterval);
-      socket.off('connect', handleLocationUpdate);
-      socket.off('nearby-users', handleNearbyUsers);
-      socket.off('new-ticket');
-      socket.off('all-tickets');
+      clearInterval(watchdogInterval);
+      Object.entries(safeListeners).forEach(([event, handler]) => {
+        socket.off(event, handler);
+      });
     };
-  }, [socket, isConnected, debouncedLocationUpdate, generatePersistentOffset]);
+  }, [socket, debouncedLocationUpdate, generatePersistentOffset]);
   
   const handleTicketSubmit = () => {
     if (currentLocation && newTicketMessage.trim()) {
@@ -297,6 +347,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         message: newTicketMessage,
         creatorId: socket?.id || 'unknown',
         creatorName: userName || 'Anonymous',
+        createdAt: Date.now() // Store as timestamp
       };
       socket?.emit('create-ticket', ticket);
       setNewTicketMessage('');
