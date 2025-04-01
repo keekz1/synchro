@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import io from 'socket.io-client';
 import { debounce } from 'lodash'; // Import debounce function
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, Marker, useJsApiLoader, Circle } from '@react-google-maps/api';
 
-import { useSocket } from '@/contexts/socket-context';
 
 
 interface User {
@@ -15,7 +15,6 @@ interface User {
   image: string;  
 
 }
-
 interface Ticket {
   id: string;
   lat: number;
@@ -23,26 +22,26 @@ interface Ticket {
   message: string;
   creatorId: string;
   creatorName: string;
-  createdAt: number; 
 }
 
 
 const MapComponent: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
+  const [isConnecting, setIsConnecting] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null); // State to store the role
   const [userName, setUserName] = useState<string | null>(null);
   const [userImage, setUserImage] = useState<string | null>(null); // State to store the role
   const [tickets, setTickets] = useState<Ticket[]>([]);
 const [newTicketMessage, setNewTicketMessage] = useState('');
 const [isCreatingTicket, setIsCreatingTicket] = useState(false);
-const [connectionTimeout, setConnectionTimeout] = useState(false);
 
   const [isVisible, setIsVisible] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
 
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
-  const { socket, isConnected, connectionError } = useSocket();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -185,12 +184,13 @@ const [connectionTimeout, setConnectionTimeout] = useState(false);
     }
   ];
   
-  const generatePersistentOffset = useCallback((userId: string, realLat: number, realLng: number) => {
-    if (Math.abs(realLat) > 90 || Math.abs(realLng) > 180) {
-      console.error('Invalid coordinates received', realLat, realLng);
-      return { lat: 0, lng: 0 };
-    }
   
+  const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
+    if (!userId) {
+      console.error("generatePersistentOffset received an undefined userId");
+      return { lat: realLat, lng: realLng }; // Fallback to real coordinates
+    }
+
     if (!locationCache.current.has(userId)) {
       const seed = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const randomOffset = (seed % 10) * 0.0001;
@@ -201,186 +201,140 @@ const [connectionTimeout, setConnectionTimeout] = useState(false);
     }
     return locationCache.current.get(userId)!;
   }, []);
-  
-  // Update the location in localStorage when it changes
+
   const debouncedLocationUpdate = useMemo(
     () => debounce((lat: number, lng: number) => {
-      if (socket?.connected) {
-        setCurrentLocation({ lat, lng });
-        localStorage.setItem('userLocation', JSON.stringify({ lat, lng }));  // Save to localStorage
-        socket.volatile.emit('user-location', {
-          lat: Number(lat.toFixed(6)),
-          lng: Number(lng.toFixed(6)),
-          role: userRole || 'user',
-          name: userName || 'Anonymous',
-          image: userImage || '/default-avatar.png'
-        });
+      setCurrentLocation({ lat, lng });
+      if (socketRef.current && userRole) {
+        socketRef.current.emit('user-location', { lat, lng, role: userRole, name: userName, image: userImage });
       }
-    }, 500),
-    [socket, userRole, userName, userImage]
+    }, 500), [userRole, userName, userImage] // Added dependencies
   );
   
+
   const handleVisibilityToggle = useCallback(() => {
-    const newVisibility = !isVisible;
-    setIsVisible(newVisibility);
-    localStorage.setItem('isVisible', JSON.stringify(newVisibility));
-    socket?.emit('visibility-change', { 
-      isVisible: newVisibility,
-      lastLocation: currentLocation 
+    setIsVisible((prev) => {
+      const newVisibility = !prev;
+      localStorage.setItem('isVisible', JSON.stringify(newVisibility));
+      socketRef.current?.emit('visibility-change', newVisibility);
+      return newVisibility;
     });
-  }, [socket, isVisible, currentLocation]);
+  }, []);
   
-  // Connection and geolocation handlers
-  const handleLocationSuccess = useCallback((position: GeolocationPosition) => {
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-    setCurrentLocation({ lat, lng });
-    debouncedLocationUpdate(lat, lng);
-  }, [debouncedLocationUpdate]);
-  
-  const handleLocationError = useCallback((error: GeolocationPositionError) => {
-    console.error("Geolocation error:", error);
-    if (error.code === error.PERMISSION_DENIED) {
-      socket?.emit('location-error', 'permission-denied');
-      setCurrentLocation(null);
-    }
-  }, [socket]);
-  
-  // On component mount, check if location is already saved in localStorage
+
   useEffect(() => {
-    const storedLocation = localStorage.getItem('userLocation');
-    if (storedLocation) {
-      const location = JSON.parse(storedLocation);
-      setCurrentLocation(location);
-    } else {
-      navigator.geolocation.getCurrentPosition(handleLocationSuccess, handleLocationError);
-    }
-  }, [handleLocationSuccess, handleLocationError]);
-  
-  // Store user details
-  useEffect(() => {
-    const abortController = new AbortController();
+    setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
+
     const fetchUserDetails = async () => {
       try {
-        const response = await fetch("/api/profile", {
-          signal: abortController.signal,
-          credentials: 'include'
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const response = await fetch("/api/profile");
         const data = await response.json();
-        setUserRole(data.role?.trim() || 'user');
-        setUserName(data.name?.trim() || 'Anonymous');
-        setUserImage(data.image || '/default-avatar.png');
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch user role");
+        }
+        setUserRole(data.role);
+        setUserName(data.name);
+        setUserImage(data.image);
       } catch (error) {
-        if (!abortController.signal.aborted) {
-          console.error("Profile fetch error:", error);
-        }
+        console.error("Error fetching user role:", error);
       }
     };
+
     fetchUserDetails();
-    return () => abortController.abort();
-  }, []);
-  
-  // Visibility logic
-  useEffect(() => {
-    const storedVisibility = localStorage.getItem("isVisible");
-    setIsVisible(storedVisibility ? JSON.parse(storedVisibility) : true);
-  }, []);
-  
-  // Connection timeout
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (!isConnected) setConnectionTimeout(true);
-    }, 10000);
-  
-    return () => clearTimeout(timeout);
-  }, [isConnected]);
-  
-  // Permissions check
-  useEffect(() => {
-    if (navigator.permissions) {
-      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        if (result.state === 'denied') {
-          setCurrentLocation(null);
-          console.error('Geolocation permission denied');
+
+    const socket = io("https://backendfst1.onrender.com", {
+      transports: ["websocket"],
+      timeout: 20000,
+      reconnectionAttempts: 5,
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      setIsConnecting(false);
+      setMapError(null);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const realLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+          debouncedLocationUpdate(realLocation.lat, realLocation.lng);
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          setMapError("Enable location permissions to use this feature");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+
+    socket.on("connect_error", () => {
+      setMapError("Connection issues - retrying...");
+      setIsConnecting(true);
+    });
+
+    socket.on("disconnect", () => {
+      setMapError("Reconnecting...");
+      setIsConnecting(true);
+    });
+
+    socket.on("nearby-users", (data: User[]) => {
+      const uniqueUsers = new Map<string, User>();
+      data.forEach((user) => {
+        if (!uniqueUsers.has(user.id)) {
+          uniqueUsers.set(user.id, { ...user, ...generatePersistentOffset(user.id, user.lat, user.lng) });
         }
       });
-    }
-  }, []);
-  
-  // Socket events and location updates
-  useEffect(() => {
-    if (!socket) return;
-  
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !socket.connected) {
-        socket.connect();
-      }
-    };
-  
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => window.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [socket]);
-  
-  useEffect(() => {
-    if (!socket?.connected) return;
-  
-    const handleLocationUpdate = () => {
-      navigator.geolocation.getCurrentPosition(
-        handleLocationSuccess,
-        handleLocationError,
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    };
-  
-    if (navigator.geolocation) {
-      handleLocationUpdate();
-    } else {
-      socket.emit('location-error', 'unsupported');
-    }
-  
-    const locationInterval = setInterval(handleLocationUpdate, 15000);
-    const heartbeatInterval = setInterval(() => {
-      if (socket.connected) socket.emit('heartbeat');
-    }, 20000);
-  
-    const handleNearbyUsers = (users: User[]) => {
-      setNearbyUsers(users.map(user => ({
-        ...user,
-        ...generatePersistentOffset(user.id, user.lat, user.lng)
-      })));
-    };
-  
-    const safeListeners = {
-      connect: () => {
-        handleLocationUpdate();
-        socket.emit('presence', 'active');
-        socket.emit('visibility-change', {
-          isVisible: JSON.parse(localStorage.getItem('isVisible') ?? 'true')
-        });
-      },
-      'nearby-users': handleNearbyUsers,
-      'new-ticket': (ticket: Ticket) => setTickets(prev => [...prev, ticket]),
-      'all-tickets': (tickets: Ticket[]) => {
-        setTickets(tickets.filter(t => Date.now() - t.createdAt < 3600000));
-      }
-    };
-  
-    Object.entries(safeListeners).forEach(([event, handler]) => {
-      socket.on(event, handler);
+      setNearbyUsers(Array.from(uniqueUsers.values()));
     });
-  
+
+    socket.on("new-ticket", (ticket: Ticket) => {
+      setTickets((prevTickets) => [...prevTickets, ticket]);
+    });
+
+    socket.on("all-tickets", (tickets: Ticket[]) => {
+      setTickets(tickets);
+    });
+
     return () => {
-      clearInterval(locationInterval);
-      clearInterval(heartbeatInterval);
-      Object.entries(safeListeners).forEach(([event, handler]) => {
-        socket.off(event, handler);
-      });
-      socket.emit('presence', 'away');
+      socket.disconnect();
+      socketRef.current = null;
+      locationCache.current.clear();
+      setCurrentLocation(null);
+      setNearbyUsers([]);
     };
-  }, [socket, debouncedLocationUpdate, generatePersistentOffset, handleLocationSuccess, handleLocationError]);
+    
+  }, [isLoaded, generatePersistentOffset, userRole, debouncedLocationUpdate]);
+
   
-  // Ticket handlers
+  const handleCreateTicket = () => {
+    setIsCreatingTicket((prev) => !prev);
+  };
+
+ 
+  const handleMapLoad = (map: google.maps.Map): void => {
+    // Perform necessary actions with the map instance
+    console.log("Map loaded", map);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isCreatingTicket &&
+        mapContainerRef.current &&
+        !mapContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsCreatingTicket(false);
+      }
+    };
+
+    if (isCreatingTicket) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCreatingTicket]);
+
   const handleTicketSubmit = () => {
     if (currentLocation && newTicketMessage.trim()) {
       const ticket: Ticket = {
@@ -388,38 +342,22 @@ const [connectionTimeout, setConnectionTimeout] = useState(false);
         lat: currentLocation.lat,
         lng: currentLocation.lng,
         message: newTicketMessage,
-        creatorId: socket?.id || 'unknown',
-        creatorName: userName || 'Anonymous',
-        createdAt: Date.now()
+        creatorId: socketRef.current?.id || 'unknown',
+        creatorName: userName || 'unknown',
       };
-      socket?.emit('create-ticket', ticket);
+      socketRef.current?.emit('create-ticket', ticket);
       setNewTicketMessage('');
       setIsCreatingTicket(false);
     }
   };
 
-  const handleCreateTicket = () => {
-    setIsCreatingTicket((prev) => !prev);
-  };
 
-  // Render states
-  if (connectionTimeout) return (
-    <div className={styles.error}>
-      Connection failed - Please check your network
-      <button onClick={() => window.location.reload()}>Reload</button>
-    </div>
-  );
 
   if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
-  
-  if (!isConnected) return (
-    <div className={styles.error}>
-      {connectionError || 'Connecting to server...'}
-      <button onClick={() => socket?.connect()}>Retry Connection</button>
-    </div>
-  );
-
+  if (isConnecting) return <div className={styles.loading}>Connecting to server...</div>;
+  if (mapError) return <div className={styles.error}>{mapError}</div>;
   if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
+
 
   return (
     <div className={styles.container} ref={mapContainerRef}>
@@ -428,6 +366,7 @@ const [connectionTimeout, setConnectionTimeout] = useState(false);
         center={currentLocation}
         zoom={13}
         options={{ disableDefaultUI: true, styles: mapStyle }}
+        onLoad={handleMapLoad}
       >
         {isVisible && (
           <>
@@ -446,10 +385,10 @@ const [connectionTimeout, setConnectionTimeout] = useState(false);
         
           </>
         )}
-      </GoogleMap>
 
 
-      <div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
+
+<div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
         <h3>Tickets</h3>
         {tickets.length > 0 ? (
           tickets.map((ticket) => (
@@ -470,6 +409,8 @@ const [connectionTimeout, setConnectionTimeout] = useState(false);
       </button>
  
 
+
+      </GoogleMap>
       <FloatingChat />
       <button onClick={handleVisibilityToggle} className={styles.toggleButton}>
         {isVisible ? 'Hide your Location' : 'Show Location'}
