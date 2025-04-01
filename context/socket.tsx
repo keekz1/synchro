@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useRef } from 'react';
+'use client'; // Add this directive at the top
+
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 type SocketContextType = {
@@ -8,27 +10,27 @@ type SocketContextType = {
 const SocketContext = createContext<SocketContextType>({ socket: null });
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-  const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    // Initialize socket connection only on client side
-    if (typeof window !== 'undefined') {
-      socketRef.current = io('https://backendfst1.onrender.com', {
-        transports: ['websocket'],
-        timeout: 20000,
-        reconnectionAttempts: 5,
-      });
-    }
+    // Initialize socket connection
+    const socketInstance = io('https://backendfst1.onrender.com', {
+      transports: ['websocket'],
+      timeout: 20000,
+      reconnectionAttempts: 5,
+    });
+
+    setSocket(socketInstance);
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
+      if (socketInstance) {
+        socketInstance.disconnect();
       }
     };
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current }}>
+    <SocketContext.Provider value={{ socket }}>
       {children}
     </SocketContext.Provider>
   );
@@ -37,7 +39,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (context === undefined) {
-    throw new Error('useSocket mut be used within a SocketProvider');
+    throw new Error('useSocket must be used within a SocketProvider');
   }
   return context.socket;
 };
