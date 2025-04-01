@@ -6,7 +6,7 @@
   }
   
   .discord-navbar {
-    background: #CCE5FF;
+    background: #1b1c1c;
     height: 100%;
     width: 72px;
     display: flex;
@@ -34,14 +34,14 @@
   .discord-navbar a:hover,
   .discord-navbar a.active {
     border-radius: 25%;
-    background: #7F00FF;
+    background: #0b0b0b;
   }
   
   .discord-navbar hr {
     width: 32px;
     height: 2px;
     border-radius: 196px;
-    background: #7F00FF;
+    background: #151416;
     border: none;
   }
   
