@@ -42,7 +42,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
-  const leaveTimeRef = useRef<number | null>(null); // Reference to track when the user left the page
 
   const SOCKET_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
   const [isOpen, setIsOpen] = useState(false);
