@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// Export GET function properly typed with `NextRequest` as the first argument
-export async function GET(req: NextRequest, { params }: { params: { userId: string } }) {
+// Define GET function properly typed with NextRequest as the first argument
+export async function GET(req: NextRequest, context: { params: { userId: string } }) {
   try {
-    // Destructure the userId from params
-    const { userId } = params;
+    const { userId } = context.params; // Get userId from context.params
 
     // Get unique friendships using Prisma
     const friendships = await db.friendship.findMany({
@@ -33,12 +32,10 @@ export async function GET(req: NextRequest, { params }: { params: { userId: stri
       return [friend];
     });
 
-    // Return the friends data as JSON
     return NextResponse.json(friends, { status: 200 });
 
   } catch (error) {
     console.error("[FRIENDS_GET]", error);
-    // Handle errors and send a proper response
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
