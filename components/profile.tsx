@@ -38,7 +38,7 @@ export default function Profile({ user }: ProfileProps) {
       } else {
         setMessage(`Error: ${data.message}`);
       }
-    } catch (error) {
+    } catch  {
       setMessage("Something went wrong.");
     } finally {
       setLoading(false);
