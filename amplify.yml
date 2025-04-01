@@ -32,7 +32,7 @@ frontend:
         - export NODE_OPTIONS="--max-old-space-size=8192"
 
         # Ensure Prisma client is generated before Next.js build
-        - npx prisma generate --no-engine
+        - npx prisma generate 
         
         # Clean cache to free memory
         - rm -rf .next .swc node_modules/.cache
