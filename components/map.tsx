@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import io from 'socket.io-client';
 import { debounce } from 'lodash'; // Import debounce function
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
