@@ -42,7 +42,9 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
+  const leaveTimeRef = useRef<number | null>(null); // Reference to track when the user left the page
 
+  const SOCKET_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
   const [isOpen, setIsOpen] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
@@ -183,8 +185,25 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       ]
     }
   ];
+  const handleBeforeUnload = () => {
+    localStorage.setItem("lastLeaveTime", Date.now().toString());
+  };
+
+  // Check if the user was away for more than 1 hour
+  const checkSocketTimeout = () => {
+    const lastLeaveTime = localStorage.getItem("lastLeaveTime");
+    const currentTime = Date.now();
+    if (lastLeaveTime && currentTime - parseInt(lastLeaveTime) > SOCKET_TIMEOUT) {
+      // Disconnect the socket if more than 1 hour has passed
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        console.log("Socket disconnected due to inactivity.");
+      }
+    }
+  };
   
-  
+    // generatePersistentOffset with caching logic
   const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
     if (!userId) {
       console.error("generatePersistentOffset received an undefined userId");
@@ -202,15 +221,15 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     return locationCache.current.get(userId)!;
   }, []);
 
+  // Debounced location update
   const debouncedLocationUpdate = useMemo(
     () => debounce((lat: number, lng: number) => {
       setCurrentLocation({ lat, lng });
       if (socketRef.current && userRole) {
         socketRef.current.emit('user-location', { lat, lng, role: userRole, name: userName, image: userImage });
       }
-    }, 500), [userRole, userName, userImage] // Added dependencies
+    }, 500), [userRole, userName, userImage]
   );
-  
 
   const handleVisibilityToggle = useCallback(() => {
     setIsVisible((prev) => {
@@ -220,7 +239,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       return newVisibility;
     });
   }, []);
-  
 
   useEffect(() => {
     setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
@@ -241,6 +259,9 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     };
 
     fetchUserDetails();
+
+    // Checking if the user was away for more than 1 hour
+    checkSocketTimeout();
 
     const socket = io("https://backendfst1.onrender.com", {
       transports: ["websocket"],
@@ -294,46 +315,22 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       setTickets(tickets);
     });
 
+    // Listen for page unload event to save the leave time
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
       locationCache.current.clear();
       setCurrentLocation(null);
       setNearbyUsers([]);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-    
   }, [isLoaded, generatePersistentOffset, userRole, debouncedLocationUpdate]);
 
-  
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
   };
-
- 
-  const handleMapLoad = (map: google.maps.Map): void => {
-    // Perform necessary actions with the map instance
-    console.log("Map loaded", map);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isCreatingTicket &&
-        mapContainerRef.current &&
-        !mapContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsCreatingTicket(false);
-      }
-    };
-
-    if (isCreatingTicket) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isCreatingTicket]);
 
   const handleTicketSubmit = () => {
     if (currentLocation && newTicketMessage.trim()) {
@@ -350,8 +347,11 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       setIsCreatingTicket(false);
     }
   };
-
-
+   
+  const handleMapLoad = (map: google.maps.Map): void => {
+    // Perform necessary actions with the map instance
+    console.log("Map loaded", map);
+  };
 
   if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   if (isConnecting) return <div className={styles.loading}>Connecting to server...</div>;
