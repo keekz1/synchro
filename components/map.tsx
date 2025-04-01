@@ -4,6 +4,7 @@ import { debounce } from 'lodash'; // Import debounce function
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, Marker, useJsApiLoader, Circle } from '@react-google-maps/api';
+import { useSocket } from '@/context/socket'; // Assuming you've created the socket context
 
 
 
@@ -39,10 +40,10 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
 
-  const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
-
+  const socket = useSocket();
+  const socketRef = useRef(socket);
   const [isOpen, setIsOpen] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
@@ -188,7 +189,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
     if (!userId) {
       console.error("generatePersistentOffset received an undefined userId");
-      return { lat: realLat, lng: realLng }; // Fallback to real coordinates
+      return { lat: realLat, lng: realLng };
     }
 
     if (!locationCache.current.has(userId)) {
@@ -208,19 +209,29 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       if (socketRef.current && userRole) {
         socketRef.current.emit('user-location', { lat, lng, role: userRole, name: userName, image: userImage });
       }
-    }, 500), [userRole, userName, userImage] // Added dependencies
+    }, 500), [userRole, userName, userImage]
   );
-  
 
   const handleVisibilityToggle = useCallback(() => {
     setIsVisible((prev) => {
       const newVisibility = !prev;
       localStorage.setItem('isVisible', JSON.stringify(newVisibility));
-      socketRef.current?.emit('visibility-change', newVisibility);
+      
+      // Only disconnect if hiding location
+      if (!newVisibility && socketRef.current) {
+        socketRef.current.emit('visibility-change', false);
+        // Optional: You could disconnect here if you want
+        // socketRef.current.disconnect();
+      } else if (newVisibility && socketRef.current) {
+        // Reconnect if showing location again
+        if (!socketRef.current.connected) {
+          socketRef.current.connect();
+        }
+        socketRef.current.emit('visibility-change', true);
+      }
       return newVisibility;
     });
   }, []);
-  
 
   useEffect(() => {
     setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
@@ -242,15 +253,15 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
     fetchUserDetails();
 
-    const socket = io("https://backendfst1.onrender.com", {
-      transports: ["websocket"],
-      timeout: 20000,
-      reconnectionAttempts: 5,
-    });
+    // Initialize socket connection if not already connected
+    if (socketRef.current && !socketRef.current.connected) {
+      socketRef.current.connect();
+    }
 
-    socketRef.current = socket;
+    const currentSocket = socketRef.current;
+    if (!currentSocket) return;
 
-    socket.on("connect", () => {
+    currentSocket.on("connect", () => {
       setIsConnecting(false);
       setMapError(null);
       navigator.geolocation.getCurrentPosition(
@@ -266,17 +277,17 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       );
     });
 
-    socket.on("connect_error", () => {
+    currentSocket.on("connect_error", () => {
       setMapError("Connection issues - retrying...");
       setIsConnecting(true);
     });
 
-    socket.on("disconnect", () => {
+    currentSocket.on("disconnect", () => {
       setMapError("Reconnecting...");
       setIsConnecting(true);
     });
 
-    socket.on("nearby-users", (data: User[]) => {
+    currentSocket.on("nearby-users", (data: User[]) => {
       const uniqueUsers = new Map<string, User>();
       data.forEach((user) => {
         if (!uniqueUsers.has(user.id)) {
@@ -286,24 +297,30 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       setNearbyUsers(Array.from(uniqueUsers.values()));
     });
 
-    socket.on("new-ticket", (ticket: Ticket) => {
+    currentSocket.on("new-ticket", (ticket: Ticket) => {
       setTickets((prevTickets) => [...prevTickets, ticket]);
     });
 
-    socket.on("all-tickets", (tickets: Ticket[]) => {
+    currentSocket.on("all-tickets", (tickets: Ticket[]) => {
       setTickets(tickets);
     });
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      // Only remove event listeners, don't disconnect the socket
+      currentSocket.off("connect");
+      currentSocket.off("connect_error");
+      currentSocket.off("disconnect");
+      currentSocket.off("nearby-users");
+      currentSocket.off("new-ticket");
+      currentSocket.off("all-tickets");
+      
+      // Clear these only if you want to reset them when leaving the page
       locationCache.current.clear();
       setCurrentLocation(null);
       setNearbyUsers([]);
     };
     
   }, [isLoaded, generatePersistentOffset, userRole, debouncedLocationUpdate]);
-
   
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
