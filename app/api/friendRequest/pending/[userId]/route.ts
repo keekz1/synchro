@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// Define the expected type for the context parameter
-interface Context {
-  params: {
-    userId: string;
-  };
-}
-
-export async function GET(request: NextRequest, context: Context) {
+export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
   try {
-    const userId = context.params.userId; // ✅ Correct way to extract userId
+    const userId = params.userId; // Extract userId from params
 
     const requests = await db.friendRequest.findMany({
       where: {
