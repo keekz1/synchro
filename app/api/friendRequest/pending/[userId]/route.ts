@@ -3,29 +3,16 @@ import { db } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
-  context: { params?: { [key: string]: string | string[] } }
+  { params }: { params: { userId: string } } // Exact type match for single dynamic segment
 ) {
   try {
-    // Validate userId existence and type
-    const userId = context.params?.userId;
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Handle array format (even for single segments)
-    const userIdString = Array.isArray(userId)
-      ? userId[0]  // Use first array element if present
-      : userId;
+    const userId = params.userId;
 
     const requests = await db.friendRequest.findMany({
       where: {
         OR: [
-          { senderId: userIdString, status: "pending" },
-          { receiverId: userIdString, status: "pending" },
+          { senderId: userId, status: "pending" },
+          { receiverId: userId, status: "pending" },
         ],
       },
       include: {
