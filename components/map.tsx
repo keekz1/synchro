@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 import { debounce } from 'lodash'; // Import debounce function
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
-import { GoogleMap, Marker, useJsApiLoader, Circle, OverlayView } from '@react-google-maps/api';
+import { GoogleMap, Marker, useJsApiLoader, Circle } from '@react-google-maps/api';
 
 
 
@@ -42,7 +42,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
-  const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
   const [isTicketBoxOpen, setIsTicketBoxOpen] = useState(true);
 
@@ -209,10 +208,11 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     () => debounce((lat: number, lng: number) => {
       setCurrentLocation({ lat, lng });
       if (socketRef.current && userRole) {
-        socketRef.current.emit('user-location', { lat, lng, role: userRole,name: userName, image: userImage});
+        socketRef.current.emit('user-location', { lat, lng, role: userRole, name: userName, image: userImage });
       }
-    }, 500), [userRole]
+    }, 500), [userRole, userName, userImage] // Added dependencies
   );
+  
 
   const handleVisibilityToggle = useCallback(() => {
     setIsVisible((prev) => {
