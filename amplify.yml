@@ -10,7 +10,7 @@ backend:
         - npm install --save-dev eslint
 
         # Generate Prisma client early
-        - npx prisma generate --no-engine
+        - npx prisma generate 
 
         # Install dependencies with minimal resource usage
         - npm ci --no-audit --prefer-offline --ignore-scripts
