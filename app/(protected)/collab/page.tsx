@@ -21,7 +21,7 @@ interface User {
 }
 
 const CollabPage = () => {
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSession() || {};
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,9 +132,10 @@ const CollabPage = () => {
     );
   };
 
-  if (status === "loading") return <div>Loading...</div>;
-  if (status === "unauthenticated") return <div>Please log in to view this page.</div>;
-
+  if (status === "loading" || !session?.user?.id) {
+    return <div>Loading...</div>;
+  }
+  
   return (
     <div className="collab-page">
       <nav className="discord-navbar">
