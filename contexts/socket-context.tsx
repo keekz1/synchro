@@ -15,81 +15,47 @@ const SocketContext = createContext<SocketContextType>({
 });
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-  const socketRef = useRef<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState('');
-
-  useEffect(() => {
-    const initializeSocket = () => {
+    const socketRef = useRef<Socket | null>(null);
+    const [isConnected, setIsConnected] = useState(false);
+    const [connectionError, setConnectionError] = useState('');
+  
+    useEffect(() => {
       const token = localStorage.getItem('authToken');
-      
       socketRef.current = io("https://backendfst1.onrender.com", {
         transports: ["websocket"],
         auth: { token },
         timeout: 20000,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: Infinity,
         autoConnect: true,
       });
-
-      // Presence tracking handlers
+  
+      // Presence tracking
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'hidden') {
-          socketRef.current?.emit('presence', { status: 'away' });
+          socketRef.current?.emit('presence', 'away');
         } else {
-          socketRef.current?.emit('presence', { status: 'online' });
+          socketRef.current?.emit('presence', 'active');
         }
       };
-
-      const handleBeforeUnload = () => {
-        socketRef.current?.emit('presence', { status: 'offline' });
-      };
-
-      // Core connection handlers
-      socketRef.current
-        .on('connect', () => {
-          setIsConnected(true);
-          setConnectionError('');
-          socketRef.current?.emit('presence', { status: 'online' });
-        })
-        .on('disconnect', (reason) => {
-          setIsConnected(false);
-          setConnectionError(reason === 'io server disconnect' 
-            ? 'Disconnected by server' 
-            : 'Reconnecting...');
-        })
-        .on('connect_error', (err) => {
-          setIsConnected(false);
-          setConnectionError(err.message);
-          setTimeout(() => socketRef.current?.connect(), 5000);
-        });
-
-      // Setup presence tracking
+  
+      // Heartbeat system
+      const heartbeatInterval = setInterval(() => {
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('heartbeat');
+        }
+      }, 20000);
+  
       document.addEventListener('visibilitychange', handleVisibilityChange);
-      window.addEventListener('beforeunload', handleBeforeUnload);
-
-      // Cleanup function
+  
       return () => {
+        clearInterval(heartbeatInterval);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        
-        if (socketRef.current) {
-          socketRef.current.off('connect');
-          socketRef.current.off('disconnect');
-          socketRef.current.off('connect_error');
-          socketRef.current.disconnect();
-        }
+        // Only disconnect on app close, not page navigation
+        socketRef.current?.off('connect');
+        socketRef.current?.off('disconnect');
+        socketRef.current?.disconnect();
       };
-    };
-
-    if (!socketRef.current) {
-      initializeSocket();
-    }
-
-    return () => {
-      // Keep connection alive between page navigations
-      // Only clean up when provider unmounts (app closes)
-    };
-  }, []);
+    }, []);
 
   return (
     <SocketContext.Provider value={{ 
