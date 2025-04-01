@@ -4,6 +4,7 @@ import { debounce } from 'lodash'; // Import debounce function
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, Marker, useJsApiLoader, Circle } from '@react-google-maps/api';
+let persistentSocket: ReturnType<typeof io> | null = null;
 
 
 
@@ -38,7 +39,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
   const [isVisible, setIsVisible] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
-  let socket: ReturnType<typeof io> | null = null; // Global variable
 
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
@@ -184,20 +184,11 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       ]
     }
   ];
-  const handleBeforeUnload = () => {
-    localStorage.setItem("lastLeaveTime", Date.now().toString());
-  };
-
-  // Check if the user was away for more than 1 hour
-
-
-  // generatePersistentOffset with caching logic
+  
+  
   const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
-    if (!userId) {
-      console.error("generatePersistentOffset received an undefined userId");
-      return { lat: realLat, lng: realLng }; // Fallback to real coordinates
-    }
-
+    if (!userId) return { lat: realLat, lng: realLng };
+    
     if (!locationCache.current.has(userId)) {
       const seed = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const randomOffset = (seed % 10) * 0.0001;
@@ -209,12 +200,17 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     return locationCache.current.get(userId)!;
   }, []);
 
-  // Debounced location update
   const debouncedLocationUpdate = useMemo(
     () => debounce((lat: number, lng: number) => {
       setCurrentLocation({ lat, lng });
-      if (socketRef.current && userRole) {
-        socketRef.current.emit('user-location', { lat, lng, role: userRole, name: userName, image: userImage });
+      if (socketRef.current?.connected && userRole) {
+        socketRef.current.emit('user-location', { 
+          lat, 
+          lng, 
+          role: userRole, 
+          name: userName, 
+          image: userImage 
+        });
       }
     }, 500), [userRole, userName, userImage]
   );
@@ -227,94 +223,136 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       return newVisibility;
     });
   }, []);
-useEffect(() => {
-  setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
 
-  const fetchUserDetails = async () => {
-    try {
-      const response = await fetch("/api/profile");
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to fetch user details");
-  
-      console.log("Fetched user details:", data); // Debugging log
-  
-      setUserRole(data.role);
-      setUserName(data.name);
-      setUserImage(data.image); // Ensure this is not null or undefined
-    } catch (error) {
-      console.error("Error fetching user details:", error);
-    }
-  };
-  
+  useEffect(() => {
+    const initializeSocket = () => {
+      if (!persistentSocket) {
+        persistentSocket = io("https://backendfst1.onrender.com", {
+          transports: ["websocket"],
+          timeout: 20000,
+          reconnectionAttempts: 5,
+        });
+      }
+      return persistentSocket;
+    };
 
-  fetchUserDetails();
+    const socket = initializeSocket();
+    socketRef.current = socket;
 
-  // Check if the socket already exists before creating a new connection
-  if (!socket) {
-    socket = io("https://backendfst1.onrender.com", {
-      transports: ["websocket"],
-      timeout: 20000,
-      reconnectionAttempts: 5,
-    });
+    const fetchUserDetails = async () => {
+      try {
+        const response = await fetch("/api/profile");
+        const data = await response.json();
+        if (response.ok) {
+          setUserRole(data.role);
+          setUserName(data.name);
+          setUserImage(data.image);
+        }
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      }
+    };
 
-    socket.on("connect", () => {
+    fetchUserDetails();
+    setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
+
+    // Socket event handlers
+    const handleConnect = () => {
       setIsConnecting(false);
       setMapError(null);
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const realLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+          const realLocation = { 
+            lat: position.coords.latitude, 
+            lng: position.coords.longitude 
+          };
           debouncedLocationUpdate(realLocation.lat, realLocation.lng);
         },
         (error) => {
-          console.error("Geolocation error:", error);
           setMapError("Enable location permissions to use this feature");
+          console.error("Geolocation error:", error);
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
-    });
+    };
 
-    socket.on("connect_error", () => {
+    const handleConnectError = () => {
       setMapError("Connection issues - retrying...");
       setIsConnecting(true);
-    });
+    };
 
-    socket.on("nearby-users", (data: User[]) => {
-      console.log("Nearby users received:", data); // Debugging log
-    
+    const handleDisconnect = () => {
+      setMapError("Reconnecting...");
+      setIsConnecting(true);
+    };
+
+    const handleNearbyUsers = (data: User[]) => {
       const uniqueUsers = new Map<string, User>();
       data.forEach((user) => {
         if (!uniqueUsers.has(user.id)) {
-          uniqueUsers.set(user.id, {
-            ...user,
-            ...generatePersistentOffset(user.id, user.lat, user.lng),
-            image: user.image || "default-avatar.png", // Ensure fallback image
+          uniqueUsers.set(user.id, { 
+            ...user, 
+            ...generatePersistentOffset(user.id, user.lat, user.lng) 
           });
         }
       });
       setNearbyUsers(Array.from(uniqueUsers.values()));
-    });
-    
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("connect_error", handleConnectError);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("nearby-users", handleNearbyUsers);
+    socket.on("all-tickets", setTickets);
     socket.on("new-ticket", (ticket: Ticket) => {
-      setTickets((prevTickets) => [...prevTickets, ticket]);
+      setTickets(prev => [...prev, ticket]);
     });
 
-    socket.on("all-tickets", (tickets: Ticket[]) => {
-      setTickets(tickets);
-    });
-  }
+    return () => {
+      // Cleanup listeners but keep socket connected
+      socket.off("connect", handleConnect);
+      socket.off("connect_error", handleConnectError);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("nearby-users", handleNearbyUsers);
+      socket.off("all-tickets", setTickets);
+      socket.off("new-ticket");
+      
+      locationCache.current.clear();
+      setCurrentLocation(null);
+      setNearbyUsers([]);
+    };
+  }, [isLoaded, generatePersistentOffset, debouncedLocationUpdate]);
 
-  // Listen for page unload event to save the leave time
-  window.addEventListener("beforeunload", handleBeforeUnload);
-
-  return () => {
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-  };
-}, [isLoaded, generatePersistentOffset, userRole, debouncedLocationUpdate]);
-
-
+  
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
   };
+
+ 
+  const handleMapLoad = (map: google.maps.Map): void => {
+    // Perform necessary actions with the map instance
+    console.log("Map loaded", map);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isCreatingTicket &&
+        mapContainerRef.current &&
+        !mapContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsCreatingTicket(false);
+      }
+    };
+
+    if (isCreatingTicket) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCreatingTicket]);
 
   const handleTicketSubmit = () => {
     if (currentLocation && newTicketMessage.trim()) {
@@ -331,11 +369,8 @@ useEffect(() => {
       setIsCreatingTicket(false);
     }
   };
-   
-  const handleMapLoad = (map: google.maps.Map): void => {
-    // Perform necessary actions with the map instance
-    console.log("Map loaded", map);
-  };
+
+
 
   if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   if (isConnecting) return <div className={styles.loading}>Connecting to server...</div>;
@@ -360,16 +395,12 @@ useEffect(() => {
               options={{ fillColor: '#6600CC', fillOpacity: 0.1, strokeColor: '#FFFFFF', strokeOpacity: 0.5, strokeWeight: 2 }}
             />
             {nearbyUsers.map((user) => (
-  <Marker
-    key={user.id}
-    position={{ lat: user.lat, lng: user.lng }}
-    icon={{
-      url: user.image,  // Ensure this is a valid image URL
-      scaledSize: new window.google.maps.Size(40, 40), // Adjust size as needed
-    }}
-  />
-))}
-
+              <Marker
+                key={user.id}
+                position={{ lat: user.lat, lng: user.lng }}
+                icon={{ url: user.image, scaledSize: new google.maps.Size(40, 40), anchor: new google.maps.Point(20, 40) }}
+              />
+            ))}
         
           </>
         )}
