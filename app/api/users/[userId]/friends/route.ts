@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// Define GET function properly typed with NextRequest as the first argument
-export async function GET(req: NextRequest, context: { params: { userId: string } }) {
+// NextRequest is the correct type for handling requests
+export async function GET(req: NextRequest) {
   try {
-    const { userId } = context.params; // Get userId from context.params
+    // Extracting the userId directly from req.nextUrl.pathname
+    const pathname = req.nextUrl.pathname; // Example: /api/users/123/friends
+    const userId = pathname.split('/')[3]; // Extract userId by splitting the pathname
+
+    // Ensure userId is valid (not undefined or empty)
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
 
     // Get unique friendships using Prisma
     const friendships = await db.friendship.findMany({
