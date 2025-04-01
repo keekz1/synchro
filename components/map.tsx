@@ -44,7 +44,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
 
-  const SOCKET_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
   const [isOpen, setIsOpen] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
