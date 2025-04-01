@@ -43,6 +43,7 @@ const CollabPage = () => {
     const fetchUsersAndFriends = async () => {
       try {
         setLoading(true);
+        console.log("Starting to fetch users and friends...");
 
         // Fetch users and friends in parallel with error handling
         const [usersResponse, friendsResponse] = await Promise.all([
@@ -65,6 +66,7 @@ const CollabPage = () => {
         console.error("Failed to fetch users or friends", error);
       } finally {
         setLoading(false);
+        console.log("Finished fetching users and friends.");
       }
     };
 
@@ -135,7 +137,7 @@ const CollabPage = () => {
   if (status === "loading" || !session?.user?.id) {
     return <div>Loading...</div>;
   }
-  
+
   return (
     <div className="collab-page">
       <nav className="discord-navbar">
