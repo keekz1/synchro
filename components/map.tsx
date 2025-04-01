@@ -180,15 +180,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         }
       ]
     }
-  ];
-  
-  
-  const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
-    if (!userId) {
-      console.error("generatePersistentOffset received an undefined userId");
-      return { lat: realLat, lng: realLng }; // Fallback to real coordinates
-    }
-
+  ];const generatePersistentOffset = useCallback((userId: string, realLat: number, realLng: number) => {
     if (!locationCache.current.has(userId)) {
       const seed = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const randomOffset = (seed % 10) * 0.0001;
@@ -199,113 +191,103 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     }
     return locationCache.current.get(userId)!;
   }, []);
-
+  
   const debouncedLocationUpdate = useMemo(
     () => debounce((lat: number, lng: number) => {
       setCurrentLocation({ lat, lng });
-      if (socket && userRole) {
-        socket.emit('user-location', { lat, lng, role: userRole, name: userName, image: userImage });
-      }
-    }, 500), [socket, userRole, userName, userImage]
+      socket?.emit('user-location', { 
+        lat, 
+        lng, 
+        role: userRole || 'user', 
+        name: userName || 'Anonymous',
+        image: userImage || '/default-avatar.png'
+      });
+    }, 500), 
+    [socket, userRole, userName, userImage]
   );
-
+  
   const handleVisibilityToggle = useCallback(() => {
-    setIsVisible((prev) => {
-      const newVisibility = !prev;
-      localStorage.setItem('isVisible', JSON.stringify(newVisibility));
-      socket?.emit('visibility-change', newVisibility);
-      return newVisibility;
-    });
-  }, [socket]);
-
-
+    const newVisibility = !isVisible;
+    setIsVisible(newVisibility);
+    localStorage.setItem('isVisible', JSON.stringify(newVisibility));
+    socket?.emit('visibility-change', newVisibility);
+  }, [socket, isVisible]);
+  
+  useEffect(() => {
+    // Cleanup debounce on unmount
+    return () => debouncedLocationUpdate.cancel();
+  }, [debouncedLocationUpdate]);
+  
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const response = await fetch("/api/profile");
+        if (!response.ok) throw new Error('Profile fetch failed');
+        const data = await response.json();
+        setUserRole(data.role);
+        setUserName(data.name);
+        setUserImage(data.image);
+      } catch (error) {
+        console.error("Profile fetch error:", error);
+      }
+    };
+  
+    const storedVisibility = localStorage.getItem("isVisible");
+    setIsVisible(storedVisibility ? JSON.parse(storedVisibility) : true);
+    fetchUserDetails();
+  }, []);
+  
   useEffect(() => {
     if (!socket || !isConnected) return;
   
     const handleLocationUpdate = () => {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const realLocation = { 
-            lat: position.coords.latitude, 
-            lng: position.coords.longitude 
-          };
-          debouncedLocationUpdate(realLocation.lat, realLocation.lng);
-        },
-        (error) => {
+        position => debouncedLocationUpdate(
+          position.coords.latitude,
+          position.coords.longitude
+        ),
+        error => {
           console.error("Geolocation error:", error);
-          // Add error state handling
-          setCurrentLocation(null); // Force retry
+          if (error.code === error.PERMISSION_DENIED) {
+            setCurrentLocation(null);
+          }
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
     };
   
-    // Immediate check if already connected
+    // Initial update
     handleLocationUpdate();
     
-    // Add periodic updates
-    const interval = setInterval(handleLocationUpdate, 15000);
+    // Periodic updates every 15 seconds
+    const locationInterval = setInterval(handleLocationUpdate, 15000);
+    
+    // Socket event handlers
+    const handleNearbyUsers = (users: User[]) => {
+      const processedUsers = users.map(user => ({
+        ...user,
+        ...generatePersistentOffset(user.id, user.lat, user.lng)
+      }));
+      setNearbyUsers(processedUsers);
+    };
   
-    // Existing socket listeners...
-  
-    return () => {
-      clearInterval(interval);
-      // Existing cleanup...
-    };
-  }, [socket, isConnected, debouncedLocationUpdate, generatePersistentOffset]);
-
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleLocationUpdate = () => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const realLocation = { 
-            lat: position.coords.latitude, 
-            lng: position.coords.longitude 
-          };
-          debouncedLocationUpdate(realLocation.lat, realLocation.lng);
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          // Use your context error handling instead
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    };
-
-    const handleNearbyUsers = (data: User[]) => {
-      const uniqueUsers = new Map<string, User>();
-      data.forEach((user) => {
-        uniqueUsers.set(user.id, { 
-          ...user, 
-          ...generatePersistentOffset(user.id, user.lat, user.lng) 
-        });
-      });
-      setNearbyUsers(Array.from(uniqueUsers.values()));
-    };
-
     socket.on('connect', handleLocationUpdate);
     socket.on('nearby-users', handleNearbyUsers);
     socket.on('new-ticket', (ticket: Ticket) => {
-      setTickets((prev) => [...prev, ticket]);
-    });
+      setTickets(prev => [...prev, ticket]);
+    });    
     socket.on('all-tickets', (tickets: Ticket[]) => {
       setTickets(tickets);
     });
-
     return () => {
+      clearInterval(locationInterval);
       socket.off('connect', handleLocationUpdate);
       socket.off('nearby-users', handleNearbyUsers);
       socket.off('new-ticket');
       socket.off('all-tickets');
     };
   }, [socket, isConnected, debouncedLocationUpdate, generatePersistentOffset]);
-
-  const handleCreateTicket = () => {
-    setIsCreatingTicket((prev) => !prev);
-  };
-
+  
   const handleTicketSubmit = () => {
     if (currentLocation && newTicketMessage.trim()) {
       const ticket: Ticket = {
@@ -313,22 +295,18 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         lat: currentLocation.lat,
         lng: currentLocation.lng,
         message: newTicketMessage,
-        creatorId: socket?.id || 'unknown', // ✅ Use context socket
-        creatorName: userName || 'unknown',
+        creatorId: socket?.id || 'unknown',
+        creatorName: userName || 'Anonymous',
       };
-      socket?.emit('create-ticket', ticket); // ✅ Use context socket
+      socket?.emit('create-ticket', ticket);
       setNewTicketMessage('');
       setIsCreatingTicket(false);
     }
   };
-// Update your loading states
-if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
-if (!isConnected) return (
-  <div className={styles.error}>
-    {connectionError || 'Connecting to server...'}
-    <button onClick={() => socket?.connect()}>Retry</button>
-  </div>
-);
+  const handleCreateTicket = () => {
+    setIsCreatingTicket((prev) => !prev);
+  };
+  if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   if (!isConnected) return <div className={styles.error}>{connectionError || 'Connecting...'}</div>;
   if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
 
