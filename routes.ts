@@ -18,8 +18,8 @@ export const publicRoutes = [
  * @types{string[]}
  */
 export const authRoutes = [
-    "/map",
-    "/profile",
+   " https://synchro-kappa.vercel.app/map",
+   "https://synchro-kappa.vercel.app/profile",
 
     "/auth/login",
     "/auth/register",
