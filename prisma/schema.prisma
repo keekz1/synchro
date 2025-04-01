@@ -7,9 +7,7 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["referentialActions"]
-  output = "./node_modules/.prisma/client"
-  binaryTargets = ["native"]
+
 }
 
 enum UserRole{
