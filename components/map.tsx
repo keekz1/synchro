@@ -34,7 +34,6 @@ const MapComponent: React.FC = () => {
   const [userImage, setUserImage] = useState<string | null>(null); // State to store the role
   const [tickets, setTickets] = useState<Ticket[]>([]);
 const [newTicketMessage, setNewTicketMessage] = useState('');
-const [showTicketForm, setShowTicketForm] = useState(false);
 const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
   const [isVisible, setIsVisible] = useState(true);
