@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-interface Params {
-  userId?: string;
-}
-
-export async function GET(request: NextRequest, { params }: { params: Params }) {
+export async function GET(request: NextRequest) {
   try {
-    // Ensure userId exists
-    if (!params?.userId) {
+    // Extract userId from the request URL
+    const url = new URL(request.url);
+    const userId = url.pathname.split("/").pop(); // Extract last segment (userId)
+
+    if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
-
-    const userId = params.userId;
 
     // Fetch pending friend requests
     const requests = await db.friendRequest.findMany({
