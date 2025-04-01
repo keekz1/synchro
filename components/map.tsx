@@ -201,8 +201,8 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       }
     }
   };
-  
-    // generatePersistentOffset with caching logic
+
+  // generatePersistentOffset with caching logic
   const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
     if (!userId) {
       console.error("generatePersistentOffset received an undefined userId");
@@ -318,7 +318,8 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      socket.disconnect();
+      // Avoid immediate socket disconnect unless user has been away for more than 1 hour
+      socketRef.current?.disconnect();
       socketRef.current = null;
       locationCache.current.clear();
       setCurrentLocation(null);
