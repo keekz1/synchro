@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// Update the function to expect context in the correct shape
-export async function GET(req: Request, { params }: { params: { userId: string } }) {
+// Export GET function properly typed with `NextRequest` as the first argument
+export async function GET(req: NextRequest, { params }: { params: { userId: string } }) {
   try {
     // Destructure the userId from params
     const { userId } = params;
@@ -33,10 +33,12 @@ export async function GET(req: Request, { params }: { params: { userId: string }
       return [friend];
     });
 
+    // Return the friends data as JSON
     return NextResponse.json(friends, { status: 200 });
 
   } catch (error) {
     console.error("[FRIENDS_GET]", error);
+    // Handle errors and send a proper response
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
