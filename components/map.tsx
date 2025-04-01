@@ -5,6 +5,7 @@ import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, Marker, useJsApiLoader, Circle } from '@react-google-maps/api';
 
+import { useSocket } from '@/contexts/socket-context';
 
 
 interface User {
@@ -42,6 +43,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
+  const { socket, isConnected, connectionError } = useSocket();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -205,22 +207,21 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const debouncedLocationUpdate = useMemo(
     () => debounce((lat: number, lng: number) => {
       setCurrentLocation({ lat, lng });
-      if (socketRef.current && userRole) {
-        socketRef.current.emit('user-location', { lat, lng, role: userRole, name: userName, image: userImage });
+      if (socket && userRole) {
+        socket.emit('user-location', { lat, lng, role: userRole, name: userName, image: userImage });
       }
-    }, 500), [userRole, userName, userImage] // Added dependencies
+    }, 500), [socket, userRole, userName, userImage]
   );
-  
 
   const handleVisibilityToggle = useCallback(() => {
     setIsVisible((prev) => {
       const newVisibility = !prev;
       localStorage.setItem('isVisible', JSON.stringify(newVisibility));
-      socketRef.current?.emit('visibility-change', newVisibility);
+      socket?.emit('visibility-change', newVisibility);
       return newVisibility;
     });
-  }, []);
-  
+  }, [socket]);
+
 
   useEffect(() => {
     setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
@@ -229,33 +230,29 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       try {
         const response = await fetch("/api/profile");
         const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch user role");
+        if (response.ok) {
+          setUserRole(data.role);
+          setUserName(data.name);
+          setUserImage(data.image);
         }
-        setUserRole(data.role);
-        setUserName(data.name);
-        setUserImage(data.image);
       } catch (error) {
-        console.error("Error fetching user role:", error);
+        console.error("Error fetching user details:", error);
       }
     };
 
     fetchUserDetails();
+  }, []);
 
-    const socket = io("https://backendfst1.onrender.com", {
-      transports: ["websocket"],
-      timeout: 20000,
-      reconnectionAttempts: 5,
-    });
+  useEffect(() => {
+    if (!socket || !isConnected) return;
 
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      setIsConnecting(false);
-      setMapError(null);
+    const handleLocationUpdate = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const realLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+          const realLocation = { 
+            lat: position.coords.latitude, 
+            lng: position.coords.longitude 
+          };
           debouncedLocationUpdate(realLocation.lat, realLocation.lng);
         },
         (error) => {
@@ -264,76 +261,39 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
-    });
+    };
 
-    socket.on("connect_error", () => {
-      setMapError("Connection issues - retrying...");
-      setIsConnecting(true);
-    });
-
-    socket.on("disconnect", () => {
-      setMapError("Reconnecting...");
-      setIsConnecting(true);
-    });
-
-    socket.on("nearby-users", (data: User[]) => {
+    const handleNearbyUsers = (data: User[]) => {
       const uniqueUsers = new Map<string, User>();
       data.forEach((user) => {
-        if (!uniqueUsers.has(user.id)) {
-          uniqueUsers.set(user.id, { ...user, ...generatePersistentOffset(user.id, user.lat, user.lng) });
-        }
+        uniqueUsers.set(user.id, { 
+          ...user, 
+          ...generatePersistentOffset(user.id, user.lat, user.lng) 
+        });
       });
       setNearbyUsers(Array.from(uniqueUsers.values()));
-    });
+    };
 
-    socket.on("new-ticket", (ticket: Ticket) => {
-      setTickets((prevTickets) => [...prevTickets, ticket]);
+    socket.on('connect', handleLocationUpdate);
+    socket.on('nearby-users', handleNearbyUsers);
+    socket.on('new-ticket', (ticket: Ticket) => {
+      setTickets((prev) => [...prev, ticket]);
     });
-
-    socket.on("all-tickets", (tickets: Ticket[]) => {
+    socket.on('all-tickets', (tickets: Ticket[]) => {
       setTickets(tickets);
     });
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
-      locationCache.current.clear();
-      setCurrentLocation(null);
-      setNearbyUsers([]);
+      socket.off('connect', handleLocationUpdate);
+      socket.off('nearby-users', handleNearbyUsers);
+      socket.off('new-ticket');
+      socket.off('all-tickets');
     };
-    
-  }, [isLoaded, generatePersistentOffset, userRole, debouncedLocationUpdate]);
+  }, [socket, isConnected, debouncedLocationUpdate, generatePersistentOffset]);
 
-  
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
   };
-
- 
-  const handleMapLoad = (map: google.maps.Map): void => {
-    // Perform necessary actions with the map instance
-    console.log("Map loaded", map);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isCreatingTicket &&
-        mapContainerRef.current &&
-        !mapContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsCreatingTicket(false);
-      }
-    };
-
-    if (isCreatingTicket) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isCreatingTicket]);
 
   const handleTicketSubmit = () => {
     if (currentLocation && newTicketMessage.trim()) {
@@ -351,13 +311,9 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     }
   };
 
-
-
   if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
-  if (isConnecting) return <div className={styles.loading}>Connecting to server...</div>;
-  if (mapError) return <div className={styles.error}>{mapError}</div>;
+  if (!isConnected) return <div className={styles.error}>{connectionError || 'Connecting...'}</div>;
   if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
-
 
   return (
     <div className={styles.container} ref={mapContainerRef}>
@@ -366,7 +322,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         center={currentLocation}
         zoom={13}
         options={{ disableDefaultUI: true, styles: mapStyle }}
-        onLoad={handleMapLoad}
       >
         {isVisible && (
           <>
@@ -385,9 +340,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         
           </>
         )}
-
-
-
 <div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
         <h3>Tickets</h3>
         {tickets.length > 0 ? (
@@ -408,8 +360,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         {isOpen ? "←" : "→"}
       </button>
  
-
-
       </GoogleMap>
       <FloatingChat />
       <button onClick={handleVisibilityToggle} className={styles.toggleButton}>
