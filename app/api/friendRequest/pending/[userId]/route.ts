@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-type Context = {
-  params: {
-    userId: string;
-  };
-};
+export async function GET(request: NextRequest) {
+  try {
+    const url = new URL(request.url);
+    const userId = url.pathname.split("/").pop(); // Extract userId from URL
 
-export async function GET(request: NextRequest, context: Context) {
- try{ const { userId } = context.params;
-
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
 
     const requests = await db.friendRequest.findMany({
       where: {
