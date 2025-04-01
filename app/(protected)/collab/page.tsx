@@ -8,6 +8,8 @@ import Friends from "@/components/Friends";
 import SuggestedUsers from "@/components/SuggestedUsers";
 import { Prisma } from "@prisma/client";
 import Notification from "@/components/Notification";
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
 
 type FriendRequest = Prisma.FriendRequestGetPayload<{
   include: { sender: true; receiver: true };

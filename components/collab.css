@@ -34,7 +34,7 @@
   .discord-navbar a:hover,
   .discord-navbar a.active {
     border-radius: 25%;
-    background: #0b0b0b;
+    background: #7F00FF;
   }
   
   .discord-navbar hr {
