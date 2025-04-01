@@ -234,16 +234,18 @@ useEffect(() => {
     try {
       const response = await fetch("/api/profile");
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch user role");
-      }
+      if (!response.ok) throw new Error(data.error || "Failed to fetch user details");
+  
+      console.log("Fetched user details:", data); // Debugging log
+  
       setUserRole(data.role);
       setUserName(data.name);
-      setUserImage(data.image);
+      setUserImage(data.image); // Ensure this is not null or undefined
     } catch (error) {
-      console.error("Error fetching user role:", error);
+      console.error("Error fetching user details:", error);
     }
   };
+  
 
   fetchUserDetails();
 
@@ -277,15 +279,21 @@ useEffect(() => {
     });
 
     socket.on("nearby-users", (data: User[]) => {
+      console.log("Nearby users received:", data); // Debugging log
+    
       const uniqueUsers = new Map<string, User>();
       data.forEach((user) => {
         if (!uniqueUsers.has(user.id)) {
-          uniqueUsers.set(user.id, { ...user, ...generatePersistentOffset(user.id, user.lat, user.lng) });
+          uniqueUsers.set(user.id, {
+            ...user,
+            ...generatePersistentOffset(user.id, user.lat, user.lng),
+            image: user.image || "default-avatar.png", // Ensure fallback image
+          });
         }
       });
       setNearbyUsers(Array.from(uniqueUsers.values()));
     });
-
+    
     socket.on("new-ticket", (ticket: Ticket) => {
       setTickets((prevTickets) => [...prevTickets, ticket]);
     });
@@ -352,12 +360,16 @@ useEffect(() => {
               options={{ fillColor: '#6600CC', fillOpacity: 0.1, strokeColor: '#FFFFFF', strokeOpacity: 0.5, strokeWeight: 2 }}
             />
             {nearbyUsers.map((user) => (
-              <Marker
-                key={user.id}
-                position={{ lat: user.lat, lng: user.lng }}
-                icon={{ url: user.image, scaledSize: new google.maps.Size(40, 40), anchor: new google.maps.Point(20, 40) }}
-              />
-            ))}
+  <Marker
+    key={user.id}
+    position={{ lat: user.lat, lng: user.lng }}
+    icon={{
+      url: user.image,  // Ensure this is a valid image URL
+      scaledSize: new window.google.maps.Size(40, 40), // Adjust size as needed
+    }}
+  />
+))}
+
         
           </>
         )}
