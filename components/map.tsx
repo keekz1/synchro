@@ -29,7 +29,6 @@ interface Ticket {
 const MapComponent: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
-  const [isConnecting, setIsConnecting] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null); // State to store the role
   const [userName, setUserName] = useState<string | null>(null);
   const [userImage, setUserImage] = useState<string | null>(null); // State to store the role
@@ -38,9 +37,7 @@ const [newTicketMessage, setNewTicketMessage] = useState('');
 const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
   const [isVisible, setIsVisible] = useState(true);
-  const [mapError, setMapError] = useState<string | null>(null);
 
-  const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
   const { socket, isConnected, connectionError } = useSocket();
@@ -257,7 +254,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         },
         (error) => {
           console.error("Geolocation error:", error);
-          setMapError("Enable location permissions to use this feature");
+          // Use your context error handling instead
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
@@ -302,15 +299,14 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         lat: currentLocation.lat,
         lng: currentLocation.lng,
         message: newTicketMessage,
-        creatorId: socketRef.current?.id || 'unknown',
+        creatorId: socket?.id || 'unknown', // ✅ Use context socket
         creatorName: userName || 'unknown',
       };
-      socketRef.current?.emit('create-ticket', ticket);
+      socket?.emit('create-ticket', ticket); // ✅ Use context socket
       setNewTicketMessage('');
       setIsCreatingTicket(false);
     }
   };
-
   if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   if (!isConnected) return <div className={styles.error}>{connectionError || 'Connecting...'}</div>;
   if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
@@ -340,7 +336,10 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         
           </>
         )}
-<div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
+      </GoogleMap>
+
+
+      <div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
         <h3>Tickets</h3>
         {tickets.length > 0 ? (
           tickets.map((ticket) => (
@@ -360,7 +359,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         {isOpen ? "←" : "→"}
       </button>
  
-      </GoogleMap>
+
       <FloatingChat />
       <button onClick={handleVisibilityToggle} className={styles.toggleButton}>
         {isVisible ? 'Hide your Location' : 'Show Location'}
