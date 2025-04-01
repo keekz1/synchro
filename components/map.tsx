@@ -42,7 +42,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
-  const [isTicketBoxOpen, setIsTicketBoxOpen] = useState(true);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -241,19 +240,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       }
     };
 
-    const fetchRegion = async (lat: number, lng: number) => {
-      try {
-        const response = await fetch(`/api/region?lat=${lat}&lng=${lng}`);
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch region");
-        }
-        console.log("User's region:", data.region);
-      } catch (error) {
-        console.error("Error fetching region:", error);
-      }
-    };
-
     fetchUserDetails();
 
     const socket = io("https://backendfst1.onrender.com", {
@@ -322,9 +308,8 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
   };
-  const toggleTicketBox = () => {
-    setIsTicketBoxOpen((prev) => !prev);
-  };
+
+ 
   const handleMapLoad = (map: google.maps.Map): void => {
     // Perform necessary actions with the map instance
     console.log("Map loaded", map);
