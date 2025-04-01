@@ -38,6 +38,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
   const [isVisible, setIsVisible] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  let socket: ReturnType<typeof io> | null = null; // Global variable
 
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
@@ -238,37 +239,33 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       return newVisibility;
     });
   }, []);
+useEffect(() => {
+  setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
 
-  useEffect(() => {
-    setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
-
-    const fetchUserDetails = async () => {
-      try {
-        const response = await fetch("/api/profile");
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch user role");
-        }
-        setUserRole(data.role);
-        setUserName(data.name);
-        setUserImage(data.image);
-      } catch (error) {
-        console.error("Error fetching user role:", error);
+  const fetchUserDetails = async () => {
+    try {
+      const response = await fetch("/api/profile");
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch user role");
       }
-    };
+      setUserRole(data.role);
+      setUserName(data.name);
+      setUserImage(data.image);
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
 
-    fetchUserDetails();
+  fetchUserDetails();
 
-    // Checking if the user was away for more than 1 hour
-    checkSocketTimeout();
-
-    const socket = io("https://backendfst1.onrender.com", {
+  // Check if the socket already exists before creating a new connection
+  if (!socket) {
+    socket = io("https://backendfst1.onrender.com", {
       transports: ["websocket"],
       timeout: 20000,
       reconnectionAttempts: 5,
     });
-
-    socketRef.current = socket;
 
     socket.on("connect", () => {
       setIsConnecting(false);
@@ -291,11 +288,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       setIsConnecting(true);
     });
 
-    socket.on("disconnect", () => {
-      setMapError("Reconnecting...");
-      setIsConnecting(true);
-    });
-
     socket.on("nearby-users", (data: User[]) => {
       const uniqueUsers = new Map<string, User>();
       data.forEach((user) => {
@@ -313,20 +305,16 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     socket.on("all-tickets", (tickets: Ticket[]) => {
       setTickets(tickets);
     });
+  }
 
-    // Listen for page unload event to save the leave time
-    window.addEventListener("beforeunload", handleBeforeUnload);
+  // Listen for page unload event to save the leave time
+  window.addEventListener("beforeunload", handleBeforeUnload);
 
-    return () => {
-      // Avoid immediate socket disconnect unless user has been away for more than 1 hour
-      socketRef.current?.disconnect();
-      socketRef.current = null;
-      locationCache.current.clear();
-      setCurrentLocation(null);
-      setNearbyUsers([]);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [isLoaded, generatePersistentOffset, userRole, debouncedLocationUpdate]);
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [isLoaded, generatePersistentOffset, userRole, debouncedLocationUpdate]);
+
 
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
