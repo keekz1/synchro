@@ -2,40 +2,33 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/router";
+import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 import ChatHeader from "@/components/ChatHeader";
 import MessagesContainer from "@/components/MessageContainer";
 import MessageInput from "@/components/MessageInput";
 import "@/components/chat.css";
-import { Session } from "next-auth";
-import { useDocument } from "react-firebase-hooks/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { useDocument } from 'react-firebase-hooks/firestore'; // Importing useDocument hook
 
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
-  const router = useRouter();
+  const params = useParams();
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [friendName, setFriendName] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const userId = session?.user?.id || null;
-  const friendId = router.query.friendId as string | undefined;
+  const friendId = params?.friendId as string | undefined;
   const chatId = userId && friendId ? [userId, friendId].sort().join('_') : null;
-  const [loading, setLoading] = useState<boolean>(true);
 
   const messagesRef = chatId ? collection(db, "chats", chatId, "messages") : null;
   const [messagesSnapshot, messagesLoading, messagesError] = useCollection(messagesRef ? query(messagesRef, orderBy("createdAt", "asc")) : null);
 
   const typingRef = chatId && userId ? doc(db, "chats", chatId, "typing", userId) : null;
   const [typingSnapshot] = useDocument(chatId && friendId ? doc(db, "chats", chatId, "typing", friendId) : null);
-
-  // All hooks must be called before any conditional returns
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messagesSnapshot?.size]);
 
   useEffect(() => {
     if (typingSnapshot?.data()?.isTyping) {
@@ -45,29 +38,11 @@ const ChatPage = () => {
     }
   }, [typingSnapshot]);
 
-  useEffect(() => {
-    if (!friendId) return;
-
-    const fetchFriendName = async () => {
-      try {
-        const response = await fetch(`/api/getFriendName?friendId=${friendId}`);
-        const data = await response.json();
-        setFriendName(response.ok ? data.name : "Unknown User");
-      } catch (error) {
-        console.error("Error fetching friend's name:", error);
-        setFriendName("Unknown User");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFriendName();
-  }, [friendId]);
-
   const handleTyping = useCallback(async () => {
     if (!chatId || !userId || !typingRef) return;
 
     const docSnapshot = await getDoc(typingRef);
+
     if (!docSnapshot.exists()) {
       await setDoc(typingRef, { isTyping: true, lastUpdated: serverTimestamp() });
     } else {
@@ -77,8 +52,8 @@ const ChatPage = () => {
     setTimeout(async () => await updateDoc(typingRef, { isTyping: false, lastUpdated: serverTimestamp() }), 1000);
   }, [chatId, userId, typingRef]);
 
-  const handleSendMessage = useCallback(async (session: Session | null) => {
-    if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session?.user) return;
+  const handleSendMessage = useCallback(async (session: any) => {
+    if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
 
     let tempDoc;
     try {
@@ -89,51 +64,39 @@ const ChatPage = () => {
         status: "sending",
         readBy: [],
       });
+      setNewMessage("");
 
       const idToken = session.idToken;
       const response = await fetch(`/api/messages/send/${userId}/${friendId}`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          Authorization: `Bearer ${idToken}` 
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({ messageId: tempDoc.id, text: newMessage, chatId }),
       });
 
       if (!response.ok) throw new Error(await response.text());
+
       await updateDoc(doc(messagesRef, tempDoc.id), { status: "sent" });
-    } catch (error) {
-      if (tempDoc && messagesRef) {
-        await updateDoc(doc(messagesRef, tempDoc.id), { 
-          status: "failed", 
-          error: error instanceof Error ? error.message : "Unknown error" 
-        });
-      }
+    } catch (error: any) {
+      if (tempDoc && messagesRef) await updateDoc(doc(messagesRef, tempDoc.id), { status: "failed", error: error.message || "Unknown error" });
     } finally {
       setNewMessage("");
     }
   }, [newMessage, userId, messagesRef, chatId, friendId]);
 
-  // Conditional rendering based on session status, loading, and errors
-  if (loading) return <div>Loading...</div>;
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messagesSnapshot?.size]);
+
   if (sessionStatus === "loading") return <div className="chat-container">Loading session...</div>;
-  if (sessionStatus === "unauthenticated") {
-    return <div className="chat-container">Please log in to chat</div>;
-  }
   if (!friendId) return <div className="chat-container">Invalid chat session</div>;
   if (messagesLoading) return <div className="chat-container">Loading messages...</div>;
   if (messagesError) return <div className="chat-container">Error loading messages: {messagesError.message}</div>;
 
   return (
     <div className="chat-container">
-      <ChatHeader friendId={friendId} isTyping={isTyping} friendName={friendName} />
-      <MessagesContainer messagesSnapshot={messagesSnapshot!} userId={userId} />
-      <MessageInput 
-        newMessage={newMessage} 
-        setNewMessage={setNewMessage} 
-        handleTyping={handleTyping} 
-        handleSendMessage={() => handleSendMessage(session)} 
-      />
+      <ChatHeader friendId={friendId} isTyping={isTyping} />
+      <MessagesContainer messagesSnapshot={messagesSnapshot} userId={userId} />
+      <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session)} />
       <div ref={messagesEndRef} />
     </div>
   );
