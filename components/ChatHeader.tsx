@@ -4,7 +4,7 @@ interface ChatHeaderProps {
   friendName: string | null;  // Add friendName prop
 }
 
-const ChatHeader: React.FC<ChatHeaderProps> = ({ friendId, isTyping, friendName }) => {
+const ChatHeader: React.FC<ChatHeaderProps> = ({  isTyping, friendName }) => {
   return (
     <div className="chat-header">
       <h1>{friendName || "Unknown User"}</h1> {/* Display the friend's name or "Unknown User" */}
