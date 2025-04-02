@@ -1,16 +1,16 @@
 interface ChatHeaderProps {
-    friendId: string;
-    isTyping: boolean;
-  }
-  
-  const ChatHeader: React.FC<ChatHeaderProps> = ({ friendId, isTyping }) => {
-    return (
-      <div className="chat-header">
-        <h1> {friendId}</h1>
-        {isTyping && <div className="typing-indicator">Typing...</div>}
-      </div>
-    );
-  };
-  
-  export default ChatHeader;
-  
+  friendId: string;
+  isTyping: boolean;
+  friendName: string | null;  // Add friendName prop
+}
+
+const ChatHeader: React.FC<ChatHeaderProps> = ({ friendId, isTyping, friendName }) => {
+  return (
+    <div className="chat-header">
+      <h1>{friendName || "Unknown User"}</h1> {/* Display the friend's name or "Unknown User" */}
+      {isTyping && <div className="typing-indicator">Typing...</div>}
+    </div>
+  );
+};
+
+export default ChatHeader;

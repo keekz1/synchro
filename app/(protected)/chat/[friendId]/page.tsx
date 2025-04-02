@@ -4,23 +4,21 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, getDoc, setDoc } from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 import ChatHeader from "@/components/ChatHeader";
 import MessagesContainer from "@/components/MessageContainer";
 import MessageInput from "@/components/MessageInput";
 import "@/components/chat.css";
-import { doc, setDoc, getDoc } from "firebase/firestore";
 import { Session } from "next-auth";
-
-import { useDocument } from 'react-firebase-hooks/firestore';
-
+import { useDocument } from "react-firebase-hooks/firestore";
 
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
   const params = useParams();
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [friendName, setFriendName] = useState<string | null>(null); // State to store friend's name
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const userId = session?.user?.id || null;
@@ -57,7 +55,7 @@ const ChatPage = () => {
 
   const handleSendMessage = useCallback(async (session: Session | null) => {
     if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
-  
+
     let tempDoc;
     try {
       tempDoc = await addDoc(messagesRef, {
@@ -67,18 +65,18 @@ const ChatPage = () => {
         status: "sending",
         readBy: [],
       });
-  
+
       setNewMessage("");
-  
+
       const idToken = session.idToken;
       const response = await fetch(`/api/messages/send/${userId}/${friendId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({ messageId: tempDoc.id, text: newMessage, chatId }),
       });
-  
+
       if (!response.ok) throw new Error(await response.text());
-  
+
       await updateDoc(doc(messagesRef, tempDoc.id), { status: "sent" });
     } catch (error: unknown) {
       if (tempDoc && messagesRef) {
@@ -88,7 +86,24 @@ const ChatPage = () => {
       setNewMessage("");
     }
   }, [newMessage, userId, messagesRef, chatId, friendId]);
-  
+
+  // Fetch friend's name from Firestore based on friendId
+  useEffect(() => {
+    const fetchFriendName = async () => {
+      if (friendId) {
+        const friendDocRef = doc(db, "users", friendId); // Reference to the friend document
+        const friendDoc = await getDoc(friendDocRef);
+
+        if (friendDoc.exists()) {
+          setFriendName(friendDoc.data()?.name || "Unknown User");
+        } else {
+          setFriendName("Unknown User");
+        }
+      }
+    };
+
+    fetchFriendName();
+  }, [friendId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,7 +116,8 @@ const ChatPage = () => {
 
   return (
     <div className="chat-container">
-      <ChatHeader friendId={friendId} isTyping={isTyping} />
+      {/* Pass the fetched friend's name to ChatHeader */}
+      <ChatHeader friendId={friendId} isTyping={isTyping} friendName={friendName} />
       <MessagesContainer messagesSnapshot={messagesSnapshot!} userId={userId} />
       <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session)} />
       <div ref={messagesEndRef} />
