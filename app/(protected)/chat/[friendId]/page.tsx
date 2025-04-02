@@ -4,28 +4,41 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { useCollection } from "react-firebase-hooks/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, setDoc, getDoc } from "firebase/firestore";
+import { useCollection, useDocument } from "react-firebase-hooks/firestore";
 import ChatHeader from "@/components/ChatHeader";
 import MessagesContainer from "@/components/MessageContainer";
 import MessageInput from "@/components/MessageInput";
 import "@/components/chat.css";
-import { doc, setDoc, getDoc } from "firebase/firestore";
 import { Session } from "next-auth";
-
-import { useDocument } from 'react-firebase-hooks/firestore';
-
 
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
   const params = useParams();
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [friendName, setFriendName] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const userId = session?.user?.id || null;
   const friendId = params?.friendId as string | undefined;
   const chatId = userId && friendId ? [userId, friendId].sort().join('_') : null;
+
+  // Fetch friend's name only once
+  useEffect(() => {
+    const fetchFriendName = async () => {
+      if (!friendId) return;
+      const friendDocRef = doc(db, "users", friendId);
+      const friendDocSnap = await getDoc(friendDocRef);
+      if (friendDocSnap.exists()) {
+        setFriendName(friendDocSnap.data().name);
+      } else {
+        setFriendName("Unknown User"); // Fallback if user not found
+      }
+    };
+
+    fetchFriendName();
+  }, [friendId]);
 
   const messagesRef = chatId ? collection(db, "chats", chatId, "messages") : null;
   const [messagesSnapshot, messagesLoading, messagesError] = useCollection(messagesRef ? query(messagesRef, orderBy("createdAt", "asc")) : null);
@@ -45,7 +58,6 @@ const ChatPage = () => {
     if (!chatId || !userId || !typingRef) return;
 
     const docSnapshot = await getDoc(typingRef);
-
     if (!docSnapshot.exists()) {
       await setDoc(typingRef, { isTyping: true, lastUpdated: serverTimestamp() });
     } else {
@@ -57,7 +69,7 @@ const ChatPage = () => {
 
   const handleSendMessage = useCallback(async (session: Session | null) => {
     if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
-  
+
     let tempDoc;
     try {
       tempDoc = await addDoc(messagesRef, {
@@ -67,18 +79,18 @@ const ChatPage = () => {
         status: "sending",
         readBy: [],
       });
-  
+
       setNewMessage("");
-  
+
       const idToken = session.idToken;
       const response = await fetch(`/api/messages/send/${userId}/${friendId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({ messageId: tempDoc.id, text: newMessage, chatId }),
       });
-  
+
       if (!response.ok) throw new Error(await response.text());
-  
+
       await updateDoc(doc(messagesRef, tempDoc.id), { status: "sent" });
     } catch (error: unknown) {
       if (tempDoc && messagesRef) {
@@ -88,7 +100,6 @@ const ChatPage = () => {
       setNewMessage("");
     }
   }, [newMessage, userId, messagesRef, chatId, friendId]);
-  
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,7 +112,7 @@ const ChatPage = () => {
 
   return (
     <div className="chat-container">
-      <ChatHeader friendId={friendId} isTyping={isTyping} />
+      <ChatHeader friendName={friendName || "Loading..."} isTyping={isTyping} />
       <MessagesContainer messagesSnapshot={messagesSnapshot!} userId={userId} />
       <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session)} />
       <div ref={messagesEndRef} />
