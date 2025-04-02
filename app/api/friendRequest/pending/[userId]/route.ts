@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { userId: string } }  // Add proper params typing
+) {
   try {
-    const url = new URL(request.url);
-    const userId = url.pathname.split("/").pop(); // Extract userId from URL
+    const { userId } = params;  // Extract from params instead of URL
 
     if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User ID is required" }, 
+        { status: 400 }
+      );
     }
 
     const requests = await db.friendRequest.findMany({
