@@ -373,7 +373,30 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     }
   };
 
-
+  const getCircularIcon = (url: string) => {
+    const canvas = document.createElement('canvas');
+    const size = 40;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    
+    if (ctx) {
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+      ctx.closePath();
+      ctx.clip();
+      
+      // Draw white background (optional)
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, size, size);
+    }
+    
+    return {
+      url: canvas.toDataURL(),
+      scaledSize: new google.maps.Size(size, size),
+      anchor: new google.maps.Point(size/2, size/2)
+    };
+  };
 
   if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   if (isConnecting) return <div className={styles.loading}>Connecting to server...</div>;
@@ -398,11 +421,12 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
               options={{ fillColor: '#6600CC', fillOpacity: 0.1, strokeColor: '#FFFFFF', strokeOpacity: 0.5, strokeWeight: 2 }}
             />
             {nearbyUsers.map((user) => (
-              <Marker
-                key={user.id}
-                position={{ lat: user.lat, lng: user.lng }}
-                icon={{ url: user.image, scaledSize: new google.maps.Size(40, 40), anchor: new google.maps.Point(20, 40) }}
-              />
+  <Marker
+  key={user.id}
+  position={{ lat: user.lat, lng: user.lng }}
+  icon={getCircularIcon(user.image || 'https://i.imgur.com/DUC8BHW.png')}
+/>
+
             ))}
         
           </>
