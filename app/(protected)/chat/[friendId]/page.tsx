@@ -95,7 +95,7 @@ const ChatPage = () => {
         const friendDoc = await getDoc(friendDocRef);
 
         if (friendDoc.exists()) {
-          setFriendName(friendDoc.data()?.name || "Unknown User");
+          setFriendName(friendDoc.data()?.name );
         } else {
           setFriendName("Unknown User");
         }
