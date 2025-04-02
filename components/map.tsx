@@ -462,7 +462,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         {isVisible ? 'Hide your Location' : 'Show Location'}
       </button>
       <button onClick={handleCreateTicket} className={styles.createTicketButton}>
-        Create Ticket
+       {""}
       </button>
       
       {isCreatingTicket && (
