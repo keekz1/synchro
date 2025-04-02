@@ -398,17 +398,20 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
               radius={16093.4}
               options={{ fillColor: '#6600CC', fillOpacity: 0.1, strokeColor: '#FFFFFF', strokeOpacity: 0.5, strokeWeight: 2 }}
             />
-            {nearbyUsers.map((user) => (
-              <Marker
-  position={{ lat: user.lat, lng: user.lng }}
-  icon={{
-    url: user.image,
-    scaledSize: new window.google.maps.Size(50, 50), // Adjust size as needed
-    anchor: new window.google.maps.Point(25, 25), // Position the icon correctly
-  }}
-/>
+          {nearbyUsers.map((user) => (
+  <Marker
+    key={user.id} // Add the 'key' prop
+    position={{ lat: user.lat, lng: user.lng }}
+    icon={{
+      url: user.image,
+      scaledSize: new window.google.maps.Size(50, 50),
+      anchor: new window.google.maps.Point(25, 25),
+    }}
+  />
+))}
 
-            ))}
+
+            
         
           </>
         )}
