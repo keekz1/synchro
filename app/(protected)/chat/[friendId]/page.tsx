@@ -90,28 +90,31 @@ const ChatPage = () => {
 
   // Fetch friend's name from Firestore based on friendId
   useEffect(() => {
+    if (!friendId) {
+      return; // Early return if friendId is not available
+    }
+  
     const fetchFriendName = async () => {
-      if (friendId) {
-        try {
-          const response = await fetch(`/api/getFriendName?friendId=${friendId}`);
-          const data = await response.json();
-
-          if (response.ok) {
-            setFriendName(data.name); // Set the name if found
-          } else {
-            setFriendName("Unknown User"); // Set fallback if no name found
-          }
-        } catch (error) {
-          console.error("Error fetching friend's name:", error);
-          setFriendName("Unknown User");
-        } finally {
-          setLoading(false);
+      try {
+        const response = await fetch(`/api/getFriendName?friendId=${friendId}`);
+        const data = await response.json();
+  
+        if (response.ok) {
+          setFriendName(data.name); // Set the name if found
+        } else {
+          setFriendName("Unknown User"); // Set fallback if no name found
         }
+      } catch (error) {
+        console.error("Error fetching friend's name:", error);
+        setFriendName("Unknown User");
+      } finally {
+        setLoading(false);
       }
     };
-
+  
     fetchFriendName();
-  }, [friendId]);
+  }, [friendId]); // Run this effect whenever friendId changes
+  
   
   if (loading) {
     return <div>Loading...</div>;
