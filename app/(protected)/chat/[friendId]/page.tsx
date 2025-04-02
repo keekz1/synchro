@@ -56,7 +56,7 @@ const ChatPage = () => {
     setTimeout(async () => await updateDoc(typingRef, { isTyping: false, lastUpdated: serverTimestamp() }), 1000);
   }, [chatId, userId, typingRef]);
 
-  // Typing the session parameter properly with `Session` type
+  // Update: Typing the session parameter properly with `Session` type
   const handleSendMessage = useCallback(async (session: Session) => {
     if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
 
