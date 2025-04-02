@@ -398,16 +398,27 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
               radius={16093.4}
               options={{ fillColor: '#6600CC', fillOpacity: 0.1, strokeColor: '#FFFFFF', strokeOpacity: 0.5, strokeWeight: 2 }}
             />
-          {nearbyUsers.map((user) => (
+         {nearbyUsers.map((user) => (
   <Marker
     key={user.id} // Add the 'key' prop
     position={{ lat: user.lat, lng: user.lng }}
     icon={{
-      url: user.image,
-      scaledSize: new window.google.maps.Size(50, 50),
-      anchor: new window.google.maps.Point(25, 25),
+      url: user.image,  // Set the image URL
+      scaledSize: new window.google.maps.Size(50, 50), // Scale the image to the desired size
+      anchor: new window.google.maps.Point(25, 25), // Anchor the image at the center of the marker
     }}
-  />
+  >
+    {/* Add custom content inside the Marker */}
+    <div style={{
+      width: '50px',
+      height: '50px',
+      borderRadius: '50%', // This makes the image circular
+      backgroundImage: `url(${user.image})`,
+      backgroundSize: 'cover', // Ensures the image covers the circle fully
+      backgroundPosition: 'center',
+      border: '2px solid white', // Optional: adds a border around the image
+    }} />
+  </Marker>
 ))}
 
 
