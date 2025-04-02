@@ -88,10 +88,10 @@ const ChatPage = () => {
     }
   }, [newMessage, userId, messagesRef, chatId, friendId]);
 
-  // Fetch friend's name from Firestore based on friendId
   useEffect(() => {
+    // Check if friendId is present before proceeding
     if (!friendId) {
-      return; // Early return if friendId is not available
+      return; // No need to fetch friend's name if friendId is not available
     }
   
     const fetchFriendName = async () => {
@@ -113,7 +113,7 @@ const ChatPage = () => {
     };
   
     fetchFriendName();
-  }, [friendId]); // Run this effect whenever friendId changes
+  }, [friendId]); // This effect runs whenever friendId changes
   
   
   if (loading) {
