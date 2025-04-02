@@ -8,18 +8,24 @@ export async function GET(
   try {
     const { friendId } = params;
 
-    if (!friendId) {
+    // Validate friendId
+    if (!friendId || typeof friendId !== "string") {
       return NextResponse.json(
-        { error: "Friend ID is required" },
+        { error: "Invalid friend ID format" },
         { status: 400 }
       );
     }
 
+    // Database query with type safety
     const user = await db.user.findUnique({
       where: { id: friendId },
-      select: { name: true },
+      select: { 
+        name: true,
+        id: true
+      },
     });
 
+    // Handle not found case
     if (!user) {
       return NextResponse.json(
         { error: "User not found" },
@@ -27,11 +33,22 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ name: user.name }, { status: 200 });
-  } catch (error) {
-    console.error("[GET_FRIEND_NAME_ERROR]", error);
+    // Successful response
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { data: { name: user.name } },
+      { status: 200 }
+    );
+
+  } catch (error: unknown) {
+    console.error("[FRIEND_NAME_API_ERROR]", error);
+    
+    // Type-safe error handling
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : "Failed to fetch friend name";
+
+    return NextResponse.json(
+      { error: errorMessage },
       { status: 500 }
     );
   }
