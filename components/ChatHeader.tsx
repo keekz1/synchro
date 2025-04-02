@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 
 interface ChatHeaderProps {
@@ -12,7 +11,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ friendId, isTyping }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch friend's name from the API
   useEffect(() => {
     const fetchFriendName = async () => {
       try {
@@ -24,8 +22,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ friendId, isTyping }) => {
         } else {
           setError(data.error || "Error fetching friend's name");
         }
-      } catch (error) {
-        setError("Failed to fetch friend's name");
+      } catch (err) {  // Changed variable name to 'err' and use it
+        setError(`Failed to fetch friend's name: ${err instanceof Error ? err.message : "Unknown error"}`);
       } finally {
         setLoading(false);
       }
