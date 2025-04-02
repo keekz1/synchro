@@ -1,4 +1,3 @@
-// pages/api/getFriendName.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma'; // Ensure you have a Prisma client instance
 
@@ -23,6 +22,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'User not found' });
     }
   } catch (error) {
+    // Log the error for debugging purposes
+    console.error("Error fetching user:", error);
     return res.status(500).json({ error: 'Error fetching user from database' });
   }
 }

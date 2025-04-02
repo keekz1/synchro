@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
@@ -111,8 +109,8 @@ const ChatPage = () => {
     };
 
     fetchFriendName();
-  }, [friendId]);
-  
+  }, [friendId]); // Always run on render when friendId changes
+
   if (loading) {
     return <div>Loading...</div>;
   }
