@@ -9,6 +9,7 @@ let persistentSocket: Socket | null = null;
 
 
 
+
 interface User {
   id: string;
   lat: number;
