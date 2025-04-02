@@ -4,13 +4,18 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, setDoc, getDoc } from "firebase/firestore";
-import { useCollection, useDocument } from "react-firebase-hooks/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { useCollection } from "react-firebase-hooks/firestore";
 import ChatHeader from "@/components/ChatHeader";
 import MessagesContainer from "@/components/MessageContainer";
 import MessageInput from "@/components/MessageInput";
 import "@/components/chat.css";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { Session } from "next-auth";
+import { useDocument } from "react-firebase-hooks/firestore";
+
+// Import function to get user details from lib/db
+import { getUserById } from "@/data/user";
 
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
@@ -24,27 +29,27 @@ const ChatPage = () => {
   const friendId = params?.friendId as string | undefined;
   const chatId = userId && friendId ? [userId, friendId].sort().join('_') : null;
 
-  // Fetch friend's name only once
-  useEffect(() => {
-    const fetchFriendName = async () => {
-      if (!friendId) return;
-      const friendDocRef = doc(db, "users", friendId);
-      const friendDocSnap = await getDoc(friendDocRef);
-      if (friendDocSnap.exists()) {
-        setFriendName(friendDocSnap.data().name);
-      } else {
-        setFriendName("Unknown User"); // Fallback if user not found
-      }
-    };
-
-    fetchFriendName();
-  }, [friendId]);
-
   const messagesRef = chatId ? collection(db, "chats", chatId, "messages") : null;
   const [messagesSnapshot, messagesLoading, messagesError] = useCollection(messagesRef ? query(messagesRef, orderBy("createdAt", "asc")) : null);
 
   const typingRef = chatId && userId ? doc(db, "chats", chatId, "typing", userId) : null;
   const [typingSnapshot] = useDocument(chatId && friendId ? doc(db, "chats", chatId, "typing", friendId) : null);
+
+  // Fetch friend's name when friendId changes
+  useEffect(() => {
+    const fetchFriendName = async () => {
+      if (!friendId) return;
+      try {
+        const friendData = await getUserById(friendId); // Fetch from your DB
+        setFriendName(friendData?.name || "Unknown User");
+      } catch (error) {
+        console.error("Error fetching friend name:", error);
+        setFriendName("Unknown User");
+      }
+    };
+
+    fetchFriendName();
+  }, [friendId]);
 
   useEffect(() => {
     if (typingSnapshot?.data()?.isTyping) {
@@ -58,6 +63,7 @@ const ChatPage = () => {
     if (!chatId || !userId || !typingRef) return;
 
     const docSnapshot = await getDoc(typingRef);
+
     if (!docSnapshot.exists()) {
       await setDoc(typingRef, { isTyping: true, lastUpdated: serverTimestamp() });
     } else {
@@ -112,7 +118,7 @@ const ChatPage = () => {
 
   return (
     <div className="chat-container">
-      <ChatHeader friendName={friendName || "Loading..."} isTyping={isTyping} />
+      <ChatHeader friendName={friendName} isTyping={isTyping} />
       <MessagesContainer messagesSnapshot={messagesSnapshot!} userId={userId} />
       <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session)} />
       <div ref={messagesEndRef} />
