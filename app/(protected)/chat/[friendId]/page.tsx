@@ -16,7 +16,6 @@ import { Session } from "next-auth"; // Importing the Session type
 
 
 
-
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
   const params = useParams();
@@ -56,8 +55,8 @@ const ChatPage = () => {
     setTimeout(async () => await updateDoc(typingRef, { isTyping: false, lastUpdated: serverTimestamp() }), 1000);
   }, [chatId, userId, typingRef]);
 
-  // Update: Typing the session parameter properly with `Session` type
-  const handleSendMessage = useCallback(async (session: Session) => {
+  // Explicitly typing session parameter as `Session | null`
+  const handleSendMessage = useCallback(async (session: Session | null) => {
     if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
 
     let tempDoc;
@@ -101,7 +100,7 @@ const ChatPage = () => {
     <div className="chat-container">
       <ChatHeader friendId={friendId} isTyping={isTyping} />
       <MessagesContainer messagesSnapshot={messagesSnapshot} userId={userId} />
-      <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session as Session)} />
+      <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session)} />
       <div ref={messagesEndRef} />
     </div>
   );
