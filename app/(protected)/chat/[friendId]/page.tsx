@@ -24,6 +24,7 @@ const ChatPage = () => {
   const userId = session?.user?.id || null;
   const friendId = params?.friendId as string | undefined;
   const chatId = userId && friendId ? [userId, friendId].sort().join('_') : null;
+  const [loading, setLoading] = useState<boolean>(true);
 
   const messagesRef = chatId ? collection(db, "chats", chatId, "messages") : null;
   const [messagesSnapshot, messagesLoading, messagesError] = useCollection(messagesRef ? query(messagesRef, orderBy("createdAt", "asc")) : null);
@@ -91,19 +92,30 @@ const ChatPage = () => {
   useEffect(() => {
     const fetchFriendName = async () => {
       if (friendId) {
-        const friendDocRef = doc(db, "users", friendId); // Reference to the friend document
-        const friendDoc = await getDoc(friendDocRef);
+        try {
+          const response = await fetch(`/api/getFriendName?friendId=${friendId}`);
+          const data = await response.json();
 
-        if (friendDoc.exists()) {
-          setFriendName(friendDoc.data()?.name );
-        } else {
+          if (response.ok) {
+            setFriendName(data.name); // Set the name if found
+          } else {
+            setFriendName("Unknown User"); // Set fallback if no name found
+          }
+        } catch (error) {
+          console.error("Error fetching friend's name:", error);
           setFriendName("Unknown User");
+        } finally {
+          setLoading(false);
         }
       }
     };
 
     fetchFriendName();
   }, [friendId]);
+  
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
