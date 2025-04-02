@@ -11,6 +11,7 @@ import MessagesContainer from "@/components/MessageContainer";
 import MessageInput from "@/components/MessageInput";
 import "@/components/chat.css";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { Session } from "next-auth";
 
 import { useDocument } from 'react-firebase-hooks/firestore';
 
@@ -54,9 +55,9 @@ const ChatPage = () => {
     setTimeout(async () => await updateDoc(typingRef, { isTyping: false, lastUpdated: serverTimestamp() }), 1000);
   }, [chatId, userId, typingRef]);
 
-  const handleSendMessage = useCallback(async (session: any) => {
+  const handleSendMessage = useCallback(async (session: Session | null) => {
     if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
-
+  
     let tempDoc;
     try {
       tempDoc = await addDoc(messagesRef, {
@@ -66,24 +67,28 @@ const ChatPage = () => {
         status: "sending",
         readBy: [],
       });
+  
       setNewMessage("");
-
+  
       const idToken = session.idToken;
       const response = await fetch(`/api/messages/send/${userId}/${friendId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({ messageId: tempDoc.id, text: newMessage, chatId }),
       });
-
+  
       if (!response.ok) throw new Error(await response.text());
-
+  
       await updateDoc(doc(messagesRef, tempDoc.id), { status: "sent" });
-    } catch (error: any) {
-      if (tempDoc && messagesRef) await updateDoc(doc(messagesRef, tempDoc.id), { status: "failed", error: error.message || "Unknown error" });
+    } catch (error: unknown) {
+      if (tempDoc && messagesRef) {
+        await updateDoc(doc(messagesRef, tempDoc.id), { status: "failed", error: error instanceof Error ? error.message : "Unknown error" });
+      }
     } finally {
       setNewMessage("");
     }
   }, [newMessage, userId, messagesRef, chatId, friendId]);
+  
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
