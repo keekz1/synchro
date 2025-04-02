@@ -57,7 +57,7 @@ const ChatPage = () => {
 
   // Explicitly typing session parameter as `Session | null`
   const handleSendMessage = useCallback(async (session: Session | null) => {
-    if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
+    if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session?.user) return;
 
     let tempDoc;
     try {
@@ -80,8 +80,13 @@ const ChatPage = () => {
       if (!response.ok) throw new Error(await response.text());
 
       await updateDoc(doc(messagesRef, tempDoc.id), { status: "sent" });
-    } catch (error: any) {
-      if (tempDoc && messagesRef) await updateDoc(doc(messagesRef, tempDoc.id), { status: "failed", error: error.message || "Unknown error" });
+    } catch (error: unknown) { // Changed from any to unknown
+      if (tempDoc && messagesRef) {
+        await updateDoc(doc(messagesRef, tempDoc.id), { 
+          status: "failed", 
+          error: error instanceof Error ? error.message : "Unknown error" 
+        });
+      }
     } finally {
       setNewMessage("");
     }
