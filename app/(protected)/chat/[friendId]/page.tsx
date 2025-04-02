@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 import ChatHeader from "@/components/ChatHeader";
 import MessagesContainer from "@/components/MessageContainer";
@@ -97,7 +97,7 @@ const ChatPage = () => {
   return (
     <div className="chat-container">
       <ChatHeader friendId={friendId} isTyping={isTyping} />
-      <MessagesContainer messagesSnapshot={messagesSnapshot} userId={userId} />
+      <MessagesContainer messagesSnapshot={messagesSnapshot!} userId={userId} />
       <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session)} />
       <div ref={messagesEndRef} />
     </div>

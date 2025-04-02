@@ -1,5 +1,5 @@
 import React from "react";
-import { QueryDocumentSnapshot, DocumentData , Timestamp  } from "firebase/firestore";  // Import Firestore types
+import {QuerySnapshot, QueryDocumentSnapshot, DocumentData , Timestamp  } from "firebase/firestore";  // Import Firestore types
 
 interface Message {
   senderId: string;
@@ -9,12 +9,15 @@ interface Message {
 }
 
 interface MessagesContainerProps {
-  messagesSnapshot: any;
+  messagesSnapshot: QuerySnapshot<DocumentData>;  // ✅ Explicit type
   userId: string | null;
 }
 
 const MessagesContainer: React.FC<MessagesContainerProps> = ({ messagesSnapshot, userId }) => {
-  return (
+  if (!messagesSnapshot) {
+    return <div className="messages-container">Loading messages...</div>;
+  }
+    return (
     <div className="messages-container">
       {messagesSnapshot?.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {  // Explicitly define the type for 'doc'
         const message = doc.data() as Message;
