@@ -399,14 +399,14 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
             />
             {nearbyUsers.map((user) => (
               <Marker
-  key={user.id}
   position={{ lat: user.lat, lng: user.lng }}
   icon={{
-    url: user.image || 'https://i.imgur.com/DUC8BHW.png', // Fallback to default image
-    scaledSize: new google.maps.Size(40, 40),
-    anchor: new google.maps.Point(20, 40)
+    url: user.image,
+    scaledSize: new window.google.maps.Size(50, 50), // Adjust size as needed
+    anchor: new window.google.maps.Point(25, 25), // Position the icon correctly
   }}
 />
+
             ))}
         
           </>

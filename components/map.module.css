@@ -261,3 +261,9 @@
 .ticketItem:hover {
   transform: scale(1.05);
 }
+.circle-image {
+  width: 50px;  /* Set the desired size */
+  height: 50px; /* Set the desired size */
+  border-radius: 50%; /* This will make it a circle */
+  object-fit: cover; /* This ensures the image is properly centered */
+}
