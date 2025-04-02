@@ -12,44 +12,46 @@ import MessageInput from "@/components/MessageInput";
 import "@/components/chat.css";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { Session } from "next-auth";
-import { useDocument } from "react-firebase-hooks/firestore";
+import { useDocument } from 'react-firebase-hooks/firestore';
+import { PrismaClient } from '@prisma/client'; // Import Prisma Client
 
-// Import function to get user details from lib/db
-import { getUserById } from "@/data/user";
+const prisma = new PrismaClient(); // Initialize Prisma Client
 
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
   const params = useParams();
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [friendName, setFriendName] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [friendName, setFriendName] = useState<string | null>(null); // State for friend's name
 
   const userId = session?.user?.id || null;
   const friendId = params?.friendId as string | undefined;
   const chatId = userId && friendId ? [userId, friendId].sort().join('_') : null;
+
+  // Fetch friend's name from Prisma based on friendId
+  useEffect(() => {
+    const fetchFriendName = async () => {
+      if (friendId) {
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: friendId },
+            select: { name: true }
+          });
+          setFriendName(user?.name || null); // Update friend's name or null if not found
+        } catch (error) {
+          console.error("Error fetching friend's name:", error);
+        }
+      }
+    };
+    fetchFriendName();
+  }, [friendId]);
 
   const messagesRef = chatId ? collection(db, "chats", chatId, "messages") : null;
   const [messagesSnapshot, messagesLoading, messagesError] = useCollection(messagesRef ? query(messagesRef, orderBy("createdAt", "asc")) : null);
 
   const typingRef = chatId && userId ? doc(db, "chats", chatId, "typing", userId) : null;
   const [typingSnapshot] = useDocument(chatId && friendId ? doc(db, "chats", chatId, "typing", friendId) : null);
-
-  // Fetch friend's name when friendId changes
-  useEffect(() => {
-    const fetchFriendName = async () => {
-      if (!friendId) return;
-      try {
-        const friendData = await getUserById(friendId); // Fetch from your DB
-        setFriendName(friendData?.name || "Unknown User");
-      } catch (error) {
-        console.error("Error fetching friend name:", error);
-        setFriendName("Unknown User");
-      }
-    };
-
-    fetchFriendName();
-  }, [friendId]);
 
   useEffect(() => {
     if (typingSnapshot?.data()?.isTyping) {
@@ -75,7 +77,7 @@ const ChatPage = () => {
 
   const handleSendMessage = useCallback(async (session: Session | null) => {
     if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
-
+  
     let tempDoc;
     try {
       tempDoc = await addDoc(messagesRef, {
@@ -85,18 +87,18 @@ const ChatPage = () => {
         status: "sending",
         readBy: [],
       });
-
+  
       setNewMessage("");
-
+  
       const idToken = session.idToken;
       const response = await fetch(`/api/messages/send/${userId}/${friendId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({ messageId: tempDoc.id, text: newMessage, chatId }),
       });
-
+  
       if (!response.ok) throw new Error(await response.text());
-
+  
       await updateDoc(doc(messagesRef, tempDoc.id), { status: "sent" });
     } catch (error: unknown) {
       if (tempDoc && messagesRef) {
@@ -106,6 +108,7 @@ const ChatPage = () => {
       setNewMessage("");
     }
   }, [newMessage, userId, messagesRef, chatId, friendId]);
+  
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
