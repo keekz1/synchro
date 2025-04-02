@@ -1,12 +1,14 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+// app/api/getFriendName/route.ts
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma'; // Ensure you have a Prisma client instance
 
 // Define API to fetch the user's name by friendId
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { friendId } = req.query;
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const friendId = url.searchParams.get('friendId'); // Extract query parameter
 
   if (!friendId || typeof friendId !== 'string') {
-    return res.status(400).json({ error: 'Friend ID is required' });
+    return NextResponse.json({ error: 'Friend ID is required' }, { status: 400 });
   }
 
   try {
@@ -17,13 +19,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (user) {
-      return res.status(200).json({ name: user.name });
+      return NextResponse.json({ name: user.name }, { status: 200 });
     } else {
-      return res.status(404).json({ error: 'User not found' });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
   } catch (error) {
     // Log the error for debugging purposes
-    console.error("Error fetching user:", error);
-    return res.status(500).json({ error: 'Error fetching user from database' });
+    console.error('Error fetching user:', error);
+    return NextResponse.json({ error: 'Error fetching user from database' }, { status: 500 });
   }
 }
