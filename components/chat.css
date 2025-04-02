@@ -1,4 +1,4 @@
-/* chat.css */
+/* General Chat Container */
 .chat-container {
   display: flex;
   flex-direction: column;
@@ -10,15 +10,17 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Chat Header */
 .chat-header {
   padding: 1rem;
-  background: linear-gradient(135deg, #0070f3, #FF9933); /* Gradient header */
+  background: linear-gradient(135deg, #0070f3, #FF9933); 
   color: white;
   border-radius: 20px 20px 0 0;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
+/* Messages Container */
 .messages-container {
   flex: 1;
   padding: 1rem;
@@ -26,50 +28,56 @@
   background: #fdfdfd;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: background 0.3s ease;
 }
 
-.messages-container:hover {
-  background: #f9f9f9; /* Subtle hover effect */
-}
-
+/* Messages */
 .message {
-  margin: 0.5rem -2;
-  max-width:40%; /* Increase this value for a wider message bubble */
+  display: flex;
+  max-width: 80%; /* Ensuring consistent width */
+  margin: 8px;
+  word-wrap: break-word;
 }
 
 .message.sent {
   margin-left: auto;
+  justify-content: flex-end;
 }
 
 .message.received {
   margin-right: auto;
+  justify-content: flex-start;
 }
 
+/* Message Content */
 .message-content {
-  padding: 1rem;
-  border-radius: 15px; /* Optional: Make the corners a bit more rounded */
-  background: #7F00FF; /* Purple color for the message bubble */
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 16px; /* Readable font size */
+  line-height: 1.4;
+  background: #7F00FF;
   color: white;
-  max-width: 85%; /* Control the width here for a more modern, wider bubble */
-  word-wrap: break-word; /* Ensures that long words wrap correctly */
+  max-width: 75%; /* Controls the max width of messages */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .message.sent .message-content {
-  background-color: #7F00FF; /* Purple background for sent messages */
+  background-color: #7F00FF;
 }
 
 .message.received .message-content {
-  background-color: #282729; /* Same for received messages */
+  background-color: #282729;
 }
 
+/* Timestamp */
 .message-time {
-  display: block;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: #aaa;
-  margin-top: 0.3rem;
+  margin-top: 5px;
+  text-align: right;
 }
 
+/* Message Input */
 .message-input-container {
   display: flex;
   gap: 0.5rem;
@@ -81,49 +89,41 @@
 
 .message-input-container input {
   flex: 1;
-  padding: 0.8rem;
+  padding: 12px;
   border: none;
   border-radius: 12px;
   font-size: 1rem;
   background: #f0f0f0;
-  transition: background 0.3s ease;
-}
-
-.message-input-container input:focus {
-  background: #e0e0e0;
-  outline: none;
 }
 
 .message-input-container button {
-  padding: 0.8rem 1.5rem;
-  background: linear-gradient(135deg, #0070f3, #FF9933); /* Gradient button */
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #0070f3, #FF9933);
   color: white;
   border: none;
   border-radius: 18px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
-.message-input-container button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
+/* Responsive Fix for Mobile */
+@media screen and (max-width: 768px) {
+  .message {
+    max-width: 85%; /* Make messages wider on smaller screens */
+  }
 
-.message-input-container button:hover {
-  background: linear-gradient(135deg, #FF9933, #0070f3); /* Hover effect for button */
-}
+  .message-content {
+    font-size: 15px;
+    max-width: 90%;
+    padding: 10px 14px;
+  }
 
-.loading, .auth-warning, .empty-state {
-  padding: 20px;
-  text-align: center;
-  color: #666;
-}
+  .message-input-container input {
+    font-size: 14px;
+    padding: 10px;
+  }
 
-.error-banner {
-  background: #ffebee;
-  color: #b71c1c;
-  padding: 8px;
-  border-radius: 4px;
-  margin-top: 8px;
-  font-size: 0.9rem;
+  .message-input-container button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
 }
