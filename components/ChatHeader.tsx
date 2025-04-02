@@ -7,7 +7,7 @@ interface ChatHeaderProps {
 const ChatHeader: React.FC<ChatHeaderProps> = ({  isTyping, friendName }) => {
   return (
     <div className="chat-header">
-      <h1>{friendName || "Unknown User"}</h1> {/* Display the friend's name or "Unknown User" */}
+      <h1>{friendName }</h1> {/* Display the friend's name or "Unknown User" */}
       {isTyping && <div className="typing-indicator">Typing...</div>}
     </div>
   );
