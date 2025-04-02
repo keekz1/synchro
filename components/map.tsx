@@ -372,32 +372,49 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       setIsCreatingTicket(false);
     }
   };
-
   const getCircularIcon = (url: string) => {
-    const canvas = document.createElement('canvas');
     const size = 40;
+    const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
     
     if (ctx) {
+      // Create circular clipping path
       ctx.beginPath();
       ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
       ctx.closePath();
       ctx.clip();
       
-      // Draw white background (optional)
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, size, size);
+      // Create a temporary image to draw
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = url;
+      
+      // Draw the image after it loads
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, size, size);
+      };
+      
+      // Return canvas URL immediately (image will draw asynchronously)
+      return {
+        url: canvas.toDataURL(),
+        scaledSize: new google.maps.Size(size, size),
+        anchor: new google.maps.Point(size/2, size/2)
+      };
     }
     
+    // Fallback if canvas isn't available
     return {
-      url: canvas.toDataURL(),
+      url: url,
       scaledSize: new google.maps.Size(size, size),
-      anchor: new google.maps.Point(size/2, size/2)
+      anchor: new google.maps.Point(size/2, size/2),
+      shape: {
+        coords: [size/2, size/2, size/2],
+        type: 'circle'
+      }
     };
   };
-
   if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   if (isConnecting) return <div className={styles.loading}>Connecting to server...</div>;
   if (mapError) return <div className={styles.error}>{mapError}</div>;
