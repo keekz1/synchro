@@ -12,10 +12,9 @@ import MessageInput from "@/components/MessageInput";
 import "@/components/chat.css";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { Session } from "next-auth";
-import { useDocument } from 'react-firebase-hooks/firestore';
-import { PrismaClient } from '@prisma/client'; // Import Prisma Client
 
-const prisma = new PrismaClient(); // Initialize Prisma Client
+import { useDocument } from 'react-firebase-hooks/firestore';
+
 
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
@@ -23,29 +22,10 @@ const ChatPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [friendName, setFriendName] = useState<string | null>(null); // State for friend's name
 
   const userId = session?.user?.id || null;
   const friendId = params?.friendId as string | undefined;
   const chatId = userId && friendId ? [userId, friendId].sort().join('_') : null;
-
-  // Fetch friend's name from Prisma based on friendId
-  useEffect(() => {
-    const fetchFriendName = async () => {
-      if (friendId) {
-        try {
-          const user = await prisma.user.findUnique({
-            where: { id: friendId },
-            select: { name: true }
-          });
-          setFriendName(user?.name || null); // Update friend's name or null if not found
-        } catch (error) {
-          console.error("Error fetching friend's name:", error);
-        }
-      }
-    };
-    fetchFriendName();
-  }, [friendId]);
 
   const messagesRef = chatId ? collection(db, "chats", chatId, "messages") : null;
   const [messagesSnapshot, messagesLoading, messagesError] = useCollection(messagesRef ? query(messagesRef, orderBy("createdAt", "asc")) : null);
@@ -121,7 +101,7 @@ const ChatPage = () => {
 
   return (
     <div className="chat-container">
-      <ChatHeader friendName={friendName} isTyping={isTyping} />
+      <ChatHeader friendId={friendId} isTyping={isTyping} />
       <MessagesContainer messagesSnapshot={messagesSnapshot!} userId={userId} />
       <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session)} />
       <div ref={messagesEndRef} />
