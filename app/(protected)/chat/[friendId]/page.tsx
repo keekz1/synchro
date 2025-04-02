@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useParams } from "next/navigation";
+import { useRouter } from "next/router";  // Updated import
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, getDoc, setDoc } from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
@@ -13,14 +13,14 @@ import { useDocument } from "react-firebase-hooks/firestore";
 
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
-  const params = useParams();
+  const router = useRouter();  // Use useRouter hook
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [friendName, setFriendName] = useState<string | null>(null); // State to store friend's name
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const userId = session?.user?.id || null;
-  const friendId = params?.friendId as string | undefined;
+  const friendId = router.query.friendId as string | undefined; // Access friendId using router.query
   const chatId = userId && friendId ? [userId, friendId].sort().join('_') : null;
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -109,8 +109,8 @@ const ChatPage = () => {
     };
 
     fetchFriendName();
-  }, [friendId]); // Always run on render when friendId changes
-
+  }, [friendId]);
+  
   if (loading) {
     return <div>Loading...</div>;
   }
