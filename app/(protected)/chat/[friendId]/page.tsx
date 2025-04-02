@@ -1,4 +1,5 @@
-"use client"
+"use client";
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
@@ -113,9 +114,12 @@ const ChatPage = () => {
     }
   }, [newMessage, userId, messagesRef, chatId, friendId]);
 
-  // Move all conditional returns after all hooks
+  // Conditional rendering based on session status, loading, and errors
   if (loading) return <div>Loading...</div>;
   if (sessionStatus === "loading") return <div className="chat-container">Loading session...</div>;
+  if (sessionStatus === "unauthenticated") {
+    return <div className="chat-container">Please log in to chat</div>;
+  }
   if (!friendId) return <div className="chat-container">Invalid chat session</div>;
   if (messagesLoading) return <div className="chat-container">Loading messages...</div>;
   if (messagesError) return <div className="chat-container">Error loading messages: {messagesError.message}</div>;
