@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "next-auth/react"; // Importing the useSession hook
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp, updateDoc, doc, getDoc,setDoc } from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 import ChatHeader from "@/components/ChatHeader";
 import MessagesContainer from "@/components/MessageContainer";
 import MessageInput from "@/components/MessageInput";
 import "@/components/chat.css";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { useDocument } from 'react-firebase-hooks/firestore'; // Importing useDocument hook
+import { useDocument } from 'react-firebase-hooks/firestore';
+import { Session } from "next-auth"; // Importing the Session type
 
 const ChatPage = () => {
   const { data: session, status: sessionStatus } = useSession();
@@ -52,7 +52,8 @@ const ChatPage = () => {
     setTimeout(async () => await updateDoc(typingRef, { isTyping: false, lastUpdated: serverTimestamp() }), 1000);
   }, [chatId, userId, typingRef]);
 
-  const handleSendMessage = useCallback(async (session: any) => {
+  // Typing the session parameter properly
+  const handleSendMessage = useCallback(async (session: Session) => {
     if (!newMessage.trim() || !userId || !messagesRef || !chatId || !session || !session.user) return;
 
     let tempDoc;
@@ -96,7 +97,7 @@ const ChatPage = () => {
     <div className="chat-container">
       <ChatHeader friendId={friendId} isTyping={isTyping} />
       <MessagesContainer messagesSnapshot={messagesSnapshot} userId={userId} />
-      <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session)} />
+      <MessageInput newMessage={newMessage} setNewMessage={setNewMessage} handleTyping={handleTyping} handleSendMessage={() => handleSendMessage(session as Session)} />
       <div ref={messagesEndRef} />
     </div>
   );
