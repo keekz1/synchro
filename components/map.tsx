@@ -187,12 +187,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       ]
     }
   ];
-  const bounds = {
-    north: 51.70, // Adjust these values to your desired area
-    south: 51.30,
-    west: -0.50,
-    east: 0.30,
-  };
+
   const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
     if (!userId) return { lat: realLat, lng: realLng };
 
