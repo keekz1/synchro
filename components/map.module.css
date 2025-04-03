@@ -261,9 +261,17 @@
 .ticketItem:hover {
   transform: scale(1.05);
 }
-.circle-image {
-  width: 50px;  /* Set the desired size */
-  height: 50px; /* Set the desired size */
-  border-radius: 50%; /* This will make it a circle */
-  object-fit: cover; /* This ensures the image is properly centered */
+
+/* Add circular overflow hidden for images */
+/* In your map.module.css */
+/* Fix marker size at all zoom levels */
+.gm-style img {
+  width: 50px !important;
+  height: 50px !important;
+  transform: translate(-25px, -25px); /* Center the marker */
+}
+
+.gm-style img:hover {
+  transform: scale(1.1);
+  z-index: 1000;
 }
