@@ -187,7 +187,12 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       ]
     }
   ];
-  
+  const bounds = {
+    north: 51.70, // Adjust these values to your desired area
+    south: 51.30,
+    west: -0.50,
+    east: 0.30,
+  };
   const generatePersistentOffset = useCallback((userId: string | undefined, realLat: number, realLng: number) => {
     if (!userId) return { lat: realLat, lng: realLng };
 
@@ -385,13 +390,28 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
   return (
     <div className={styles.container} ref={mapContainerRef}>
-      <GoogleMap
-        mapContainerClassName={styles.map}
-        center={currentLocation}
-        zoom={13}
-        options={{ disableDefaultUI: true, styles: mapStyle }}
-        onLoad={handleMapLoad}
-      >
+<GoogleMap
+  mapContainerClassName={styles.map}
+  center={currentLocation}
+  zoom={15}
+  options={{
+    styles: mapStyle,
+    disableDefaultUI: true,
+    fullscreenControl: false,
+    restriction: {
+      latLngBounds: {
+        north: 85,
+        south: -60,
+        west: -170,
+        east: 180,
+      },
+      strictBounds: true,
+    },
+    keyboardShortcuts: false,
+  }}
+  onLoad={handleMapLoad}
+>
+
         
         {isVisible && (
           <>
