@@ -73,7 +73,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = ({ user }) => {
         context.stroke();
 
         setIconUrl(canvas.toDataURL());
-      } catch (e) {
+      } catch  {
         setError(true);
       }
     };

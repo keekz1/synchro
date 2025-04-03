@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { debounce } from 'lodash'; // Import debounce function
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
-import { GoogleMap, Marker, useJsApiLoader, Circle } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Circle } from '@react-google-maps/api';
 import { io, Socket } from 'socket.io-client'; // Updated import
 import CustomMarker from './Map/CustomMarker';
 
