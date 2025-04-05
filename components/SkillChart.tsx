@@ -8,7 +8,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  Colors
+  Colors,TooltipItem 
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 
@@ -82,9 +82,10 @@ export default function SkillChart({ data }: SkillChartProps) {
       },
       tooltip: {
         callbacks: {
-          label: (context: any) => {
-            return `${context.label}: ${context.raw} peers`;
-          }
+            label: (context: TooltipItem<'bar'>) => {
+                return `${context.label}: ${context.raw} peers`;
+              }
+              
         }
       }
     }
