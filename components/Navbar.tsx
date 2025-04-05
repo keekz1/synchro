@@ -123,6 +123,15 @@ export default function Navbar() {
               }}
             >
               Profile
+            </Link> <Link
+              href="/collab"
+              className="text-white text-lg py-2 px-4 hover:bg-gray-700 rounded"
+              onClick={() => {
+                toggleMenu();
+                setIsNavVisible(false);
+              }}
+            >
+              Collab
             </Link>
           </div>
         </div>
