@@ -3,10 +3,9 @@ import { debounce } from 'lodash'; // Import debounce function
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, useJsApiLoader, Circle } from '@react-google-maps/api';
-import { io, Socket } from 'socket.io-client'; // Updated import
+import { io } from 'socket.io-client'; // Updated import
 import CustomMarker from './Map/CustomMarker';
 import { useSocket } from '@/contexts/SocketContext'; // Adjust the path as needed
-let persistentSocket: Socket | null = null;
 
 
 
