@@ -86,7 +86,6 @@ export default function Profile({ user }: ProfileProps) {
   ];
   
   
-  const isValidRole = predefinedRoles.includes(role);
 
   async function updateRole(newRole: string) {
     setLoading(true);
@@ -139,7 +138,7 @@ export default function Profile({ user }: ProfileProps) {
       } else {
         setMessage(`Error: ${data.message}`);
       }
-    } catch (error) {
+    } catch  {
       setMessage("Failed to add skill.");
     } finally {
       setLoading(false);
@@ -186,7 +185,7 @@ export default function Profile({ user }: ProfileProps) {
       } else {
         setMessage(`Error: ${data.error}`);
       }
-    } catch (error) {
+    } catch  {
       setMessage("Upload failed. Try again.");
     } finally {
       setLoading(false);
