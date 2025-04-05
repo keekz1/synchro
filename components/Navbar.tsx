@@ -1,53 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [isNavVisible, setIsNavVisible] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Auto-hide navbar after 5 seconds of inactivity
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    const resetTimer = () => {
-      clearTimeout(timer);
-      setIsNavVisible(true);
-      timer = setTimeout(() => setIsNavVisible(false), 5000);
-    };
-
-    // Set up event listeners
-    window.addEventListener("mousemove", resetTimer);
-    window.addEventListener("touchstart", resetTimer);
-    window.addEventListener("scroll", resetTimer);
-
-    // Initial timer
-    resetTimer();
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("mousemove", resetTimer);
-      window.removeEventListener("touchstart", resetTimer);
-      window.removeEventListener("scroll", resetTimer);
-    };
-  }, []);
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const toggleNav = () => setIsNavVisible(!isNavVisible);
+  const toggleNav = () => {
+    setIsNavVisible(!isNavVisible);
+    setIsMenuOpen(false); // Close menu when toggling navbar
+  };
 
   return (
     <div ref={navRef}>
@@ -59,7 +24,7 @@ export default function Navbar() {
             animate={{ y: 0 }}
             exit={{ y: -100 }}
             transition={{ type: "spring", damping: 20 }}
-            className="bg-gray-800/95 backdrop-blur-sm text-white p-4 fixed top-0 left-0 right-0 z-50 shadow-lg"
+            className="bg-gray-800/95 backdrop-blur-sm text-white p-4 fixed top-0 left-0 right-0 z-40 shadow-lg"
           >
             <div className="container mx-auto flex justify-between items-center">
               <Link href="/" className="text-xl font-bold hover:text-gray-300 transition-colors">
@@ -74,33 +39,27 @@ export default function Navbar() {
                 <NavLink href="/collab" text="Collab" />
               </div>
 
-              {/* Mobile Menu Button */}
+              {/* Mobile Menu Button - Removed X button functionality */}
               <button
-                onClick={toggleMenu}
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="md:hidden text-white focus:outline-none transition-transform hover:scale-110"
                 aria-label="Toggle menu"
               >
-                <motion.div animate={isMenuOpen ? "open" : "closed"}>
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    {isMenuOpen ? (
-                      <path strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    ) : (
-                      <path strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    )}
-                  </svg>
-                </motion.div>
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
               </button>
             </div>
           </motion.nav>
         )}
       </AnimatePresence>
 
-      {/* Navbar Toggle Button */}
+      {/* Arrow Button - Now closes both navbar and menu */}
       <motion.button
         onClick={toggleNav}
         whileHover={{ scale: 1.1 }}
@@ -124,7 +83,7 @@ export default function Navbar() {
         </svg>
       </motion.button>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Will close when arrow is clicked */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -132,13 +91,14 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ type: "spring", damping: 25 }}
-            className="md:hidden fixed inset-0 z-40 bg-gray-800/95 backdrop-blur-sm mt-16 pt-4"
+            className="md:hidden fixed z-30 bg-gray-800/95 backdrop-blur-sm w-full pt-2 pb-4"
+            style={{ top: isNavVisible ? '64px' : '4px' }}
           >
             <div className="flex flex-col space-y-2 px-4">
-              <MobileNavLink href="/" text="Home" onClick={toggleMenu} />
-              <MobileNavLink href="/map" text="Map" onClick={toggleMenu} />
-              <MobileNavLink href="/profile" text="Profile" onClick={toggleMenu} />
-              <MobileNavLink href="/collab" text="Collab" onClick={toggleMenu} />
+              <MobileNavLink href="/" text="Home" onClick={() => setIsMenuOpen(false)} />
+              <MobileNavLink href="/map" text="Map" onClick={() => setIsMenuOpen(false)} />
+              <MobileNavLink href="/profile" text="Profile" onClick={() => setIsMenuOpen(false)} />
+              <MobileNavLink href="/collab" text="Collab" onClick={() => setIsMenuOpen(false)} />
             </div>
           </motion.div>
         )}
@@ -147,6 +107,7 @@ export default function Navbar() {
   );
 }
 
+// ... (keep the same NavLink and MobileNavLink components)
 // Reusable NavLink component for desktop
 const NavLink = ({ href, text }: { href: string; text: string }) => (
   <Link
