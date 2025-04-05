@@ -8,6 +8,7 @@ interface User {
   email: string;
   role: string;
   image?: string;
+  skills: string[];  // Add skills field
 }
 
 interface ProfileProps {
@@ -17,8 +18,75 @@ interface ProfileProps {
 export default function Profile({ user }: ProfileProps) {
   const [role, setRole] = useState(user.role);
   const [image, setImage] = useState(user.image || "https://via.placeholder.com/100");
+  const [skills, setSkills] = useState<string[]>(user.skills); // Use the skills passed via props
+  const [newSkill, setNewSkill] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const predefinedRoles = [
+    // 🔧 Engineering & Development
+    "Software Engineer", "Backend Developer", "Frontend Developer", "Full Stack Developer",
+    "Mobile Developer", "DevOps Engineer", "Machine Learning Engineer", "AI Engineer",
+    "Cloud Architect", "Site Reliability Engineer", "Embedded Systems Engineer",
+    "Firmware Engineer", "Game Developer", "Security Engineer",
+  
+    // 🔍 Data & AI
+    "Data Scientist", "Data Analyst", "Business Intelligence Analyst", "Data Engineer",
+    "Research Scientist", "ML Ops Engineer", "NLP Engineer", "AI Researcher",
+  
+    // 🎨 Design & UX
+    "UX Designer", "UI Designer", "Product Designer", "Graphic Designer",
+    "Interaction Designer", "Visual Designer", "Design Researcher",
+  
+    // 🧠 Product & Management
+    "Product Manager", "Project Manager", "Scrum Master", "Technical Program Manager",
+    "Tech Lead", "Engineering Manager", "Agile Coach",
+  
+    // 🧪 Quality & Testing
+    "QA Tester", "Test Automation Engineer", "Quality Assurance Engineer",
+  
+    // 💼 Business & Operations
+    "Business Analyst", "Operations Manager", "Customer Success Manager",
+    "Customer Support Specialist", "Sales Engineer", "Account Manager",
+  
+    // 🌐 Marketing & Growth
+    "Marketing Specialist", "Growth Hacker", "Content Strategist",
+    "SEO Specialist", "Social Media Manager", "Digital Marketing Manager",
+  
+    // 🖥️ IT & Infrastructure
+    "System Administrator", "IT Support", "Network Engineer", "Help Desk Technician",
+    "Database Administrator", "Security Analyst", "Cybersecurity Specialist",
+  
+    // 🧾 Writing & Documentation
+    "Technical Writer", "Content Writer", "UX Writer", "Documentation Specialist",
+  
+    // 🎓 Academia & Research
+    "Researcher", "Lecturer", "Academic Coordinator", "Education Technologist",
+  
+    // 🧬 Science & Bioinformatics
+    "Bioinformatics Scientist", "Computational Biologist", "Medical Data Analyst",
+  
+    // 🍽️ Restaurant & Hospitality
+    "Waiter", "Waitress", "Chef", "Sous Chef", "Line Cook", "Kitchen Assistant",
+    "Restaurant Manager", "Barista", "Bartender", "Host", "Hostess",
+    "Dishwasher", "Sommelier", "Pastry Chef", "Food Runner", "Catering Staff",
+  
+    // 🧑‍💼 Executive Roles
+    "CTO", "CIO", "Chief Product Officer", "VP of Engineering", "Founder", "Co-founder",
+  
+    // 🧑‍💻 Freelance & Remote
+    "Freelance Developer", "Remote Engineer", "Contractor",
+  
+    // 🌱 Entry-Level
+    "Intern", "Junior Developer", "Graduate Software Engineer",
+  
+    // 🧠 Miscellaneous
+    "Tech Enthusiast", "Hacker", "Open Source Contributor", "Mentor", "Volunteer",
+    "Entrepreneur", "other"
+  ];
+  
+  
+  const isValidRole = predefinedRoles.includes(role);
 
   async function updateRole(newRole: string) {
     setLoading(true);
@@ -45,6 +113,39 @@ export default function Profile({ user }: ProfileProps) {
     }
   }
 
+  async function addSkill() {
+    // Check if the skill already exists in the skills list
+    if (skills.includes(newSkill.trim())) {
+      setMessage("This skill already exists.");
+      return;
+    }
+  
+    setLoading(true);
+    setMessage("");
+  
+    try {
+      const response = await fetch("/api/addSkill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skill: newSkill }),
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        // Update the skills list with the new skill
+        setSkills((prevSkills) => [...prevSkills, newSkill.trim()]);
+        setNewSkill(""); // Clear the input field
+        setMessage("Skill added!");
+      } else {
+        setMessage(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      setMessage("Failed to add skill.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  
   async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
@@ -71,8 +172,6 @@ export default function Profile({ user }: ProfileProps) {
     const formData = new FormData();
     formData.append("image", file);
   
-    console.log("Uploading file:", file.name, file.type, file.size); // 🛠️ Debugging
-  
     try {
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -80,7 +179,6 @@ export default function Profile({ user }: ProfileProps) {
       });
   
       const data = await response.json();
-      console.log("Upload response:", data); // 🛠️ Debugging
   
       if (response.ok) {
         setImage(data.image);
@@ -89,13 +187,12 @@ export default function Profile({ user }: ProfileProps) {
         setMessage(`Error: ${data.error}`);
       }
     } catch (error) {
-      console.error("Upload failed:", error);
       setMessage("Upload failed. Try again.");
     } finally {
       setLoading(false);
     }
   }
-  
+
   return (
     <div className="p-4 border rounded shadow-md w-96">
       <div className="relative mx-auto w-24 h-24">
@@ -127,20 +224,71 @@ export default function Profile({ user }: ProfileProps) {
       <p className="text-center text-gray-600">{user.email}</p>
       <p className="text-center text-blue-500">Role: {role}</p>
 
+      {/* Display Skills */}
       <div className="mt-4">
-        <label htmlFor="role-select" className="block text-sm font-medium">
+        <p className="text-center font-semibold text-lg">Skills:</p>
+        <ul className="text-center mt-2">
+          {skills.map((skill, index) => (
+            <li key={index} className="text-gray-700">{skill}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-4">
+        <label htmlFor="role-input" className="block text-sm font-medium mb-1">
           Change Role:
         </label>
-        <select
-          id="role-select"
+        <input
+          id="role-input"
+          list="role-options"
           value={role}
-          onChange={(e) => updateRole(e.target.value)}
-          className="w-full border rounded p-2 mt-1"
+          onChange={(e) => setRole(e.target.value)}
+          className="w-full border rounded p-2"
+          placeholder="Start typing your role"
           disabled={loading}
+        />
+        <datalist id="role-options">
+          {predefinedRoles.map((r) => (
+            <option key={r} value={r} />
+          ))}
+        </datalist>
+        <button
+          onClick={() => {
+            const selectedRole = role.trim() === "" ? "other" : role;
+            if (predefinedRoles.includes(selectedRole)) {
+              updateRole(selectedRole);
+            } else {
+              setMessage("❗ Please select a role from the list.");
+            }
+          }}
+          disabled={loading}
+          className="mt-2 bg-blue-500 text-white px-3 py-2 rounded w-full"
         >
-          <option value="USER">User</option>
-          <option value="ADMIN">Admin</option>
-        </select>
+          Save Role
+        </button>
+      </div>
+
+      <div className="mt-4">
+        <label htmlFor="skill-input" className="block text-sm font-medium mb-1">
+          Add Skill:
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="skill-input"
+            type="text"
+            value={newSkill}
+            onChange={(e) => setNewSkill(e.target.value)}
+            className="flex-1 border rounded p-2"
+            placeholder="e.g., React, Python"
+          />
+          <button
+            onClick={addSkill}
+            disabled={loading || !newSkill.trim()}
+            className="bg-blue-500 text-white px-3 py-2 rounded"
+          >
+            Add
+          </button>
+        </div>
       </div>
 
       {message && <p className="text-center mt-2 text-green-500">{message}</p>}

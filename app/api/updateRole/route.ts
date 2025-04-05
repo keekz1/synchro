@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth"; // Using auth() from your auth.ts
 import { db } from "@/lib/db"; // Ensure this path is correct
-import { UserRole } from "@prisma/client";
 
 export async function PUT(req: Request) {
   const session = await auth();
@@ -11,16 +10,11 @@ export async function PUT(req: Request) {
   }
 
   const { newRole } = await req.json();
-  const validRoles: UserRole[] = ["USER", "ADMIN"];
-
-  if (!validRoles.includes(newRole)) {
-    return NextResponse.json({ message: "Invalid role" }, { status: 400 });
-  }
 
   try {
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
-      data: { role: newRole },
+      data: { role: newRole || "" }, // If newRole is an empty string, it will set it as empty
     });
 
     return NextResponse.json({ message: "Role updated successfully", user: updatedUser });
