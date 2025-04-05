@@ -11,7 +11,7 @@ export default function Navbar() {
 
   const toggleNav = () => {
     setIsNavVisible(!isNavVisible);
-    setIsMenuOpen(false); // Close menu when toggling navbar
+    setIsMenuOpen(false);
   };
 
   return (
@@ -24,10 +24,10 @@ export default function Navbar() {
             animate={{ y: 0 }}
             exit={{ y: -100 }}
             transition={{ type: "spring", damping: 20 }}
-            className="bg-gray-800/95 backdrop-blur-sm text-white p-4 fixed top-0 left-0 right-0 z-40 shadow-lg"
+            className="bg-white backdrop-blur-sm text-black p-4 fixed top-0 left-0 right-0 z-40 shadow-lg"
           >
             <div className="container mx-auto flex justify-between items-center">
-              <Link href="/" className="text-xl font-bold hover:text-gray-300 transition-colors">
+              <Link href="/" className="text-xl font-bold hover:text-gray-600 transition-colors">
                 YourApp
               </Link>
 
@@ -39,10 +39,10 @@ export default function Navbar() {
                 <NavLink href="/collab" text="Collab" />
               </div>
 
-              {/* Mobile Menu Button - Removed X button functionality */}
+              {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden text-white focus:outline-none transition-transform hover:scale-110"
+                className="md:hidden text-black focus:outline-none transition-transform hover:scale-110"
                 aria-label="Toggle menu"
               >
                 <svg
@@ -59,12 +59,12 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Arrow Button - Now closes both navbar and menu */}
+      {/* Arrow Button */}
       <motion.button
         onClick={toggleNav}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
-        className={`fixed z-50 bg-gray-700/80 hover:bg-gray-600 text-white p-2 rounded-full shadow-lg transition-all ${
+        className={`fixed z-50 bg-white/80 hover:bg-gray-200 text-black p-2 rounded-full shadow-lg transition-all ${
           isNavVisible ? "top-16 right-4" : "top-4 right-4"
         }`}
         aria-label={isNavVisible ? "Hide navbar" : "Show navbar"}
@@ -83,7 +83,7 @@ export default function Navbar() {
         </svg>
       </motion.button>
 
-      {/* Mobile Menu - Will close when arrow is clicked */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -91,7 +91,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ type: "spring", damping: 25 }}
-            className="md:hidden fixed z-30 bg-gray-800/95 backdrop-blur-sm w-full pt-2 pb-4"
+            className="md:hidden fixed z-30 bg-white/95 backdrop-blur-sm w-full pt-2 pb-4"
             style={{ top: isNavVisible ? '64px' : '4px' }}
           >
             <div className="flex flex-col space-y-2 px-4">
@@ -107,19 +107,18 @@ export default function Navbar() {
   );
 }
 
-// ... (keep the same NavLink and MobileNavLink components)
-// Reusable NavLink component for desktop
+// NavLink component with black text
 const NavLink = ({ href, text }: { href: string; text: string }) => (
   <Link
     href={href}
-    className="hover:text-gray-300 transition-colors duration-200 relative group"
+    className="hover:text-gray-600 transition-colors duration-200 relative group text-black"
   >
     {text}
-    <span className="absolute left-0 bottom-0 h-0.5 bg-white w-0 group-hover:w-full transition-all duration-300" />
+    <span className="absolute left-0 bottom-0 h-0.5 bg-black w-0 group-hover:w-full transition-all duration-300" />
   </Link>
 );
 
-// Reusable MobileNavLink component
+// MobileNavLink component with black text
 const MobileNavLink = ({ 
   href, 
   text, 
@@ -135,7 +134,7 @@ const MobileNavLink = ({
   >
     <Link
       href={href}
-      className="block text-white text-lg py-3 px-4 hover:bg-gray-700/50 rounded-lg transition-colors"
+      className="block text-black text-lg py-3 px-4 hover:bg-gray-200/50 rounded-lg transition-colors"
       onClick={onClick}
     >
       {text}
