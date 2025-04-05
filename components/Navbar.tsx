@@ -28,7 +28,7 @@ export default function Navbar() {
           >
             <div className="container mx-auto flex justify-between items-center">
               <Link href="/" className="text-xl font-bold hover:text-gray-600 transition-colors">
-                YourApp
+                Synchro
               </Link>
 
               {/* Desktop Navigation */}
@@ -37,6 +37,8 @@ export default function Navbar() {
                 <NavLink href="/map" text="Map" />
                 <NavLink href="/profile" text="Profile" />
                 <NavLink href="/collab" text="Collab" />
+                <NavLink href="/self-growth" text="Personal growth" />
+
               </div>
 
               {/* Mobile Menu Button */}
@@ -99,6 +101,8 @@ export default function Navbar() {
               <MobileNavLink href="/map" text="Map" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/profile" text="Profile" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/collab" text="Collab" onClick={() => setIsMenuOpen(false)} />
+              <MobileNavLink href="/self-growth" text="Personal Development" onClick={() => setIsMenuOpen(false)} />
+
             </div>
           </motion.div>
         )}
