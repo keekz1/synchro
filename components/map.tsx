@@ -302,8 +302,13 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     };
   
     const handleNearbyUsers = (data: User[]) => {
+      if (!userRole) return; // Don't process if we don't know our role yet
+      
+      // Filter users to only show those with matching role
+      const filteredUsers = data.filter(user => user.role === userRole);
+      
       const uniqueUsers = new Map<string, User>();
-      data.forEach((user) => {
+      filteredUsers.forEach((user) => {
         if (!uniqueUsers.has(user.id)) {
           uniqueUsers.set(user.id, { 
             ...user, 
@@ -311,9 +316,9 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
           });
         }
       });
+      
       setNearbyUsers(Array.from(uniqueUsers.values()));
     };
-  
     const handleNewTicket = (ticket: Ticket) => {
       setTickets((prev) => [...prev, ticket]);
     };
