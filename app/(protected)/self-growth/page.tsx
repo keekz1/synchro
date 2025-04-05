@@ -10,8 +10,8 @@ type SkillFrequency = {
 };
 
 type ComparisonData = {
-  currentSkills: string[]; // Array of strings (already split)
-  peerSkills: string[];   // Array of strings (already split)
+  currentSkills: string[];
+  peerSkills: string[];
   mostPopular: SkillFrequency[];
   leastPopular: SkillFrequency[];
   totalPeers: number;
@@ -32,6 +32,7 @@ export default function SelfGrowthPage() {
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [skillsExpanded, setSkillsExpanded] = useState(false);
 
   // Load saved data from localStorage on initial render
   useEffect(() => {
@@ -66,11 +67,9 @@ export default function SelfGrowthPage() {
 
       const data: ComparisonData = await response.json();
       
-      // No need to process skills if they're already arrays
       const currentSkills = data.currentSkills;
       const peerSkills = data.peerSkills;
 
-      // Calculate differences
       const skillsToDevelop = peerSkills.filter(
         skill => !currentSkills.includes(skill)
       );
@@ -99,7 +98,6 @@ export default function SelfGrowthPage() {
     }
   };
 
-  // Prepare chart data with proper typing
   const getChartData = () => {
     if (!result) return [];
   
@@ -113,7 +111,7 @@ export default function SelfGrowthPage() {
         const splitSkills = item.skill
           .split(',')
           .map(s => s.trim())
-          .filter(Boolean); // Remove empty strings
+          .filter(Boolean);
   
         for (const skill of splitSkills) {
           if (!skillCountMap[skill]) {
@@ -133,7 +131,11 @@ export default function SelfGrowthPage() {
       type
     }));
   };
-  
+
+  const toggleSkillsExpand = () => {
+    setSkillsExpanded(!skillsExpanded);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex justify-between items-center">
@@ -176,22 +178,33 @@ export default function SelfGrowthPage() {
 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4 text-blue-600">
-                Skills to Develop
-              </h2>
-              {result.skillsToDevelop.length ? (
-                <ul className="space-y-2">
-                  {result.skillsToDevelop.map((skill, index) => (
-                    <li key={index} className="flex items-center">
-                      <span className="w-4 h-4 bg-blue-100 rounded-full mr-2 flex-shrink-0"></span>
-                      {skill}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500">
-                  You have all the skills common in your role!
-                </p>
+              <button 
+                onClick={toggleSkillsExpand}
+                className="w-full text-left"
+              >
+                <h2 className="text-xl font-semibold mb-4 text-blue-600 flex justify-between items-center">
+                  <span>Skills to Develop</span>
+                  <span className="text-gray-500 text-sm">
+                    {skillsExpanded ? '▲' : '▼'}
+                  </span>
+                </h2>
+              </button>
+              
+              {skillsExpanded && (
+                result.skillsToDevelop.length ? (
+                  <ul className="space-y-2">
+                    {result.skillsToDevelop.map((skill, index) => (
+                      <li key={index} className="flex items-center">
+                        <span className="w-4 h-4 bg-blue-100 rounded-full mr-2 flex-shrink-0"></span>
+                        {skill}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500">
+                    You have all the skills common in your role!
+                  </p>
+                )
               )}
             </div>
 
