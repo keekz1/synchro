@@ -40,6 +40,9 @@ export default function Navbar() {
               <Link href="/profile" className="hover:text-gray-300">
                 Profile
               </Link>
+              <Link href="/collab" className="text-xl font-bold">
+              Collab
+            </Link>
             </div>
 
             {/* Mobile Menu Button */}
