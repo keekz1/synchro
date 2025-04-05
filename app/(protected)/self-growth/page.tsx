@@ -170,7 +170,7 @@ export default function SelfGrowthPage() {
       {result ? (
         <>
           <div className="text-gray-600">
-            <p>Compared with {result.totalPeers} peers in your role</p>
+            <p>Compared with {result.totalPeers} in your role</p>
             <p className="text-sm text-gray-500">
               Last updated: {result.lastUpdated}
             </p>
