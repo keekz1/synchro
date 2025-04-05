@@ -5,7 +5,7 @@ import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, useJsApiLoader, Circle } from '@react-google-maps/api';
 import { io, Socket } from 'socket.io-client'; // Updated import
 import CustomMarker from './Map/CustomMarker';
-
+import { useSocket } from '@/contexts/SocketContext'; // Adjust the path as needed
 let persistentSocket: Socket | null = null;
 
 
@@ -48,7 +48,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
 
   const [isOpen, setIsOpen] = useState(false);
-
+  const socket = useSocket(); // Get socket from context
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: 'AIzaSyDDmC7UTacmsXQ5c_9z4W1VozgoFwUn9AA',
     libraries: ['places'],
@@ -227,20 +227,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   }, []);
 
   useEffect(() => {
-    const initializeSocket = () => {
-      if (!persistentSocket) {
-        persistentSocket = io("https://backendfst1.onrender.com", {
-          transports: ["websocket"],
-          timeout: 20000,
-          reconnectionAttempts: 5,
-        });
-      }
-      return persistentSocket;
-    };
-
-    const socket = initializeSocket();
-    socketRef.current = socket;
-
     const fetchUserDetails = async () => {
       try {
         const response = await fetch("/api/profile");
@@ -254,40 +240,68 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         console.error("Error fetching user details:", error);
       }
     };
-
+  
     fetchUserDetails();
     setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
-
-    // Socket event handlers
+  
+    // Get socket from context
+    if (!socket) {
+      setMapError("Connecting to server...");
+      return;
+    }
+  
+    socketRef.current = socket;
+  
     const handleConnect = () => {
       setIsConnecting(false);
       setMapError(null);
+      
+      // Check for cached location first
+      const cachedLocation = localStorage.getItem('cachedLocation');
+      if (cachedLocation) {
+        const location = JSON.parse(cachedLocation);
+        setCurrentLocation(location);
+        if (socketRef.current?.connected && userRole) {
+          socketRef.current.emit('user-location', { 
+            lat: location.lat, 
+            lng: location.lng,
+            role: userRole,
+            name: userName,
+            image: userImage
+          });
+        }
+      }
+  
+      // Then get fresh location
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const realLocation = { 
             lat: position.coords.latitude, 
             lng: position.coords.longitude 
           };
+          localStorage.setItem('cachedLocation', JSON.stringify(realLocation));
           debouncedLocationUpdate(realLocation.lat, realLocation.lng);
         },
         (error) => {
-          setMapError("Enable location permissions to use this feature");
+          if (!cachedLocation) {
+            setMapError("Enable location permissions to use this feature");
+          }
           console.error("Geolocation error:", error);
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
     };
-
+  
     const handleConnectError = () => {
       setMapError("Connection issues - retrying...");
       setIsConnecting(true);
     };
-
+  
     const handleDisconnect = () => {
       setMapError("Reconnecting...");
       setIsConnecting(true);
     };
-
+  
     const handleNearbyUsers = (data: User[]) => {
       const uniqueUsers = new Map<string, User>();
       data.forEach((user) => {
@@ -300,11 +314,11 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       });
       setNearbyUsers(Array.from(uniqueUsers.values()));
     };
-
+  
     const handleNewTicket = (ticket: Ticket) => {
       setTickets((prev) => [...prev, ticket]);
     };
-
+  
     // Add event listeners
     socket.on("connect", handleConnect);
     socket.on("connect_error", handleConnectError);
@@ -312,9 +326,17 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     socket.on("nearby-users", handleNearbyUsers);
     socket.on("new-ticket", handleNewTicket);
     socket.on("all-tickets", setTickets);
-
+  
+    // Initialize connection if not already connected
+    if (!socket.connected) {
+      socket.connect();
+    } else {
+      // If already connected, trigger the connect handler
+      handleConnect();
+    }
+  
     return () => {
-      // Cleanup: Remove listeners but keep socket connected
+      // Cleanup event listeners but don't disconnect socket
       socket.off("connect", handleConnect);
       socket.off("connect_error", handleConnectError);
       socket.off("disconnect", handleDisconnect);
@@ -323,10 +345,8 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       socket.off("all-tickets", setTickets);
       
       locationCache.current.clear();
-      setCurrentLocation(null);
-      setNearbyUsers([]);
     };
-  }, [isLoaded, generatePersistentOffset, debouncedLocationUpdate]);
+  }, [socket, isLoaded, generatePersistentOffset, debouncedLocationUpdate, userRole, userName, userImage]);
 
   
   const handleCreateTicket = () => {

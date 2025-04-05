@@ -1,8 +1,10 @@
-
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
+import { SocketProvider } from "@/contexts/SocketContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +29,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <SocketProvider>
+            <Navbar />
+            <div className="pt-16">
+              {children}
+            </div>
+          </SocketProvider>
+        </SessionProvider>
       </body>
     </html>
   );
