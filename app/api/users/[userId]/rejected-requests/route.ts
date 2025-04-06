@@ -10,26 +10,28 @@ export async function GET(
   }
 ): Promise<NextResponse> {
   try {
-    // Basic parameter validation
-    if (!context.params.userId || typeof context.params.userId !== 'string') {
-      return new NextResponse(
-        JSON.stringify({ error: 'Invalid user ID' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Your business logic here
-    const data = { message: 'Success', userId: context.params.userId };
+    const data = { 
+      userId: context.params.userId,
+      message: "Working route handler"
+    };
     
-    return new NextResponse(
-      JSON.stringify(data),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    return NextResponse.json(data, { 
+      status: 200,
+      headers: { 
+        'Content-Type': 'application/json' 
+      } 
+    });
 
-  } catch {
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal Server Error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { 
+        status: 500,
+        headers: { 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   }
 }
