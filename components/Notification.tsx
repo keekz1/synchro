@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Prisma } from "@prisma/client";
-import axios, { AxiosError } from "axios";
+import axios from "axios";  // Removed AxiosError from imports
 import { FaCheck, FaTimes, FaUserSlash } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
