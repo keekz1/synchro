@@ -11,6 +11,15 @@ interface User {
   role?: string;
 }
 
+interface RejectedRequest {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  rejectedAt: string;
+  sender?: User;
+  receiver?: User;
+}
+
 interface SuggestedUsersProps {
   users: User[];
   loading: boolean;
@@ -43,10 +52,10 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
       if (!userId) return;
 
       try {
-        const response = await axios.get(`/api/users/${userId}/rejected-requests`);
+        const response = await axios.get<RejectedRequest[]>(`/api/users/${userId}/rejected-requests`);
         const senderIds = response.data
-          .filter((r: any) => r.receiverId === userId)
-          .map((r: any) => r.senderId);
+          .filter((r: RejectedRequest) => r.receiverId === userId)
+          .map((r: RejectedRequest) => r.senderId);
         setRejectedSenders(new Set(senderIds));
       } catch (error) {
         console.error("Error fetching rejected requests:", error);
@@ -60,15 +69,9 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
     return (rejectedReceivers?.has?.(id) ?? false) || rejectedSenders.has(id);
   };
 
-  // Filter out current user, friends, and rejected users
   const filteredUsers = users.filter((user) => {
-    // Explicitly exclude current user
     if (user.id === userId) return false;
-    
-    // Exclude existing friends
     if (friends.some(friend => friend.id === user.id)) return false;
-    
-    // Include all other users
     return true;
   });
 
@@ -113,7 +116,6 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
                 </div>
 
                 <div className="user-actions">
-                  {/* Hide the button completely if rejected */}
                   {!isRejected && !isPending && (
                     <button
                       className="request-button"

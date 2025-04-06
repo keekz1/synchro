@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { db as firestore } from '@/lib/firebase';
-import { pusherServer } from '@/lib/pusher';
 import { z } from 'zod';
-import type { Prisma } from '@prisma/client';
-
 // Validation schema
 const acceptSchema = z.object({
   requestId: z.string().min(1, "Request ID is required")
