@@ -8,14 +8,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  context: { params: { userId: string } }
 ): Promise<NextResponse> {
   try {
-    // Authentication check
+    // Authentication
     const session = await auth();
-    const currentUserId = session?.user?.id;
-    
-    if (!currentUserId) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -23,17 +21,21 @@ export async function GET(
     }
 
     // Parameter validation
-    const userId = z.string().parse(params.userId);
+    const paramsSchema = z.object({
+      userId: z.string().min(1)
+    });
+    
+    const { userId } = paramsSchema.parse(context.params);
 
-    // Authorization check
-    if (userId !== currentUserId) {
+    // Authorization
+    if (userId !== session.user.id) {
       return NextResponse.json(
         { error: "Forbidden" },
         { status: 403 }
       );
     }
 
-    // Fetch rejected requests
+    // Database query
     const rejectedRequests = await db.rejectedRequest.findMany({
       where: {
         OR: [
@@ -45,14 +47,13 @@ export async function GET(
         sender: true,
         receiver: true
       },
-      orderBy: {
-        rejectedAt: 'desc'
-      }
+      orderBy: { rejectedAt: 'desc' }
     });
 
     return NextResponse.json(rejectedRequests);
+    
   } catch (error) {
-    console.error('Error fetching rejected requests:', error);
+    console.error('Error:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
