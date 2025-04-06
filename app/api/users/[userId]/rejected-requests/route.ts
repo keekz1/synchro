@@ -2,36 +2,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
-  request: NextRequest,
-  context: {
-    params: {
-      userId: string;
-    };
-  }
-): Promise<NextResponse> {
+  _request: NextRequest,
+  context: { params: { userId: string } }
+) {
   try {
-    // Your business logic here
-    const data = { 
+    // Minimal valid implementation
+    return NextResponse.json({
       userId: context.params.userId,
-      message: "Working route handler"
-    };
-    
-    return NextResponse.json(data, { 
-      status: 200,
-      headers: { 
-        'Content-Type': 'application/json' 
-      } 
+      message: "Success"
     });
-
-  } catch  {
+    
+  } catch (error) {
     return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { 
-        status: 500,
-        headers: { 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      { error: "Internal Server Error" },
+      { status: 500 }
     );
   }
 }
