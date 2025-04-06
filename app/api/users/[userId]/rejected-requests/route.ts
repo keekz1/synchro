@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(rejectedRequests, { status: 200 });
 
-  } catch (error) {
-    console.error("[REJECTED_REQUESTS_GET]", error);
+  } catch  {
+    console.error("[REJECTED_REQUESTS_GET]");
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
