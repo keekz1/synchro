@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Prisma } from "@prisma/client";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { FaCheck, FaTimes, FaUserSlash } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -56,7 +56,7 @@ const Notifications: React.FC<NotificationsProps> = ({
   useEffect(() => {
     const fetchRejectedRequests = async () => {
       try {
-        const { data } = await axios.get(`/api/users/${userId}/rejected-requests`);
+        const { data } = await axios.get<RejectedRequest[]>(`/api/users/${userId}/rejected-requests`);
         setRejectedRequests(data);
       } catch (error) {
         console.error("Error fetching rejected requests:", error);
@@ -88,7 +88,7 @@ const Notifications: React.FC<NotificationsProps> = ({
   const handleAcceptFriendRequest = async (requestId: string, receiverId: string) => {
     try {
       // 1. First update in Prisma
-      const response = await axios.post("/api/friendRequest/accept", { requestId });
+      const { data } = await axios.post<{ request: FriendRequest }>("/api/friendRequest/accept", { requestId });
       
       // 2. Try to update Firestore
       try {
@@ -97,12 +97,12 @@ const Notifications: React.FC<NotificationsProps> = ({
           status: "accepted",
           updatedAt: serverTimestamp()
         });
-      } catch (firestoreError: any) {
-        if (firestoreError.code === "not-found") {
+      } catch (firestoreError: unknown) {
+        if (firestoreError instanceof Error && 'code' in firestoreError && firestoreError.code === "not-found") {
           console.warn("Firestore document missing, recreating...");
           // Get request details from Prisma response or make another API call
-          const requestDetails = response.data?.request || 
-            await axios.get(`/api/friendRequest/${requestId}`).then(res => res.data);
+          const requestDetails = data?.request || 
+            (await axios.get<FriendRequest>(`/api/friendRequest/${requestId}`)).data;
           
           await setDoc(doc(db, "users", receiverId, "friendRequests", requestId), {
             id: requestId,
@@ -119,20 +119,28 @@ const Notifications: React.FC<NotificationsProps> = ({
       }
   
       // 3. Update local state
-      const { data } = await axios.get(`/api/users/${userId}/friends`);
-      setFriends(data);
+      const friendsResponse = await axios.get<User[]>(`/api/users/${userId}/friends`);
+      setFriends(friendsResponse.data);
       onRequestUpdate(requestId);
       
       toast.success("Friend request accepted!");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = "Failed to accept friend request";
+      
+      if (axios.isAxiosError(error)) {
+        errorMessage = error.response?.data?.message || error.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       console.error("Error accepting friend request:", error);
-      toast.error(error.response?.data?.message || "Failed to accept friend request");
+      toast.error(errorMessage);
     }
   };
 
   const handleRejectFriendRequest = async (requestId: string) => {
     try {
-      const response = await axios.post("/api/friendRequest/reject", { requestId });
+      await axios.post("/api/friendRequest/reject", { requestId });
       
       const request = pendingRequests.find(r => r.id === requestId) || 
                      realTimeRequests.find(r => r.id === requestId);
@@ -148,7 +156,7 @@ const Notifications: React.FC<NotificationsProps> = ({
             status: "rejected",
             updatedAt: serverTimestamp()
           });
-        } catch (firestoreError) {
+        } catch (firestoreError: unknown) {
           console.warn("Firestore update failed:", firestoreError);
         }
       }
@@ -185,14 +193,13 @@ const Notifications: React.FC<NotificationsProps> = ({
     }
   };
 
-// Combine API and real-time requests
-const allPendingRequests = [
-  ...pendingRequests,
-  ...realTimeRequests.filter(r => 
-    !pendingRequests.some(pr => pr.id === r.id)
-  )
-];
-
+  // Combine API and real-time requests
+  const allPendingRequests = [
+    ...pendingRequests,
+    ...realTimeRequests.filter(r => 
+      !pendingRequests.some(pr => pr.id === r.id)
+    )
+  ];
 
   return (
     <div className="notifications-container">
