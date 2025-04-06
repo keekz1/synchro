@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import axios from "axios";
 import "@/components/suggested.css";
 
 interface User {
   id: string;
   name: string;
   email: string;
+  image?: string;
+  role?: string;
 }
 
 interface SuggestedUsersProps {
@@ -13,48 +16,79 @@ interface SuggestedUsersProps {
   loading: boolean;
   isRequestSentOrReceived: (friendId: string) => boolean;
   sendFriendRequest: (friendId: string) => Promise<void>;
-  friends?: User[]; // Ensure friends are passed correctly
+  rejectedReceivers: Set<string>;
+  friends?: User[];
 }
 
 const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   users,
   loading,
-  friends = [], // Default to empty array if not passed
+  friends = [],
   isRequestSentOrReceived,
+  rejectedReceivers,
   sendFriendRequest,
 }) => {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  // Load sent requests from localStorage
   const [sentRequests, setSentRequests] = useState<Set<string>>(() => {
-    const savedRequests = localStorage.getItem("sentRequests");
-    return savedRequests ? new Set(JSON.parse(savedRequests)) : new Set();
+    const saved = localStorage.getItem("sentRequests");
+    return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
-  // Update localStorage whenever sentRequests state changes
-  useEffect(() => {
-    localStorage.setItem("sentRequests", JSON.stringify(Array.from(sentRequests)));
-  }, [sentRequests]);
+  const [rejectedSenders, setRejectedSenders] = useState<Set<string>>(new Set());
 
-  // Filter out current user and friends from the suggested users
-  const filteredUsers = users.filter(
-    (user) => user.id !== userId && !friends.some((friend) => friend.id === user.id)
-  );
+  useEffect(() => {
+    const fetchRejectedSenders = async () => {
+      if (!userId) return;
+
+      try {
+        const response = await axios.get(`/api/users/${userId}/rejected-requests`);
+        const senderIds = response.data
+          .filter((r: any) => r.receiverId === userId)
+          .map((r: any) => r.senderId);
+        setRejectedSenders(new Set(senderIds));
+      } catch (error) {
+        console.error("Error fetching rejected requests:", error);
+      }
+    };
+
+    fetchRejectedSenders();
+  }, [userId]);
+
+  const isUserRejected = (id: string) => {
+    return (rejectedReceivers?.has?.(id) ?? false) || rejectedSenders.has(id);
+  };
+
+  // Filter out current user, friends, and rejected users
+  const filteredUsers = users.filter((user) => {
+    // Explicitly exclude current user
+    if (user.id === userId) return false;
+    
+    // Exclude existing friends
+    if (friends.some(friend => friend.id === user.id)) return false;
+    
+    // Include all other users
+    return true;
+  });
 
   const handleSendRequest = async (friendId: string) => {
-    if (!sentRequests.has(friendId) && !isRequestSentOrReceived(friendId)) {
-      await sendFriendRequest(friendId);
-      setSentRequests((prev) => {
-        const updatedRequests = new Set(prev);
-        updatedRequests.add(friendId);
-        return updatedRequests;
-      });
+    if (!sentRequests.has(friendId)) {
+      try {
+        await sendFriendRequest(friendId);
+        setSentRequests(prev => {
+          const updated = new Set(prev).add(friendId);
+          localStorage.setItem("sentRequests", JSON.stringify(Array.from(updated)));
+          return updated;
+        });
+      } catch (error) {
+        console.error("Failed to send friend request:", error);
+      }
     }
   };
 
   if (loading) {
-    return <div>Loading users...</div>;
+    return <div className="loading-indicator">Loading users...</div>;
   }
 
   return (
@@ -62,27 +96,37 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
       <h2 className="suggested-title">Suggested Users</h2>
       {filteredUsers.length > 0 ? (
         <div className="user-cards-container">
-          {filteredUsers.map((user) => (
-            <div key={user.id} className="user-card">
-              <div className="user-info">
-                <span className="user-name">{user.name}</span>
-                <button
-                  className="request-button"
-                  onClick={() => handleSendRequest(user.id)}
-                  disabled={sentRequests.has(user.id) || isRequestSentOrReceived(user.id)}
-                  aria-label={
-                    sentRequests.has(user.id) || isRequestSentOrReceived(user.id)
-                      ? "Request Pending"
-                      : "Send Friend Request"
-                  }
-                >
-                  {sentRequests.has(user.id) || isRequestSentOrReceived(user.id)
-                    ? "✉️ Request Sent"
-                    : "Add Friend"}
-                </button>
+          {filteredUsers.map((user) => {
+            const isPending = sentRequests.has(user.id) || isRequestSentOrReceived(user.id);
+            const isRejected = isUserRejected(user.id);
+
+            return (
+              <div key={user.id} className="user-card">
+                <div className="user-info">
+                  {user.image && (
+                    <img src={user.image} alt={user.name} className="user-avatar" />
+                  )}
+                  <div className="user-details">
+                    <span className="user-name">{user.name}</span>
+                    {user.role && <span className="user-role">{user.role}</span>}
+                  </div>
+                </div>
+
+                <div className="user-actions">
+                  {/* Hide the button completely if rejected */}
+                  {!isRejected && !isPending && (
+                    <button
+                      className="request-button"
+                      onClick={() => handleSendRequest(user.id)}
+                      aria-label="Send Friend Request"
+                    >
+                      Add Friend
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <p className="no-users">No suggested users found.</p>

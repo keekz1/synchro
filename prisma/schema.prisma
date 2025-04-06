@@ -29,9 +29,10 @@ model User {
   messagesSent           Message[]      @relation("MessagesSent")
   messagesReceived       Message[]      @relation("MessagesReceived")
   skills                 String[]       // No need for @db.Array here
+  rejectedRequestsSent     RejectedRequest[] @relation("rejectedBySender")
+  rejectedRequestsReceived RejectedRequest[] @relation("rejectedByReceiver")
 
 }
-
 
 model Friendship {
   id       String @id @default(cuid()) @map("_id")
@@ -43,6 +44,7 @@ model Friendship {
 
   // Ensure uniqueness to prevent duplicate friendships
   @@unique([userAId, userBId])
+
 }
 
 model FriendRequest {
@@ -55,6 +57,20 @@ model FriendRequest {
 
   sender      User     @relation("Sender", fields: [senderId], references: [id])
   receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
+}
+
+
+
+model RejectedRequest {
+  id         String   @id @default(cuid()) @map("_id")
+  senderId   String
+  receiverId String
+  rejectedAt DateTime @default(now())
+  
+  sender     User     @relation("rejectedBySender", fields: [senderId], references: [id])
+  receiver   User     @relation("rejectedByReceiver", fields: [receiverId], references: [id])
+  
+  @@unique([senderId, receiverId])
 }
 
 model Message {

@@ -84,6 +84,17 @@
     max-width: 600px;
     margin: 0 auto;
   }
+  .notification-badge {
+    position: relative;
+    top: -10px;
+    right: -5px;
+    background-color: #f44336;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 12px;
+    font-weight: bold;
+  }
   
   .chat-box {
     position: fixed; /* Fixed position on the screen */

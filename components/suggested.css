@@ -109,4 +109,12 @@
       padding: 6px 12px; /* Adjust button size for mobile */
     }
   }
-  
+  /* suggested.css additions */
+.rejected-label {
+  color: #ef4444;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  background-color: #fef2f2;
+}

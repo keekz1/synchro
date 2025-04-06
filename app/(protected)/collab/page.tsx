@@ -9,7 +9,10 @@ import SuggestedUsers from "@/components/SuggestedUsers";
 import { Prisma } from "@prisma/client";
 import Notification from "@/components/Notification";
 import '@fortawesome/fontawesome-free/css/all.min.css';
-
+import { doc, setDoc, serverTimestamp, collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 type FriendRequest = Prisma.FriendRequestGetPayload<{
   include: { sender: true; receiver: true };
@@ -20,78 +23,86 @@ interface User {
   name: string;
   email: string;
   role?: string;
+  image?: string;
 }
 
 const CollabPage = () => {
   const { data: session, status } = useSession() || {};
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+  const [realTimeRequests, setRealTimeRequests] = useState<FriendRequest[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [friends, setFriends] = useState<User[]>([]);
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  const [rejectedReceivers, setRejectedReceivers] = useState<Set<string>>(new Set());
 
   const [showFriends, setShowFriends] = useState(true);
   const [showSuggestedUsers, setShowSuggestedUsers] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
 
-  // Filter requests where user is the receiver
-  const receivedRequests = pendingRequests.filter(
-    (request) => request.receiver?.id === session?.user?.id
-  );
+  // Combine API and real-time requests
+  const allPendingRequests = [
+    ...pendingRequests,
+    ...realTimeRequests.filter(r => 
+      !pendingRequests.some(pr => pr.id === r.id)
+    )
+  ];
 
+  // Filter requests where user is the receiver
+// In your CollabPage component
+const receivedRequests = allPendingRequests.filter(
+  (request) => request.receiverId === session?.user?.id && request.status === "pending"
+);
+
+  // Firestore real-time listener for pending requests
   useEffect(() => {
     if (!session?.user?.id) return;
 
-    const fetchUsersAndFriends = async () => {
+    const q = query(
+      collection(db, "users", session.user.id, "friendRequests"),
+      where("status", "==", "pending")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newRequests = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as FriendRequest[];
+      setRealTimeRequests(newRequests);
+    });
+
+    return () => unsubscribe();
+  }, [session?.user?.id]);
+
+  // Fetch initial data
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const fetchData = async () => {
       try {
         setLoading(true);
-        console.log("Starting to fetch users and friends...");
-
-        // Fetch users and friends in parallel with error handling
-        const [usersResponse, friendsResponse] = await Promise.all([
+        
+        const [usersResponse, friendsResponse, pendingResponse] = await Promise.all([
           axios.get("/api/users").catch(() => ({ data: [] })),
           axios.get(`/api/users/${session.user.id}/friends`).catch(() => ({ data: [] })),
+          axios.get(`/api/friendRequest/pending/${session.user.id}`).catch(() => ({ data: [] }))
         ]);
 
-        console.log("Users Response:", usersResponse.data);
-        console.log("Friends Response:", friendsResponse.data);
-
         setFriends(friendsResponse.data ?? []);
-
-        // Filter out users who are already friends
+        setPendingRequests(pendingResponse.data ?? []);
+        
         const filteredUsers = (usersResponse.data ?? []).filter(
           (user: User) => !friendsResponse.data?.some((friend: User) => friend.id === user.id)
         );
-
         setSuggestedUsers(filteredUsers);
       } catch (error) {
-        console.error("Failed to fetch users or friends", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setLoading(false);
-        console.log("Finished fetching users and friends.");
       }
     };
 
-    fetchUsersAndFriends();
-  }, [session?.user?.id]);
-
-  useEffect(() => {
-    if (!session?.user?.id) return;
-
-    const fetchPendingRequests = async () => {
-      try {
-        const response = await axios.get(`/api/friendRequest/pending/${session?.user?.id}`);
-        console.log("Pending Requests API Response:", response);
-
-        if (!response.data) throw new Error("No data received");
-
-        setPendingRequests(response.data);
-      } catch (error) {
-        console.error("Error fetching pending requests:", error);
-      }
-    };
-
-    fetchPendingRequests();
+    fetchData();
   }, [session?.user?.id]);
 
   const handleNavbarClick = (section: string) => {
@@ -101,38 +112,63 @@ const CollabPage = () => {
   };
 
   const handleRequestUpdate = (requestId: string) => {
-    setPendingRequests((prev) => prev.filter((request) => request.id !== requestId));
-
-    // Refresh friends list after accepting request
+    setPendingRequests(prev => prev.filter(request => request.id !== requestId));
+    setRealTimeRequests(prev => prev.filter(request => request.id !== requestId));
     axios.get(`/api/users/${session?.user?.id}/friends`).then((res) => setFriends(res.data));
   };
 
   const handleSendFriendRequest = async (receiverId: string) => {
-    if (!session?.user?.id) {
-      alert("You must be logged in to send a friend request.");
-      return;
-    }
-
-    // Check if the request has already been sent
-    if (sentRequests.has(receiverId)) {
-      alert("You have already sent a friend request to this user.");
-      return;
-    }
-
+    if (!session?.user?.id) return;
+  
     try {
-      await axios.post("/api/friendRequest/send", { senderId: session?.user?.id, receiverId });
-      alert("Friend request sent!");
-      setSentRequests((prev) => new Set(prev).add(receiverId)); // Track the sent request
-    } catch (err) {
-      console.error("Error sending friend request:", err);
-      alert("Failed to send friend request.");
+      const response = await axios.post("/api/friendRequest/send", {
+        senderId: session.user.id,
+        receiverId,
+      });
+
+      const request = response.data?.request || response.data;
+      
+      if (!request?.id) {
+        console.error("Invalid response format:", response.data);
+        throw new Error("Failed to get request ID from response");
+      }
+
+      await setDoc(doc(db, "users", receiverId, "friendRequests", request.id), {
+        id: request.id,
+        senderId: request.senderId,
+        receiverId: request.receiverId,
+        status: "pending",
+        sender: {
+          id: request.sender?.id,
+          name: request.sender?.name || '',
+          email: request.sender?.email || '',
+          image: request.sender?.image || null
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      setSentRequests(prev => new Set(prev).add(receiverId));
+      toast.success("Friend request sent successfully!");
+    } catch (error: unknown) {
+      let errorMessage = "Failed to send friend request";
+      
+      if (axios.isAxiosError(error)) {
+        errorMessage = error.response?.data?.message || error.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      console.error("Error sending friend request:", error);
+      toast.error(errorMessage);
     }
   };
 
   const isRequestSentOrReceived = (userId: string) => {
     return (
-      pendingRequests.some((request) => request.sender?.id === userId || request.receiver?.id === userId) ||
-      sentRequests.has(userId) // Check if a request was already sent
+      allPendingRequests.some(
+        (request) => request.sender?.id === userId || request.receiver?.id === userId
+      ) || sentRequests.has(userId)
     );
   };
 
@@ -161,14 +197,20 @@ const CollabPage = () => {
           <i className="fas fa-user-plus"></i>
         </a>
         <a
-          href="#"
-          className={showRequests ? "active" : ""}
-          onClick={() => handleNavbarClick("requests")}
-          aria-label="Friend Requests"
-        >
-          <i className="fas fa-bell"></i>
-          {receivedRequests.length > 0 && `(${receivedRequests.length})`}
-        </a>
+  href="#"
+  className={`nav-icon ${showRequests ? "active" : ""}`}
+  onClick={() => handleNavbarClick("requests")}
+  aria-label="Friend Requests"
+>
+  <div className="icon-container">
+    <i className="fas fa-bell"></i>
+    {receivedRequests.length > 0 && (
+      <span className="notification-badge">
+        {receivedRequests.length > 9 ? "9+" : receivedRequests.length}
+      </span>
+    )}
+  </div>
+</a>
       </nav>
 
       <div className="main-content">
@@ -179,6 +221,8 @@ const CollabPage = () => {
             loading={loading}
             isRequestSentOrReceived={isRequestSentOrReceived}
             sendFriendRequest={handleSendFriendRequest}
+            rejectedReceivers={rejectedReceivers}
+            friends={friends}
           />
         )}
         {showRequests && (
@@ -186,10 +230,25 @@ const CollabPage = () => {
             pendingRequests={receivedRequests}
             userId={session?.user?.id}
             onRequestUpdate={handleRequestUpdate}
-            setFriends={setFriends} // Add this line
+            setFriends={setFriends}
+            setRejectedReceivers={setRejectedReceivers}
           />
         )}
       </div>
+
+      <style jsx>{`
+        .notification-badge {
+          position: relative;
+          top: -10px;
+          right: -5px;
+          background-color: #f44336;
+          color: white;
+          border-radius: 50%;
+          padding: 2px 6px;
+          font-size: 12px;
+          font-weight: bold;
+        }
+      `}</style>
     </div>
   );
 };
