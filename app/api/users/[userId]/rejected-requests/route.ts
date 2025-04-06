@@ -1,37 +1,37 @@
-import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { auth } from '@/auth'
-import { z } from 'zod'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { db } from '@/lib/db';
+import { auth } from '@/auth';
+import { z } from 'zod';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-const paramsSchema = z.object({
-  userId: z.string().min(1, "User ID is required")
-})
-
-// Correct type signature for Next.js App Router
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
   try {
-    const session = await auth()
-    const currentUserId = session?.user?.id
+    const session = await auth();
+    const currentUserId = session?.user?.id;
 
     if (!currentUserId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
+      return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
     }
 
-    const { userId } = paramsSchema.parse(params)
+    const { userId } = z.object({ userId: z.string() }).parse(params);
 
     if (userId !== currentUserId) {
-      return NextResponse.json(
-        { error: "Forbidden" },
-        { status: 403 }
-      )
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
     }
 
     const rejectedRequests = await db.rejectedRequest.findMany({
@@ -48,22 +48,37 @@ export async function GET(
       orderBy: {
         rejectedAt: 'desc'
       }
-    })
+    });
 
-    return NextResponse.json(rejectedRequests)
+    return new NextResponse(JSON.stringify(rejectedRequests), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (error) {
-    console.error('Error fetching rejected requests:', error)
+    console.error('Error fetching rejected requests:', error);
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid parameters", details: error.errors },
-        { status: 422 }
-      )
+      return new NextResponse(
+        JSON.stringify({ error: "Invalid parameters", details: error.errors }),
+        {
+          status: 422,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     }
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return new NextResponse(
+      JSON.stringify({ error: 'Internal server error' }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   }
 }
