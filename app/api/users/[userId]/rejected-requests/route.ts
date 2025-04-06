@@ -9,9 +9,10 @@ const paramsSchema = z.object({
   userId: z.string().min(1, "User ID is required")
 });
 
+// Updated type definition for GET function
 export async function GET(
   request: Request,
-  context: { params: { userId: string } } // Use context to access params
+  { params }: { params: { userId: string } } // Destructure params directly
 ) {
   try {
     const session = await auth();
@@ -25,9 +26,8 @@ export async function GET(
       );
     }
 
-    // Access userId from context.params
-    const userId = context.params.userId;
-    const validatedParams = paramsSchema.parse({ userId });
+    // Validate params
+    const validatedParams = paramsSchema.parse(params); // Pass the entire params object
 
     // Authorization check
     if (validatedParams.userId !== currentUserId) {
@@ -38,17 +38,21 @@ export async function GET(
     }
 
     // Fetch rejected requests
-// app/api/users/[userId]/rejected-requests/route.ts
-const rejectedRequests = await db.rejectedRequest.findMany({
-  where: {
-    senderId: validatedParams.userId // Filter by senderId = current user
-  },
-  select: {
-    id: true,
-    receiverId: true, // We only need who rejected the current user
-    rejectedAt: true
-  }
-});
+    const rejectedRequests = await db.rejectedRequest.findMany({
+      where: {
+        OR: [
+          { senderId: validatedParams.userId }, // Requests the user sent that were rejected
+          { receiverId: validatedParams.userId } // Requests the user received and rejected
+        ]
+      },
+      include: {
+        sender: true,
+        receiver: true
+      },
+      orderBy: {
+        rejectedAt: 'desc'
+      }
+    });
 
     return NextResponse.json(rejectedRequests);
   } catch (error) {
