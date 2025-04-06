@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+// app/api/users/[userId]/rejected-requests/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { auth } from '@/auth';
 import { z } from 'zod';
@@ -9,31 +9,31 @@ export const dynamic = 'force-dynamic';
 export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }
-) {
+): Promise<NextResponse> {
   try {
+    // Authentication check
     const session = await auth();
     const currentUserId = session?.user?.id;
-
+    
     if (!currentUserId) {
-      return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    const { userId } = z.object({ userId: z.string() }).parse(params);
+    // Parameter validation
+    const userId = z.string().parse(params.userId);
 
+    // Authorization check
     if (userId !== currentUserId) {
-      return new NextResponse(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
     }
 
+    // Fetch rejected requests
     const rejectedRequests = await db.rejectedRequest.findMany({
       where: {
         OR: [
@@ -50,35 +50,20 @@ export async function GET(
       }
     });
 
-    return new NextResponse(JSON.stringify(rejectedRequests), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return NextResponse.json(rejectedRequests);
   } catch (error) {
     console.error('Error fetching rejected requests:', error);
 
     if (error instanceof z.ZodError) {
-      return new NextResponse(
-        JSON.stringify({ error: "Invalid parameters", details: error.errors }),
-        {
-          status: 422,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      return NextResponse.json(
+        { error: "Invalid parameters", details: error.errors },
+        { status: 422 }
       );
     }
 
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }
