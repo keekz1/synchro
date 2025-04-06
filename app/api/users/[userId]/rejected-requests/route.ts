@@ -3,22 +3,21 @@ import { db } from '@/lib/db';
 import { auth } from '@/auth';
 import { z } from 'zod';
 
-export const dynamic = 'force-dynamic'; // Ensure dynamic route handling
+export const dynamic = 'force-dynamic';
 
 const paramsSchema = z.object({
   userId: z.string().min(1, "User ID is required")
 });
 
-// Updated type definition for GET function
+// Corrected function signature
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } } // Destructure params directly
-) {
+  { params }: { params: { userId: string } }
+): Promise<NextResponse> {
   try {
     const session = await auth();
     const currentUserId = session?.user?.id;
 
-    // Authentication check
     if (!currentUserId) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -26,10 +25,8 @@ export async function GET(
       );
     }
 
-    // Validate params
-    const validatedParams = paramsSchema.parse(params); // Pass the entire params object
+    const validatedParams = paramsSchema.parse(params);
 
-    // Authorization check
     if (validatedParams.userId !== currentUserId) {
       return NextResponse.json(
         { error: "Forbidden" },
@@ -37,12 +34,11 @@ export async function GET(
       );
     }
 
-    // Fetch rejected requests
     const rejectedRequests = await db.rejectedRequest.findMany({
       where: {
         OR: [
-          { senderId: validatedParams.userId }, // Requests the user sent that were rejected
-          { receiverId: validatedParams.userId } // Requests the user received and rejected
+          { senderId: validatedParams.userId },
+          { receiverId: validatedParams.userId }
         ]
       },
       include: {
