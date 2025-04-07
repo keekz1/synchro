@@ -82,7 +82,7 @@ export default function Profile({ user }: ProfileProps) {
   
     // 🧠 Miscellaneous
     "Tech Enthusiast", "Hacker", "Open Source Contributor", "Mentor", "Volunteer",
-    "Entrepreneur", "other"
+    "Entrepreneur", "other", "USER","ADMIN"
   ];
   
   

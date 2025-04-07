@@ -3,8 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";  // This is the native Pri
 
 import {getUserById} from "./data/user"
 import {db} from "./lib/db";
-import authConfig from "./auth.config";
-
+import authConfig from "./auth.config"
 
 
 export const {
@@ -14,7 +13,33 @@ signIn,
 signOut,
 
 } = NextAuth({
-callbacks: {
+
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/error",
+  
+
+  },
+
+
+
+
+  events:{
+
+    async linkAccount({user}){
+
+      await db.user.update({
+where:{ id: user.id},
+data:{emailVerified: new Date()}
+
+      })
+    }
+
+
+  },
+callbacks:{
+//
+//
 
     async session({token,session}){
         console.log({
@@ -23,7 +48,7 @@ callbacks: {
        
        
         if (token.sub && session.user){
-            session.user.id= token.sub
+            session.user.id= token.sub;
 
         }
         if (token.role && session.user){
@@ -48,6 +73,9 @@ callbacks: {
         token.role = existingUser.role;
 
         return token ;
+
+
+
 
       }
 
