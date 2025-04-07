@@ -1,23 +1,17 @@
 // components/auth/login-form.tsx
-"use client"; // Explicitly mark this as a client-side component
+"use client";
 
 import * as z from "zod";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import {
-  DEFAULT_LOGIN_REDIRECT,
-  
-} from "@/routes";
-
+import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { LoginSchema } from "@/schemas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
 import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
-
 import {
   Form,
   FormControl,
@@ -26,15 +20,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
 import { CardWrapper } from "./card-wrapper";
-import { login } from "@/actions/login"; // Ensure login action returns user data
-//import { getUserByEmail } from "@/data/user"; // Fetch userId based on email
+import { login } from "@/actions/login";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export const LoginForm = () => {
-  const [error, setError] = useState<string | undefined>(""); 
+  const router = useRouter();
+  const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
-
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get("error") === "OAuthAccountLinked"
+  ? "Email already in use with different provider !" : "";
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
@@ -45,37 +42,23 @@ export const LoginForm = () => {
     },
   });
 
-// components/auth/login-form.tsx
-const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
-  setError("");
-  setSuccess("");
+  const onSubmit = (values: z.infer<typeof LoginSchema>) => {
+    setError("");
+    setSuccess("");
 
-  startTransition(async () => {
-    try {
-      const result = await login(values);
-      
-      if (result?.error) {
-        setError(result.error);
-      } else if (result?.success && result.user) {
-        // Store user data in localStorage
-        localStorage.setItem('user', JSON.stringify(result.user));
-        console.log('Stored user data:', result.user);
-        
-        // Redirect manually after storage
-        window.location.href = DEFAULT_LOGIN_REDIRECT;
+    startTransition(async () => {
+      const data = await login(values);
+
+      if (data?.error) {
+        setError(data.error);
       }
-    } catch  {
-      setError("Something went wrong!");
-    }
-  });
-};
-  
-  
-  useEffect(() => {
-    // Check if userId is stored in localStorage
-    const storedUserId = localStorage.getItem("userId");
-    console.log("Stored User ID from localStorage:", storedUserId);
-  }, []);
+
+      if (data?.success) {
+        setSuccess("Login successful!");
+        router.push(DEFAULT_LOGIN_REDIRECT); // Optional: redirect after success
+      }
+    });
+  };
 
   return (
     <CardWrapper
@@ -124,7 +107,7 @@ const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
               )}
             />
           </div>
-          <FormError message={error} />
+          <FormError message={error || urlError} />
           <FormSuccess message={success} />
           <Button disabled={isPending} type="submit" className="w-full">
             Login

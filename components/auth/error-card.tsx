@@ -1,33 +1,25 @@
-import {Header} from "@/components/auth/header"
-import { BackButton } from "./back-button"
-import {
-Card,
-CardFooter,
-CardHeader
 
-}from "@/components/ui/card";
+import { CardWrapper } from "./card-wrapper";
+
+import { FaExclamationTriangle } from "react-icons/fa";
+
 
 
 
 
 export const ErrorCard = () =>{
     return(
-        <Card className="w-[400px] shadow-md">
+        <CardWrapper
+        headerLabel="Oops! Something went wrong"
+        backButtonHref="/auth/login"
+        backButtonLabel="Back to login"
+        
+        >
+            <div className="w-full justify-center items-center">
+            <FaExclamationTriangle className="text-destructive" />
+            </div>
 
-            <CardHeader>
-                <Header label="Oops! Something went wrong!"/>
-
-            </CardHeader>
-            <CardFooter>
-                <BackButton 
-                label="Back to login"
-                href="/auth/login"
-                
-               />
-
-            </CardFooter>
-
-        </Card>
-
+        </CardWrapper>
+      
     )
 }
