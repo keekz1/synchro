@@ -5,7 +5,11 @@ import { NewVerificationForm } from "@/components/auth/new-verification-form";
 const NewVerificationPage=()=>{
     return(
 
+        <Suspense fallback={<div>Loading...</div>}>
+
 <NewVerificationForm/>
+
+</Suspense>
 
  
  );
