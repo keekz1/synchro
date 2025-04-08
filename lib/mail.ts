@@ -9,7 +9,7 @@ export const sendPasswordResetEmail = async (
 )=>{
 
     //const resetLink = `http://localhost:3000/auth/new-password?token=${token}`;
-     const resetLink =`https://synchro-kappa.vercel.app/auth/new-password?token=${token}`;
+     const resetLink =`http://synchro-kappa.vercel.app/auth/new-password?token=${token}`;
 
 await resend.emails.send({
     from: "onboarding@resend.dev",
@@ -28,7 +28,7 @@ export const sendVerificationEmail = async(
     token:string
     )=>{
         //const confirmLink = `http://localhost:3000/auth/new-verification?token=${token}`;
-       const confirmLink =`https://synchro-kappa.vercel.app/auth/new-verification?token=${token}`;
+       const confirmLink =`http://synchro-kappa.vercel.app/auth/new-verification?token=${token}`;
 
 await resend.emails.send({
     from:"onboarding@resend.dev",
