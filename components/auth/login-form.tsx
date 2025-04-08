@@ -5,7 +5,7 @@ import * as z from "zod";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
+import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { LoginSchema } from "@/schemas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -44,14 +44,26 @@ export const LoginForm = () => {
     setError("");
     setSuccess("");
   
-    startTransition(() => {
-      login(values)
-        .then((data) => {
-          setError(data?.error);
-          setSuccess(data?.success ? String(data.success) : undefined);
-        });
+
+    startTransition(async () => {
+      try {
+        const result = await login(values);
+        
+        if (result?.error) {
+          setError(result.error);
+        } else if (result?.success && result.user) {
+          // Store user data in localStorage
+          localStorage.setItem('user', JSON.stringify(result.user));
+          console.log('Stored user data:', result.user);
+          
+          // Redirect manually after storage
+          window.location.href = DEFAULT_LOGIN_REDIRECT;
+        }
+      } catch  {
+        setError("Something went wrong!");
+      }
     });
-  }
+  };
   
   return (
     <CardWrapper

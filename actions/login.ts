@@ -1,4 +1,4 @@
- "use server";
+"use server";
 
 import * as z from "zod";
 import { LoginSchema } from "@/schemas";
@@ -9,14 +9,11 @@ import { getUserByEmail } from "@/data/user"; // Import function to get user det
 import { getUserById } from "@/data/user"; // Import function to get user by ID
 import { generateVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/mail";
-
 export const login = async (values: z.infer<typeof LoginSchema>) => {
   const validatedFields = LoginSchema.safeParse(values);
-  
   if (!validatedFields.success) {
     return { error: "Invalid fields" };
   }
-
 
   const { email, password } = validatedFields.data;
 
@@ -75,5 +72,5 @@ await sendVerificationEmail (
 
     throw error;
   }
-}
   
+};
