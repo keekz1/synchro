@@ -5,16 +5,12 @@ import * as z from "zod";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import { LoginSchema } from "@/schemas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
-
-import { useRouter } from "next/navigation";
-
-
-
 import {
   Form,
   FormControl,
@@ -27,7 +23,6 @@ import { CardWrapper } from "./card-wrapper";
 import { login } from "@/actions/login";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 
 export const LoginForm = () => {
   const [error, setError] = useState<string | undefined>("");
@@ -36,8 +31,6 @@ export const LoginForm = () => {
   const urlError = searchParams.get("error") === "OAuthAccountLinked"
   ? "Email already in use with different provider !" : "";
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -51,24 +44,14 @@ export const LoginForm = () => {
     setError("");
     setSuccess("");
   
-
- startTransition(() => {
+    startTransition(() => {
       login(values)
         .then((data) => {
-          // Ensure that error is always a string (or undefined)
-          setError(data?.error); // Convert to string if necessary
-  
-          // Ensure success is either a string or undefined
-          if (data?.success) {
-            setSuccess("Login successful!");
-            router.push(DEFAULT_LOGIN_REDIRECT); // Optional: redirect after success
-          }        })
-        .catch(() => {
-          // Handle any additional errors (e.g., network errors)
-          setError("An error occurred, please try again.");
+          setError(data?.error);
+          setSuccess(data?.success);
         });
     });
-  };
+  }
   
   return (
     <CardWrapper
