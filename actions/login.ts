@@ -58,8 +58,11 @@ await sendVerificationEmail (
       return { error: "User details not found" };
     }
 
-    return { success: true, userId: userDetails.id, user: userDetails }; // Return user details including userId
-
+    return {
+      success: "Login successful!",
+      userId: userDetails.id,
+      user: userDetails,
+    };
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
