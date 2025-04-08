@@ -23,12 +23,10 @@ import {
 import { CardWrapper } from "./card-wrapper";
 import { login } from "@/actions/login";
 import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
 
 export const LoginForm = () => {
-  const router = useRouter();
   const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
+  const [success,setSuccess] = useState<string | undefined>("");
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error") === "OAuthAccountLinked"
   ? "Email already in use with different provider !" : "";
@@ -45,21 +43,24 @@ export const LoginForm = () => {
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
     setError("");
     setSuccess("");
-
-    startTransition(async () => {
-      const data = await login(values);
-
-      if (data?.error) {
-        setError(data.error);
-      }
-
-      if (data?.success) {
-        setSuccess("Login successful!");
-        router.push(DEFAULT_LOGIN_REDIRECT); // Optional: redirect after success
-      }
+  
+    startTransition(() => {
+      login(values)
+        .then((data) => {
+          // Ensure that error is always a string (or undefined)
+          setError(data?.error ? String(data.error) : ""); // Convert to string if necessary
+  
+          // Ensure success is either a string or undefined
+          setSuccess(data?.success ? String(data.success) : undefined); // Only set a string if success is truthy
+        })
+        .catch((err) => {
+          // Handle any additional errors (e.g., network errors)
+          setError("An error occurred, please try again.");
+        });
     });
   };
-
+  
+  
   return (
     <CardWrapper
       headerLabel="Welcome back"

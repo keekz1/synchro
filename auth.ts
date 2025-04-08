@@ -41,6 +41,32 @@ callbacks:{
 //
 //
 
+async signIn({ user, account}) {
+
+  console.log({
+    user,
+    account,
+  })
+
+
+  //Allo oAuth
+
+  if (account?.provider !== "credentials") return true;
+
+  if (!user.id) return false; // or throw an error if it's unexpected
+
+  const existingUser = await getUserById(user.id);
+  
+  
+
+  //prevent sign in without email verification
+  if(!existingUser?.emailVerified) return false;
+
+  return true;
+
+
+},
+
     async session({token,session}){
         console.log({
             sessionToken:token,
