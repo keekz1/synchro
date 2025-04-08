@@ -21,10 +21,10 @@ export default function Home() {
   "text-6xl font-semibold text-white drop-shadow-md",
   font.className,
   )}>
-🔐Auth
+🔐Synchro
   </h1>
   <p className="text-white text-lg">
-    A simple authentications service
+    Connect with like-minded people
   </p>
   <div>
     <LoginButton >
