@@ -5,6 +5,7 @@ import * as z from "zod";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { LoginSchema } from "@/schemas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -44,27 +45,19 @@ export const LoginForm = () => {
     setSuccess("");
   
 
-    startTransition(async () => {
-      const data = await login(values);
-
-      if (data?.error) {
-        setError(data.error);
-
-
-
-
-
-
-
-
-
-
-
-      }
-
-      if (data?.success) {
-        setSuccess("Login successful!");
-      }
+ startTransition(() => {
+      login(values)
+        .then((data) => {
+          // Ensure that error is always a string (or undefined)
+          setError(data?.error ? String(data.error) : ""); // Convert to string if necessary
+  
+          // Ensure success is either a string or undefined
+          setSuccess(data?.success ? String(data.success) : undefined); // Only set a string if success is truthy
+        })
+        .catch(() => {
+          // Handle any additional errors (e.g., network errors)
+          setError("An error occurred, please try again.");
+        });
     });
   };
   
