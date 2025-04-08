@@ -6,7 +6,6 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { LoginSchema } from "@/schemas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,7 @@ export const LoginForm = () => {
           // Ensure success is either a string or undefined
           setSuccess(data?.success ? String(data.success) : undefined); // Only set a string if success is truthy
         })
-        .catch((err) => {
+        .catch(() => {
           // Handle any additional errors (e.g., network errors)
           setError("An error occurred, please try again.");
         });
