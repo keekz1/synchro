@@ -10,6 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
+
+import { useRouter } from "next/navigation";
+
+
+
 import {
   Form,
   FormControl,
@@ -22,6 +27,8 @@ import { CardWrapper } from "./card-wrapper";
 import { login } from "@/actions/login";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
+const router = useRouter();
 
 export const LoginForm = () => {
   const [error, setError] = useState<string | undefined>("");
@@ -48,11 +55,13 @@ export const LoginForm = () => {
       login(values)
         .then((data) => {
           // Ensure that error is always a string (or undefined)
-          setError(data?.error ? String(data.error) : ""); // Convert to string if necessary
+          setError(data?.error); // Convert to string if necessary
   
           // Ensure success is either a string or undefined
-          setSuccess(data?.success ? String(data.success) : undefined); // Only set a string if success is truthy
-        })
+          if (data?.success) {
+            setSuccess("Login successful!");
+            router.push(DEFAULT_LOGIN_REDIRECT); // Optional: redirect after success
+          }        })
         .catch(() => {
           // Handle any additional errors (e.g., network errors)
           setError("An error occurred, please try again.");
