@@ -53,8 +53,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
 
     return {
       success: "Login successful!",
-      error: undefined,
-      userId: userDetails.id,
+       userId: userDetails.id,
       user: userDetails,
     };
 
