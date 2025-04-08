@@ -28,7 +28,6 @@ import { login } from "@/actions/login";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
-const router = useRouter();
 
 export const LoginForm = () => {
   const [error, setError] = useState<string | undefined>("");
@@ -37,6 +36,8 @@ export const LoginForm = () => {
   const urlError = searchParams.get("error") === "OAuthAccountLinked"
   ? "Email already in use with different provider !" : "";
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
