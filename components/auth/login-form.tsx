@@ -53,7 +53,7 @@ export const LoginForm = () => {
           // Ensure success is either a string or undefined
           setSuccess(data?.success ? String(data.success) : undefined); // Only set a string if success is truthy
         })
-        .catch((err) => {
+        .catch(() => {
           // Handle any additional errors (e.g., network errors)
           setError("An error occurred, please try again.");
         });
