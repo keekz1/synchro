@@ -54,9 +54,10 @@ if (!twoFactorToken){
 }
 
 
-if(twoFactorToken.token! == code){
-  return {error:"Invalid Code! "};
+if (twoFactorToken.token !== code) {
+  return { error: "Invalid Code!" };
 }
+
 
 const hasExpired = new Date(twoFactorToken.expires)<new Date ();
 
