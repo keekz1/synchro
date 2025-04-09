@@ -31,7 +31,7 @@ export const sendVerificationEmail = async(
        //const confirmLink =`https://synchro-kappa.vercel.app/auth/new-verification?token=${token}`;
 
 await resend.emails.send({
-    from:"noreply@employeehubs.com",
+    from:"noreply@wesynchro.com",
     to: email,
     subject:"Confirm your email",
     html:`<p>Click <a href="${confirmLink}">here</a>to confirm email</p>`
