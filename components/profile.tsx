@@ -190,13 +190,16 @@ export default function Profile({ user }: ProfileProps) {
           disabled={loading}
         />
         <datalist id="role-options">
-          {rolesFromDb.map((r) => (
-            <option key={r} value={r} />
-          ))}
+          {rolesFromDb.map((r) => {
+            // Display role without underscores for user
+            const displayRole = r.replace(/_/g, " ");
+            return <option key={r} value={displayRole} />;
+          })}
         </datalist>
         <button
           onClick={() => {
-            const selectedRole = role.trim() === "" ? "other" : role;
+            // Save role with underscores when updating
+            const selectedRole = role.trim().replace(/ /g, "_");
             if (rolesFromDb.includes(selectedRole)) {
               updateRole(selectedRole);
             } else {

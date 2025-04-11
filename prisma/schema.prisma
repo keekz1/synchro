@@ -8,128 +8,129 @@ generator client {
 }
 
 enum UserRole {
-  SOFTWARE_ENGINEER
-  BACKEND_DEVELOPER
-  FRONTEND_DEVELOPER
-  FULL_STACK_DEVELOPER
-  MOBILE_DEVELOPER
-  DEVOPS_ENGINEER
-  MACHINE_LEARNING_ENGINEER
-  AI_ENGINEER
-  CLOUD_ARCHITECT
-  SITE_RELIABILITY_ENGINEER
-  EMBEDDED_SYSTEMS_ENGINEER
-  FIRMWARE_ENGINEER
-  GAME_DEVELOPER
-  SECURITY_ENGINEER
+  Software_Engineer
+  Backend_Developer
+  Frontend_Developer
+  Full_Stack_Developer
+  Mobile_Developer
+  Devops_Engineer
+  Machine_Learning_Engineer
+  Ai_Engineer
+  Cloud_Architect
+  Site_Reliability_Engineer
+  Embedded_Systems_Engineer
+  Firmware_Engineer
+  Game_Developer
+  Security_Engineer
 
-  DATA_SCIENTIST
-  DATA_ANALYST
-  BUSINESS_INTELLIGENCE_ANALYST
-  DATA_ENGINEER
-  RESEARCH_SCIENTIST
-  ML_OPS_ENGINEER
-  NLP_ENGINEER
-  AI_RESEARCHER
+  Data_Scientist
+  Data_Analyst
+  Business_Intelligence_Analyst
+  Data_Engineer
+  Research_Scientist
+  ML_Ops_Engineer
+  Nlp_Engineer
+  Ai_Researcher
 
-  UX_DESIGNER
-  UI_DESIGNER
-  PRODUCT_DESIGNER
-  GRAPHIC_DESIGNER
-  INTERACTION_DESIGNER
-  VISUAL_DESIGNER
-  DESIGN_RESEARCHER
+  Ux_Designer
+  Ui_Designer
+  Product_Designer
+  Graphic_Designer
+  Interaction_Designer
+  Visual_Designer
+  Design_Researcher
 
-  PRODUCT_MANAGER
-  PROJECT_MANAGER
-  SCRUM_MASTER
-  TECHNICAL_PROGRAM_MANAGER
-  TECH_LEAD
-  ENGINEERING_MANAGER
-  AGILE_COACH
+  Product_Manager
+  Project_Manager
+  Scrum_Master
+  Technical_Program_Manager
+  Tech_Lead
+  Engineering_Manager
+  Agile_Coach
 
-  QA_TESTER
-  TEST_AUTOMATION_ENGINEER
-  QUALITY_ASSURANCE_ENGINEER
+  Qa_Tester
+  Test_Automation_Engineer
+  Quality_Assurance_Engineer
 
-  BUSINESS_ANALYST
-  OPERATIONS_MANAGER
-  CUSTOMER_SUCCESS_MANAGER
-  CUSTOMER_SUPPORT_SPECIALIST
-  SALES_ENGINEER
-  ACCOUNT_MANAGER
+  Business_Analyst
+  Operations_Manager
+  Customer_Success_Manager
+  Customer_Support_Specialist
+  Sales_Engineer
+  Account_Manager
 
-  MARKETING_SPECIALIST
-  GROWTH_HACKER
-  CONTENT_STRATEGIST
-  SEO_SPECIALIST
-  SOCIAL_MEDIA_MANAGER
-  DIGITAL_MARKETING_MANAGER
+  Marketing_Specialist
+  Growth_Hacker
+  Content_Strategist
+  Seo_Specialist
+  Social_Media_Manager
+  Digital_Marketing_Manager
 
-  SYSTEM_ADMINISTRATOR
-  IT_SUPPORT
-  NETWORK_ENGINEER
-  HELP_DESK_TECHNICIAN
-  DATABASE_ADMINISTRATOR
-  SECURITY_ANALYST
-  CYBERSECURITY_SPECIALIST
+  System_Administrator
+  It_Support
+  Network_Engineer
+  Help_Desk_Technician
+  Database_Administrator
+  Security_Analyst
+  Cybersecurity_Specialist
 
-  TECHNICAL_WRITER
-  CONTENT_WRITER
-  UX_WRITER
-  DOCUMENTATION_SPECIALIST
+  Technical_Writer
+  Content_Writer
+  Ux_Writer
+  Documentation_Specialist
 
-  RESEARCHER
-  LECTURER
-  ACADEMIC_COORDINATOR
-  EDUCATION_TECHNOLOGIST
+  Researcher
+  Lecturer
+  Academic_Coordinator
+  Education_Technologist
 
-  BIOINFORMATICS_SCIENTIST
-  COMPUTATIONAL_BIOLOGIST
-  MEDICAL_DATA_ANALYST
+  Bioinformatics_Scientist
+  Computational_Biologist
+  Medical_Data_Analyst
 
-  WAITER
-  WAITRESS
-  CHEF
-  SOUS_CHEF
-  LINE_COOK
-  KITCHEN_ASSISTANT
-  RESTAURANT_MANAGER
-  BARISTA
-  BARTENDER
-  HOST
-  HOSTESS
-  DISHWASHER
-  SOMMELIER
-  PASTRY_CHEF
-  FOOD_RUNNER
-  CATERING_STAFF
+  Waiter
+  Waitress
+  Chef
+  Sous_Chef
+  Line_Cook
+  Kitchen_Assistant
+  Restaurant_Manager
+  Barista
+  Bartender
+  Host
+  Hostess
+  Dishwasher
+  Sommelier
+  Pastry_Chef
+  Food_Runner
+  Catering_Staff
 
-  CTO
-  CIO
-  CHIEF_PRODUCT_OFFICER
-  VP_OF_ENGINEERING
-  FOUNDER
-  CO_FOUNDER
+  Cto
+  Cio
+  Chief_Product_Officer
+  Vp_Of_Engineering
+  Founder
+  Co_Founder
 
-  FREELANCE_DEVELOPER
-  REMOTE_ENGINEER
-  CONTRACTOR
+  Freelance_Developer
+  Remote_Engineer
+  Contractor
 
-  INTERN
-  JUNIOR_DEVELOPER
-  GRADUATE_SOFTWARE_ENGINEER
+  Intern
+  Junior_Developer
+  Graduate_Software_Engineer
 
-  TECH_ENTHUSIAST
-  HACKER
-  OPEN_SOURCE_CONTRIBUTOR
-  MENTOR
-  VOLUNTEER
-  ENTREPRENEUR
-  OTHER
-  USER
-  ADMIN
+  Tech_Enthusiast
+  Hacker
+  Open_Source_Contributor
+  Mentor
+  Volunteer
+  Entrepreneur
+  Other
+USER
+ADMIN
 }
+
 
 
 model User {
