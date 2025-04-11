@@ -37,11 +37,11 @@ const SettingsPage = () => {
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
     defaultValues: {
-      password: "",
-      newPassword: "",
-      name: user?.name || "",
-      email: user?.email || "",
-      role: user?.role || "",
+      password: undefined,  // Changed from empty string
+      newPassword: undefined,  // Changed from empty string
+      name: user?.name || undefined,
+      email: user?.email || undefined,
+      role: user?.role || undefined,
       isTwoFactorEnabled: user?.isTwoFactorEnabled ?? false,
     },
   });
@@ -49,11 +49,11 @@ const SettingsPage = () => {
   useEffect(() => {
     if (user) {
       form.reset({
-        password: "",
-        newPassword: "",
-        name: user.name || "",
-        email: user.email || "",
-        role: user.role || "",
+        password: undefined,  // Changed from empty string
+        newPassword: undefined,  // Changed from empty string
+        name: user.name || undefined,
+        email: user.email || undefined,
+        role: user.role || undefined,
         isTwoFactorEnabled: user.isTwoFactorEnabled ?? false,
       });
     }
@@ -63,13 +63,20 @@ const SettingsPage = () => {
     setError(undefined);
     setSuccess(undefined);
   
+    // Prepare submission values
+    const submissionValues = {
+      ...values,
+      // Only include password fields if they have values
+      password: values.password || undefined,
+      newPassword: values.newPassword || undefined
+    };
+  
     startTransition(() => {
-      settings(values)
+      settings(submissionValues)
         .then(async (data) => {
           if (data.error) {
             setError(data.error);
           }
-  
           if (data.success) {
             await update();
             setSuccess(data.success);
@@ -220,47 +227,46 @@ const SettingsPage = () => {
 
                 {/* Password Fields */}
                 {user?.isOAuth === false && isEditing && (
-  <div className="space-y-4">
-    <FormField
-      control={form.control}
-      name="password"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Current Password (only if changing password)</FormLabel>
-          <FormControl>
-            <Input
-              {...field}
-              type="password"
-              placeholder="Leave blank to keep current password"
-              disabled={isPending}
-              value={field.value || ""}
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="newPassword"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>New Password (only if changing password)</FormLabel>
-          <FormControl>
-            <Input
-              {...field}
-              type="password"
-              placeholder="Leave blank to keep current password"
-              disabled={isPending}
-              value={field.value || ""}
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  </div>
-)}
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="password"
+                              placeholder="••••••"
+                              disabled={isPending}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="password"
+                              placeholder="••••••"
+                              disabled={isPending}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
               </div>
 
               <FormError message={error} />
