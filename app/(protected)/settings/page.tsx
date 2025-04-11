@@ -37,42 +37,41 @@ const SettingsPage = () => {
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
     defaultValues: {
-      password: undefined,
-      newPassword: undefined,
-      name: undefined,
-      email: undefined,
-      role: undefined,
-      isTwoFactorEnabled: false,
+      password: "",
+      newPassword: "",
+      name: user?.name || "",
+      email: user?.email || "",
+      role: user?.role || "",
+      isTwoFactorEnabled: user?.isTwoFactorEnabled ?? false,
     },
   });
-
-  // Reset form whenever user data changes
+  
   useEffect(() => {
     if (user) {
       form.reset({
-        password: undefined,
-        newPassword: undefined,
-        name: user.name || undefined,
-        email: user.email || undefined,
-        role: user.role || undefined,
+        password: "",
+        newPassword: "",
+        name: user.name || "",
+        email: user.email || "",
+        role: user.role || "",
         isTwoFactorEnabled: user.isTwoFactorEnabled ?? false,
       });
     }
   }, [user, form.reset]);
-
+  
   const onSubmit = (values: z.infer<typeof SettingsSchema>) => {
     setError(undefined);
     setSuccess(undefined);
-
+  
     startTransition(() => {
       settings(values)
         .then(async (data) => {
           if (data.error) {
             setError(data.error);
           }
-
+  
           if (data.success) {
-            await update(); // This will trigger a re-render with fresh data
+            await update();
             setSuccess(data.success);
             setIsEditing(false);
           }
@@ -80,7 +79,28 @@ const SettingsPage = () => {
         .catch(() => setError("Something went wrong!"));
     });
   };
-
+  
+  // Inside FormField for controlled input
+  <FormField
+    control={form.control}
+    name="password"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Current Password</FormLabel>
+        <FormControl>
+          <Input
+            {...field}
+            type="password"
+            placeholder="••••••"
+            disabled={isPending}
+            value={field.value || ""}
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  
   return (
     <div className="mt-20 flex justify-center px-4 h-screen w-full flex-col gap-y-10 items-center justify-center bg-[radial-gradient(ellipse_at_top,_#38bdf8,_#1e40af)] from-sky-400 to-blue-800">
       <Card className="w-full max-w-[90%] md:max-w-[600px] mx-auto">
