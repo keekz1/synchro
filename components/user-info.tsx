@@ -1,5 +1,4 @@
 import { ExtendedUser } from "@/next-auth";
-import { User } from "lucide-react";
 import { Card , CardHeader , CardContent} from "./ui/card";
 import { Badge } from "./ui/badge";
 
