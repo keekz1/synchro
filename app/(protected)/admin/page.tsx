@@ -34,8 +34,8 @@ const AdminPage = () => {
   };
 
   return (
-    <div className="mt-20 flex justify-center px-4 h-screen w-full flex-col gap-y-10 items-center justify-center bg-[radial-gradient(ellipse_at_top,_#38bdf8,_#1e40af)] from-sky-400 to-blue-800">
-      <Card className="w-[600px]">
+<div className="h-screen w-full flex flex-col gap-y-10 items-center justify-center bg-[radial-gradient(ellipse_at_top,_#99f6e4,_#134e4a)] from-teal-300 to-teal-900">
+<Card className="w-full max-w-[90%] md:max-w-[600px] mx-auto">
         <CardHeader>
           <p className="text-2xl font-semibold text-center">🔑 Admin</p>
         </CardHeader>
