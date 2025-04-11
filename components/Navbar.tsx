@@ -92,7 +92,7 @@ export default function Navbar() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ type: "spring", damping: 25 }}
             className="md:hidden fixed z-30 bg-white/95 backdrop-blur-sm w-full pt-4 pb-4"
-            style={{ top: isNavVisible ? '74px' : '4px' }}
+            style={{ top: isNavVisible ? '64px' : '4px' }}
           >
             <div className="flex flex-col space-y-3 px-4">
               <MobileNavLink href="/" text="Home" onClick={() => setIsMenuOpen(false)} />
@@ -113,8 +113,8 @@ export default function Navbar() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.3 }}
-          className="fixed top-0 left-0 right-0 z-30 bg-secondary backdrop-blur-sm p-2 shadow-lg"
-        >
+          className="fixed left-0 right-0 z-30 bg-secondary backdrop-blur-sm p-2 shadow-lg top-16"  // Change top-16 to desired value
+          >
           <div className="flex justify-between items-center w-full max-w-full p-4">
             <div className="flex gap-2">
               <SettingsButton href="/server" label="Server" active={pathname?.startsWith("/server")} />
