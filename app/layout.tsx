@@ -5,6 +5,9 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { SocketProvider } from "@/contexts/SocketContext";
+import {auth} from "@/auth"
+
+import {Toaster} from "@/components/ui/sonner"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,14 +36,17 @@ function ClientLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+  const session = await auth();
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Toaster/>
         {/* Client-side components wrapped separately */}
         <ClientLayout>{children}</ClientLayout>
       </body>

@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface User {
   id: string;
@@ -8,7 +6,7 @@ interface User {
   email: string;
   role: string;
   image?: string;
-  skills: string[];  // Add skills field
+  skills: string[];
 }
 
 interface ProfileProps {
@@ -18,74 +16,27 @@ interface ProfileProps {
 export default function Profile({ user }: ProfileProps) {
   const [role, setRole] = useState(user.role);
   const [image, setImage] = useState(user.image || "https://via.placeholder.com/100");
-  const [skills, setSkills] = useState<string[]>(user.skills); // Use the skills passed via props
+  const [skills, setSkills] = useState<string[]>(user.skills);
   const [newSkill, setNewSkill] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const predefinedRoles = [
-    // 🔧 Engineering & Development
-    "Software Engineer", "Backend Developer", "Frontend Developer", "Full Stack Developer",
-    "Mobile Developer", "DevOps Engineer", "Machine Learning Engineer", "AI Engineer",
-    "Cloud Architect", "Site Reliability Engineer", "Embedded Systems Engineer",
-    "Firmware Engineer", "Game Developer", "Security Engineer",
-  
-    // 🔍 Data & AI
-    "Data Scientist", "Data Analyst", "Business Intelligence Analyst", "Data Engineer",
-    "Research Scientist", "ML Ops Engineer", "NLP Engineer", "AI Researcher",
-  
-    // 🎨 Design & UX
-    "UX Designer", "UI Designer", "Product Designer", "Graphic Designer",
-    "Interaction Designer", "Visual Designer", "Design Researcher",
-  
-    // 🧠 Product & Management
-    "Product Manager", "Project Manager", "Scrum Master", "Technical Program Manager",
-    "Tech Lead", "Engineering Manager", "Agile Coach",
-  
-    // 🧪 Quality & Testing
-    "QA Tester", "Test Automation Engineer", "Quality Assurance Engineer",
-  
-    // 💼 Business & Operations
-    "Business Analyst", "Operations Manager", "Customer Success Manager",
-    "Customer Support Specialist", "Sales Engineer", "Account Manager",
-  
-    // 🌐 Marketing & Growth
-    "Marketing Specialist", "Growth Hacker", "Content Strategist",
-    "SEO Specialist", "Social Media Manager", "Digital Marketing Manager",
-  
-    // 🖥️ IT & Infrastructure
-    "System Administrator", "IT Support", "Network Engineer", "Help Desk Technician",
-    "Database Administrator", "Security Analyst", "Cybersecurity Specialist",
-  
-    // 🧾 Writing & Documentation
-    "Technical Writer", "Content Writer", "UX Writer", "Documentation Specialist",
-  
-    // 🎓 Academia & Research
-    "Researcher", "Lecturer", "Academic Coordinator", "Education Technologist",
-  
-    // 🧬 Science & Bioinformatics
-    "Bioinformatics Scientist", "Computational Biologist", "Medical Data Analyst",
-  
-    // 🍽️ Restaurant & Hospitality
-    "Waiter", "Waitress", "Chef", "Sous Chef", "Line Cook", "Kitchen Assistant",
-    "Restaurant Manager", "Barista", "Bartender", "Host", "Hostess",
-    "Dishwasher", "Sommelier", "Pastry Chef", "Food Runner", "Catering Staff",
-  
-    // 🧑‍💼 Executive Roles
-    "CTO", "CIO", "Chief Product Officer", "VP of Engineering", "Founder", "Co-founder",
-  
-    // 🧑‍💻 Freelance & Remote
-    "Freelance Developer", "Remote Engineer", "Contractor",
-  
-    // 🌱 Entry-Level
-    "Intern", "Junior Developer", "Graduate Software Engineer",
-  
-    // 🧠 Miscellaneous
-    "Tech Enthusiast", "Hacker", "Open Source Contributor", "Mentor", "Volunteer",
-    "Entrepreneur", "other", "USER","ADMIN"
-  ];
-  
-  
+  const [rolesFromDb, setRolesFromDb] = useState<string[]>([]); // State for fetched roles
+
+  useEffect(() => {
+    // Fetch roles from the backend when the component mounts
+    async function fetchRoles() {
+      try {
+        const res = await fetch("/api/role");
+        const data = await res.json();
+        setRolesFromDb(data); // Set roles fetched from DB
+      } catch (error) {
+        console.error("Error fetching roles", error);
+        setMessage("Failed to fetch roles.");
+      }
+    }
+
+    fetchRoles();
+  }, []);
 
   async function updateRole(newRole: string) {
     setLoading(true);
@@ -105,7 +56,7 @@ export default function Profile({ user }: ProfileProps) {
       } else {
         setMessage(`Error: ${data.message}`);
       }
-    } catch  {
+    } catch {
       setMessage("Something went wrong.");
     } finally {
       setLoading(false);
@@ -113,79 +64,75 @@ export default function Profile({ user }: ProfileProps) {
   }
 
   async function addSkill() {
-    // Check if the skill already exists in the skills list
     if (skills.includes(newSkill.trim())) {
       setMessage("This skill already exists.");
       return;
     }
-  
+
     setLoading(true);
     setMessage("");
-  
+
     try {
       const response = await fetch("/api/addSkill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ skill: newSkill }),
       });
-  
+
       const data = await response.json();
       if (response.ok) {
-        // Update the skills list with the new skill
         setSkills((prevSkills) => [...prevSkills, newSkill.trim()]);
-        setNewSkill(""); // Clear the input field
+        setNewSkill("");
         setMessage("Skill added!");
       } else {
         setMessage(`Error: ${data.message}`);
       }
-    } catch  {
+    } catch {
       setMessage("Failed to add skill.");
     } finally {
       setLoading(false);
     }
   }
-  
+
   async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
       setMessage("No file selected.");
       return;
     }
-  
-    // Validate file type
+
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       setMessage("Only JPG, PNG, and WEBP images are allowed.");
       return;
     }
-  
-    // Validate file size (max 5MB)
+
     if (file.size > 5 * 1024 * 1024) {
       setMessage("File size exceeds 5MB limit.");
       return;
     }
-  
+
     setLoading(true);
     setMessage("");
-  
+
     const formData = new FormData();
     formData.append("image", file);
-  
+
     try {
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
         setImage(data.image);
         setMessage("Profile image updated!");
       } else {
         setMessage(`Error: ${data.error}`);
       }
-    } catch  {
+    } catch {
       setMessage("Upload failed. Try again.");
     } finally {
       setLoading(false);
@@ -204,10 +151,7 @@ export default function Profile({ user }: ProfileProps) {
       </div>
 
       <div className="text-center mt-2">
-        <label
-          htmlFor="image-upload"
-          className="text-sm font-medium cursor-pointer text-blue-500 hover:underline"
-        >
+        <label htmlFor="image-upload" className="text-sm font-medium cursor-pointer text-blue-500 hover:underline">
           Change Profile Picture
         </label>
         <input
@@ -223,7 +167,6 @@ export default function Profile({ user }: ProfileProps) {
       <p className="text-center text-gray-600">{user.email}</p>
       <p className="text-center text-blue-500">Role: {role}</p>
 
-      {/* Display Skills */}
       <div className="mt-4">
         <p className="text-center font-semibold text-lg">Skills:</p>
         <ul className="text-center mt-2">
@@ -247,14 +190,14 @@ export default function Profile({ user }: ProfileProps) {
           disabled={loading}
         />
         <datalist id="role-options">
-          {predefinedRoles.map((r) => (
+          {rolesFromDb.map((r) => (
             <option key={r} value={r} />
           ))}
         </datalist>
         <button
           onClick={() => {
             const selectedRole = role.trim() === "" ? "other" : role;
-            if (predefinedRoles.includes(selectedRole)) {
+            if (rolesFromDb.includes(selectedRole)) {
               updateRole(selectedRole);
             } else {
               setMessage("❗ Please select a role from the list.");

@@ -41,7 +41,7 @@ const validatedFields = LoginSchema.safeParse(values);
     return { success: "Confirmation email sent!", error: undefined };
   }
 
-if (existingUser.isTwoFactorEnabled  && existingUser.email ){
+if (existingUser.isTwoFactorEnabled && existingUser.email ){
 
 if(code){
 
