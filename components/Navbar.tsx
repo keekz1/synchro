@@ -92,7 +92,7 @@ export default function Navbar() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ type: "spring", damping: 25 }}
             className="md:hidden fixed z-30 bg-white/95 backdrop-blur-sm w-full pt-4 pb-4"
-            style={{ top: isNavVisible ? '64px' : '4px' }}
+            style={{ top: isNavVisible ? '74px' : '4px' }}
           >
             <div className="flex flex-col space-y-3 px-4">
               <MobileNavLink href="/" text="Home" onClick={() => setIsMenuOpen(false)} />
