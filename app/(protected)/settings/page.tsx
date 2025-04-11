@@ -129,20 +129,23 @@ const SettingsPage = () => {
                   </div>
 
                   {/* Email */}
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    {isEditing && user?.isOAuth === false ? (
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <Input {...field} disabled={isPending} />
-                        )}
-                      />
-                    ) : (
-                      <p className="text-sm">{user?.email}</p>
-                    )}
-                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+    {/* Email */}
+    <div className="w-full max-w-full">
+      <p className="text-sm text-muted-foreground">Email</p>
+      {isEditing && user?.isOAuth === false ? (
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <Input {...field} disabled={isPending} />
+          )}
+        />
+      ) : (
+        <p className="text-sm">{user?.email}</p>
+      )}
+    </div>
+  </div>
 
                   {/* Role */}
                   <div>
