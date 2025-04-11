@@ -128,10 +128,10 @@ const SettingsPage = () => {
                     )}
                   </div>
 
-                  {/* Email */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
+  <div className="grid grid-cols-2 gap-4">
     {/* Email */}
-    <div className="w-full max-w-full">
+    <div>
       <p className="text-sm text-muted-foreground">Email</p>
       {isEditing && user?.isOAuth === false ? (
         <FormField
@@ -142,10 +142,12 @@ const SettingsPage = () => {
           )}
         />
       ) : (
-        <p className="text-sm">{user?.email}</p>
+        <p className="text-sm truncate">{user?.email}</p> // Truncate the email if it overflows
       )}
     </div>
   </div>
+</div>
+
 
                   {/* Role */}
                   <div>
