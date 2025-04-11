@@ -22,7 +22,7 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
       return { error: "Unauthorized" };
     }
 
-    // Handle OAuth users
+    // Handle OAuth users (restrict certain fields)
     if (user.isOAuth) {
       values.email = undefined;
       values.password = undefined;
@@ -30,7 +30,7 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
       values.isTwoFactorEnabled = undefined;
     }
 
-    // Email change verification
+    // Email change verification (independent of password)
     if (values.email && values.email !== user.email) {
       const existingUser = await getUserByEmail(values.email);
       if (existingUser && existingUser.id !== user.id) {
@@ -45,30 +45,49 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
       return { success: "Verification email sent" };
     }
 
-    // Password change logic
-    if (values.password && values.newPassword && dbUser.password) {
-      const passwordsMatch = await bcrypt.compare(
-        values.password,
-        dbUser.password
-      );
-      
-      if (!passwordsMatch) {
-        return { error: "Incorrect current password" };
-      }
+    // Password change logic (only if both fields are provided)
+    if (values.password && values.newPassword) {
+      if (!dbUser.password) {
+        // For users without password (OAuth or first-time setup)
+        const hashedPassword = await bcrypt.hash(values.newPassword, 10);
+        values.password = hashedPassword;
+        values.newPassword = undefined;
+      } else {
+        // For users with existing password
+        const passwordsMatch = await bcrypt.compare(
+          values.password,
+          dbUser.password
+        );
+        
+        if (!passwordsMatch) {
+          return { error: "Incorrect current password" };
+        }
 
-      const hashedPassword = await bcrypt.hash(values.newPassword, 10);
-      values.password = hashedPassword;
-      values.newPassword = undefined;
+        const hashedPassword = await bcrypt.hash(values.newPassword, 10);
+        values.password = hashedPassword;
+        values.newPassword = undefined;
+      }
     } else if (values.password || values.newPassword) {
-      return { error: "Missing password fields" };
+      // Only one password field provided
+      return { error: "Both current and new password are required to change password" };
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      name: values.name,
+      role: values.role,
+      isTwoFactorEnabled: values.isTwoFactorEnabled,
+    };
+
+    // Only include password if it was changed
+    if (values.password) {
+      updateData.password = values.password;
     }
 
     // Update user
     await db.user.update({
       where: { id: dbUser.id },
-      data: {
-        ...values,
-      }
+      data: updateData
     });
 
     return { success: "Settings Updated!" };
