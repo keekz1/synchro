@@ -1,4 +1,7 @@
+"use client";
+
 import { useState, useEffect } from "react";
+import { Pencil } from "lucide-react"; // Add this import
 
 interface User {
   id: string;
@@ -14,7 +17,7 @@ interface ProfileProps {
 }
 
 export default function Profile({ user }: ProfileProps) {
-  const [role, setRole] = useState(user.role.replace(/_/g, " ")); // Display with spaces
+  const [role, setRole] = useState(user.role.replace(/_/g, " "));
   const [image, setImage] = useState(user.image || "https://via.placeholder.com/100");
   const [skills, setSkills] = useState<string[]>(user.skills);
   const [newSkill, setNewSkill] = useState("");
@@ -141,121 +144,143 @@ export default function Profile({ user }: ProfileProps) {
   }
 
   return (
-    <div className="p-4 border rounded shadow-md w-96">
-      <div className="relative mx-auto w-24 h-24">
-        <img src={image} alt="Profile" className="w-full h-full rounded-full object-cover" />
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-full">
-            <span className="text-gray-700 text-sm">Uploading...</span>
-          </div>
-        )}
-      </div>
+    <div className="p-6 rounded-xl shadow-lg w-full max-w-md mx-auto bg-gradient-to-br from-teal-400 to-teal-700 text-white">
+      {/* Profile Header */}
+      <div className="flex flex-col items-center">
+        <div className="relative w-28 h-28 mb-4">
+          <img 
+            src={image} 
+            alt="Profile" 
+            className="w-full h-full rounded-full object-cover border-4 border-white/20"
+          />
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+              <span className="text-white text-sm animate-pulse">Uploading...</span>
+            </div>
+          )}
+        </div>
 
-      <div className="text-center mt-2">
-        <label htmlFor="image-upload" className="text-sm font-medium cursor-pointer text-blue-500 hover:underline">
-          Change Profile Picture
+        <label className="cursor-pointer text-white hover:text-teal-200 transition-colors mb-1">
+          <span className="text-sm font-medium">Change Photo</span>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
         </label>
-        <input
-          id="image-upload"
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleImageUpload}
-        />
+
+        <h2 className="text-2xl font-bold mt-2 text-center">{user.name}</h2>
+        <p className="text-teal-100 text-sm">{user.email}</p>
       </div>
 
-      <h2 className="text-xl font-semibold text-center mt-2">{user.name}</h2>
-      <p className="text-center text-gray-600">{user.email}</p>
+      {/* Role Section */}
+      <div className="mt-6 bg-white/10 p-4 rounded-lg">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-semibold">Your Role</h3>
+          {!isEditingRole && (
+            <button
+              onClick={() => setIsEditingRole(true)}
+              className="text-teal-200 hover:text-white text-sm flex items-center"
+            >
+              <Pencil className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
 
-      <div className="text-center mt-2">
         {isEditingRole ? (
-          <div className="mt-2">
+          <div className="space-y-3">
             <input
               list="role-options"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full border rounded p-2"
-              placeholder="Start typing your role"
+              className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Select your role"
               disabled={loading}
               autoFocus
             />
             <datalist id="role-options">
-              {rolesFromDb.map((r) => {
-                const displayRole = r.replace(/_/g, " ");
-                return <option key={r} value={displayRole} />;
-              })}
+              {rolesFromDb.map((r) => (
+                <option key={r} value={r.replace(/_/g, " ")} />
+              ))}
             </datalist>
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2">
               <button
                 onClick={() => {
                   const selectedRole = role.trim().replace(/ /g, "_");
                   if (rolesFromDb.includes(selectedRole)) {
                     updateRole(selectedRole);
                   } else {
-                    setMessage("❗ Please select a role from the list.");
+                    setMessage("Please select a valid role");
                   }
                 }}
                 disabled={loading}
-                className="flex-1 bg-blue-500 text-white px-3 py-2 rounded"
+                className="flex-1 bg-white text-teal-700 px-4 py-2 rounded-md hover:bg-teal-50 transition-colors font-medium"
               >
-                Save
+                {loading ? "Saving..." : "Save"}
               </button>
               <button
                 onClick={() => setIsEditingRole(false)}
-                className="flex-1 bg-gray-500 text-white px-3 py-2 rounded"
+                className="flex-1 bg-teal-800 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
               >
                 Cancel
               </button>
             </div>
           </div>
         ) : (
-          <div>
-            <p className="text-blue-500">
-              Role: {role}
-              <button
-                onClick={() => setIsEditingRole(true)}
-                className="ml-2 text-sm text-gray-600 hover:text-gray-800"
-              >
-                ✏️ Edit
-              </button>
-            </p>
-          </div>
+          <p className="text-lg font-medium">{role}</p>
         )}
       </div>
 
-      <div className="mt-4">
-        <p className="text-center font-semibold text-lg">Skills:</p>
-        <ul className="text-center mt-2">
-          {skills.map((skill, index) => (
-            <li key={index} className="text-gray-700">{skill}</li>
-          ))}
-        </ul>
-      </div>
+      {/* Skills Section */}
+      <div className="mt-6 bg-white/10 p-4 rounded-lg">
+        <h3 className="font-semibold mb-3">Your Skills</h3>
+        
+        {skills.length > 0 ? (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {skills.map((skill, index) => (
+              <span 
+                key={index} 
+                className="bg-teal-600/50 text-white px-3 py-1 rounded-full text-sm"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-teal-200 mb-4">No skills added yet</p>
+        )}
 
-      <div className="mt-4">
-        <label htmlFor="skill-input" className="block text-sm font-medium mb-1">
-          Add Skill:
-        </label>
         <div className="flex gap-2">
           <input
-            id="skill-input"
             type="text"
             value={newSkill}
             onChange={(e) => setNewSkill(e.target.value)}
-            className="flex-1 border rounded p-2"
-            placeholder="e.g., React, Python"
+            className="flex-1 p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            placeholder="Add new skill"
+            onKeyDown={(e) => e.key === "Enter" && addSkill()}
           />
           <button
             onClick={addSkill}
             disabled={loading || !newSkill.trim()}
-            className="bg-blue-500 text-white px-3 py-2 rounded"
+            className="bg-white text-teal-700 px-4 py-2 rounded-md hover:bg-teal-50 transition-colors font-medium disabled:opacity-50"
           >
             Add
           </button>
         </div>
       </div>
 
-      {message && <p className="text-center mt-2 text-green-500">{message}</p>}
+      {/* Status Message */}
+      {message && (
+        <div className={`mt-4 p-3 rounded-md text-center ${
+          message.startsWith('Error') 
+            ? 'bg-amber-100/20 text-amber-300' 
+            : 'bg-teal-100/20 text-teal-200'
+        }`}>
+          {message}
+        </div>
+      )}
     </div>
   );
 }
