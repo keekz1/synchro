@@ -37,23 +37,22 @@ const SettingsPage = () => {
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
     defaultValues: {
-      password: undefined,  // Changed from empty string
-      newPassword: undefined,  // Changed from empty string
-      name: user?.name || undefined,
-      email: user?.email || undefined,
-      role: user?.role || undefined,
+      password: "",
+      newPassword: "",
+      name: user?.name || "",
+      email: user?.email || "",
+      role: user?.role || UserRole.USER, // Provide default role
       isTwoFactorEnabled: user?.isTwoFactorEnabled ?? false,
     },
   });
-  
   useEffect(() => {
     if (user) {
       form.reset({
-        password: undefined,  // Changed from empty string
-        newPassword: undefined,  // Changed from empty string
-        name: user.name || undefined,
-        email: user.email || undefined,
-        role: user.role || undefined,
+        password: "",
+        newPassword: "",
+        name: user.name || "",
+        email: user.email || "",
+        role: user.role || UserRole.USER,
         isTwoFactorEnabled: user.isTwoFactorEnabled ?? false,
       });
     }
@@ -227,46 +226,48 @@ const SettingsPage = () => {
 
                 {/* Password Fields */}
                 {user?.isOAuth === false && isEditing && (
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Current Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="password"
-                              placeholder="••••••"
-                              disabled={isPending}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+  <div className="space-y-4">
+    <FormField
+      control={form.control}
+      name="password"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Current Password (only if changing password)</FormLabel>
+          <FormControl>
+            <Input
+              {...field}
+              type="password"
+              placeholder="Leave empty if not changing password"
+              disabled={isPending}
+              value={field.value || ""}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
 
-                    <FormField
-                      control={form.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="password"
-                              placeholder="••••••"
-                              disabled={isPending}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
+    <FormField
+      control={form.control}
+      name="newPassword"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>New Password (only if changing password)</FormLabel>
+          <FormControl>
+            <Input
+              {...field}
+              type="password"
+              placeholder="Leave empty if not changing password"
+              disabled={isPending}
+              value={field.value || ""}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  </div>
+)}
               </div>
 
               <FormError message={error} />
