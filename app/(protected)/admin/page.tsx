@@ -12,7 +12,7 @@ import { admin } from "@/actions/admin";
 
 
 
-export const AdminPage = () =>{
+const AdminPage = () =>{
 
 const onServerActionClick = () => {
   
