@@ -220,46 +220,47 @@ const SettingsPage = () => {
 
                 {/* Password Fields */}
                 {user?.isOAuth === false && isEditing && (
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Current Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="password"
-                              placeholder="••••••"
-                              disabled={isPending}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="password"
-                              placeholder="••••••"
-                              disabled={isPending}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
+  <div className="space-y-4">
+    <FormField
+      control={form.control}
+      name="password"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Current Password (only if changing password)</FormLabel>
+          <FormControl>
+            <Input
+              {...field}
+              type="password"
+              placeholder="Leave blank to keep current password"
+              disabled={isPending}
+              value={field.value || ""}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+    <FormField
+      control={form.control}
+      name="newPassword"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>New Password (only if changing password)</FormLabel>
+          <FormControl>
+            <Input
+              {...field}
+              type="password"
+              placeholder="Leave blank to keep current password"
+              disabled={isPending}
+              value={field.value || ""}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  </div>
+)}
               </div>
 
               <FormError message={error} />
