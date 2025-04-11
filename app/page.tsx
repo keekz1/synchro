@@ -11,11 +11,10 @@ const font = Poppins({
 })
 export default function Home() {
   return (
-    <main className="flex h-screen flex-col items-center justify-center"
-      style={{
-        background: "radial-gradient(ellipse at top, #38bdf8, #1e40af)",
-      }}
-    >
+    <main  className="h-screen w-full flex flex-col gap-y-10 items-center justify-center bg-[radial-gradient(ellipse_at_top,_#99f6e4,_#134e4a)] from-teal-300 to-teal-900">
+
+  
+    
 <div className="space-y-6 text-center">
   <h1 className={cn(
   "text-6xl font-semibold text-white drop-shadow-md",

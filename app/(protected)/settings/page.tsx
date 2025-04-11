@@ -81,170 +81,171 @@ const SettingsPage = () => {
     });
   };
 
-
   return (
-<Card className="w-full max-w-[90%] md:max-w-[600px] mx-auto">
-<CardHeader>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <p className="text-2xl font-semibold">⚙️ Settings</p>
-          {!isEditing ? (
-            <Button variant="outline" onClick={() => setIsEditing(true)}>
-              <Pencil className="h-4 w-4 mr-2" /> Edit
-            </Button>
-          ) : (
-            <div className="space-x-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)}>
-                Cancel
+    <div className="mt-20 flex justify-center px-4 h-screen w-full flex-col gap-y-10 items-center justify-center bg-[radial-gradient(ellipse_at_top,_#38bdf8,_#1e40af)] from-sky-400 to-blue-800">
+      <Card className="w-full max-w-[90%] md:max-w-[600px] mx-auto">
+        <CardHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p className="text-2xl font-semibold">⚙️ Settings</p>
+            {!isEditing ? (
+              <Button variant="outline" onClick={() => setIsEditing(true)}>
+                <Pencil className="h-4 w-4 mr-2" /> Edit
               </Button>
-              <Button
-                type="submit"
-                disabled={isPending}
-                onClick={form.handleSubmit(onSubmit)}
-              >
-                Save Changes
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form className="space-y-6">
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Name */}
-                <div>
-                  <p className="text-sm text-muted-foreground">Name</p>
-                  {isEditing ? (
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <Input {...field} disabled={isPending} />
-                      )}
-                    />
-                  ) : (
-                    <p className="text-sm">{user?.name}</p>
-                  )}
+            ) : (
+              <div className="space-x-2">
+                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                  onClick={form.handleSubmit(onSubmit)}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form className="space-y-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Name */}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    {isEditing ? (
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <Input {...field} disabled={isPending} />
+                        )}
+                      />
+                    ) : (
+                      <p className="text-sm">{user?.name}</p>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    {isEditing && user?.isOAuth === false ? (
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <Input {...field} disabled={isPending} />
+                        )}
+                      />
+                    ) : (
+                      <p className="text-sm">{user?.email}</p>
+                    )}
+                  </div>
+
+                  {/* Role */}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Role</p>
+                    {isEditing ? (
+                      <FormField
+                        control={form.control}
+                        name="role"
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                              <SelectItem value={UserRole.USER}>User</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    ) : (
+                      <p className="text-sm capitalize">
+                        {user?.role?.toLowerCase()}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 2FA */}
+                  <div>
+                    <p className="text-sm text-muted-foreground">2FA</p>
+                    {isEditing && user?.isOAuth === false ? (
+                      <FormField
+                        control={form.control}
+                        name="isTwoFactorEnabled"
+                        render={({ field }) => (
+                          <Switch
+                            checked={field.value ?? false} // Handle undefined
+                            onCheckedChange={field.onChange}
+                          />
+                        )}
+                      />
+                    ) : (
+                      <p className="text-sm">
+                        {user?.isTwoFactorEnabled ? "Enabled" : "Disabled"}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Email */}
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  {isEditing && user?.isOAuth === false ? (
+                {/* Password Fields */}
+                {user?.isOAuth === false && isEditing && (
+                  <div className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="email"
+                      name="password"
                       render={({ field }) => (
-                        <Input {...field} disabled={isPending} />
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="password"
+                              placeholder="••••••"
+                              disabled={isPending}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
                     />
-                  ) : (
-                    <p className="text-sm">{user?.email}</p>
-                  )}
-                </div>
 
-                {/* Role */}
-                <div>
-                  <p className="text-sm text-muted-foreground">Role</p>
-                  {isEditing ? (
                     <FormField
                       control={form.control}
-                      name="role"
+                      name="newPassword"
                       render={({ field }) => (
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                            <SelectItem value={UserRole.USER}>User</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="password"
+                              placeholder="••••••"
+                              disabled={isPending}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
                     />
-                  ) : (
-                    <p className="text-sm capitalize">
-                      {user?.role?.toLowerCase()}
-                    </p>
-                  )}
-                </div>
-
-                {/* 2FA */}
-                <div>
-                  <p className="text-sm text-muted-foreground">2FA</p>
-                  {isEditing && user?.isOAuth === false ? (
-                    <FormField
-                      control={form.control}
-                      name="isTwoFactorEnabled"
-                      render={({ field }) => (
-                        <Switch
-                          checked={field.value ?? false} // Handle undefined
-                          onCheckedChange={field.onChange}
-                        />
-                      )}
-                    />
-                  ) : (
-                    <p className="text-sm">
-                      {user?.isTwoFactorEnabled ? "Enabled" : "Disabled"}
-                    </p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
-              {/* Password Fields */}
-              {user?.isOAuth === false && isEditing && (
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="password"
-                            placeholder="••••••"
-                            disabled={isPending}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="password"
-                            placeholder="••••••"
-                            disabled={isPending}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-            </div>
-
-            <FormError message={error} />
-            <FormSuccess message={success} />
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+              <FormError message={error} />
+              <FormSuccess message={success} />
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
