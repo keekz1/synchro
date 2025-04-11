@@ -5,8 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { SocketProvider } from "@/contexts/SocketContext";
-import {auth} from "@/auth"
-
+//
 import {Toaster} from "@/components/ui/sonner"
 
 const geistSans = Geist({
