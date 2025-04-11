@@ -1,34 +1,31 @@
 import { UserRole } from "@prisma/client";
 import * as z from "zod";
-
 export const SettingsSchema = z.object({
-  name: z.optional(z.string()),
-  isTwoFactorEnabled: z.optional(z.boolean()),
-  role: z.enum([UserRole.ADMIN, UserRole.USER]),
-  email: z.optional(z.string().email()),
-  password: z.union([z.string().min(6), z.literal("")]).optional(),
-  newPassword: z.union([z.string().min(6), z.literal("")]).optional()
-})
-.refine((data) => {
-  // Only validate if either password field has content
-  if (data.password || data.newPassword) {
-    return !!data.password && !!data.newPassword;
-  }
-  return true;
-}, {
-  message: "Both password fields are required when changing password",
-  path: ["newPassword"]
-})
-.refine((data) => {
-  if (data.newPassword && data.newPassword.length > 0) {
-    return data.newPassword.length >= 6;
-  }
-  return true;
-}, {
-  message: "New password must be at least 6 characters",
-  path: ["newPassword"]
-});
-
+    name: z.optional(z.string()),
+    isTwoFactorEnabled: z.optional(z.boolean()),
+    role: z.optional(z.nativeEnum(UserRole)), // Use nativeEnum to accept any UserRole value
+    email: z.optional(z.string().email()),
+    password: z.union([z.string().min(6), z.literal("")]).optional(),
+    newPassword: z.union([z.string().min(6), z.literal("")]).optional()
+  })
+  .refine((data) => {
+    if (data.password || data.newPassword) {
+      return !!data.password && !!data.newPassword;
+    }
+    return true;
+  }, {
+    message: "Both password fields are required when changing password",
+    path: ["newPassword"]
+  })
+  .refine((data) => {
+    if (data.newPassword && data.newPassword.length > 0) {
+      return data.newPassword.length >= 6;
+    }
+    return true;
+  }, {
+    message: "New password must be at least 6 characters",
+    path: ["newPassword"]
+  });
 // Rest of your schemas remain the same
 export const NewPasswordSchema = z.object({
   password: z.string().min(6, {
