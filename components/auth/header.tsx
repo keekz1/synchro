@@ -24,7 +24,7 @@ label,
     "text-3xl font-semibold",
     font.className,
 )}>
-    🔐Auth
+    🔐Ready to Dive In?
 </h1>
 <p className="text-muted-foreground text-sm">
     {label}
