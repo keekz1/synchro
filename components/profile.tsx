@@ -14,21 +14,21 @@ interface ProfileProps {
 }
 
 export default function Profile({ user }: ProfileProps) {
-  const [role, setRole] = useState(user.role);
+  const [role, setRole] = useState(user.role.replace(/_/g, " ")); // Display with spaces
   const [image, setImage] = useState(user.image || "https://via.placeholder.com/100");
   const [skills, setSkills] = useState<string[]>(user.skills);
   const [newSkill, setNewSkill] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [rolesFromDb, setRolesFromDb] = useState<string[]>([]); // State for fetched roles
+  const [rolesFromDb, setRolesFromDb] = useState<string[]>([]);
+  const [isEditingRole, setIsEditingRole] = useState(false);
 
   useEffect(() => {
-    // Fetch roles from the backend when the component mounts
     async function fetchRoles() {
       try {
         const res = await fetch("/api/role");
         const data = await res.json();
-        setRolesFromDb(data); // Set roles fetched from DB
+        setRolesFromDb(data);
       } catch (error) {
         console.error("Error fetching roles", error);
         setMessage("Failed to fetch roles.");
@@ -51,8 +51,9 @@ export default function Profile({ user }: ProfileProps) {
 
       const data = await response.json();
       if (response.ok) {
-        setRole(newRole);
+        setRole(newRole.replace(/_/g, " "));
         setMessage("Role updated successfully!");
+        setIsEditingRole(false);
       } else {
         setMessage(`Error: ${data.message}`);
       }
@@ -165,7 +166,62 @@ export default function Profile({ user }: ProfileProps) {
 
       <h2 className="text-xl font-semibold text-center mt-2">{user.name}</h2>
       <p className="text-center text-gray-600">{user.email}</p>
-      <p className="text-center text-blue-500">Role: {role}</p>
+
+      <div className="text-center mt-2">
+        {isEditingRole ? (
+          <div className="mt-2">
+            <input
+              list="role-options"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full border rounded p-2"
+              placeholder="Start typing your role"
+              disabled={loading}
+              autoFocus
+            />
+            <datalist id="role-options">
+              {rolesFromDb.map((r) => {
+                const displayRole = r.replace(/_/g, " ");
+                return <option key={r} value={displayRole} />;
+              })}
+            </datalist>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  const selectedRole = role.trim().replace(/ /g, "_");
+                  if (rolesFromDb.includes(selectedRole)) {
+                    updateRole(selectedRole);
+                  } else {
+                    setMessage("❗ Please select a role from the list.");
+                  }
+                }}
+                disabled={loading}
+                className="flex-1 bg-blue-500 text-white px-3 py-2 rounded"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setIsEditingRole(false)}
+                className="flex-1 bg-gray-500 text-white px-3 py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p className="text-blue-500">
+              Role: {role}
+              <button
+                onClick={() => setIsEditingRole(true)}
+                className="ml-2 text-sm text-gray-600 hover:text-gray-800"
+              >
+                ✏️ Edit
+              </button>
+            </p>
+          </div>
+        )}
+      </div>
 
       <div className="mt-4">
         <p className="text-center font-semibold text-lg">Skills:</p>
@@ -174,43 +230,6 @@ export default function Profile({ user }: ProfileProps) {
             <li key={index} className="text-gray-700">{skill}</li>
           ))}
         </ul>
-      </div>
-
-      <div className="mt-4">
-        <label htmlFor="role-input" className="block text-sm font-medium mb-1">
-          Change Role:
-        </label>
-        <input
-          id="role-input"
-          list="role-options"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="w-full border rounded p-2"
-          placeholder="Start typing your role"
-          disabled={loading}
-        />
-        <datalist id="role-options">
-          {rolesFromDb.map((r) => {
-            // Display role without underscores for user
-            const displayRole = r.replace(/_/g, " ");
-            return <option key={r} value={displayRole} />;
-          })}
-        </datalist>
-        <button
-          onClick={() => {
-            // Save role with underscores when updating
-            const selectedRole = role.trim().replace(/ /g, "_");
-            if (rolesFromDb.includes(selectedRole)) {
-              updateRole(selectedRole);
-            } else {
-              setMessage("❗ Please select a role from the list.");
-            }
-          }}
-          disabled={loading}
-          className="mt-2 bg-blue-500 text-white px-3 py-2 rounded w-full"
-        >
-          Save Role
-        </button>
       </div>
 
       <div className="mt-4">
