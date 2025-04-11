@@ -3,11 +3,15 @@
 import Link from "next/link";
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
+import { UserButton } from "@/components/auth/user-button";
+import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   const toggleNav = () => {
     setIsNavVisible(!isNavVisible);
@@ -36,9 +40,9 @@ export default function Navbar() {
                 <NavLink href="/" text="Home" />
                 <NavLink href="/map" text="Map" />
                 <NavLink href="/profile" text="Profile" />
+                <NavLink href="/settings" text="Settings" />
                 <NavLink href="/collab" text="Collab" />
                 <NavLink href="/self-growth" text="Personal growth" />
-
               </div>
 
               {/* Mobile Menu Button */}
@@ -47,12 +51,7 @@ export default function Navbar() {
                 className="md:hidden text-black focus:outline-none transition-transform hover:scale-110"
                 aria-label="Toggle menu"
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
@@ -71,12 +70,7 @@ export default function Navbar() {
         }`}
         aria-label={isNavVisible ? "Hide navbar" : "Show navbar"}
       >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           {isNavVisible ? (
             <path strokeWidth={2} d="M5 15l7-7 7 7" />
           ) : (
@@ -100,18 +94,55 @@ export default function Navbar() {
               <MobileNavLink href="/" text="Home" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/map" text="Map" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/profile" text="Profile" onClick={() => setIsMenuOpen(false)} />
+              <MobileNavLink href="/settings" text="Settings" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/collab" text="Collab" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/self-growth" text="Personal Development" onClick={() => setIsMenuOpen(false)} />
-
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {["/settings", "/admin", "/client", "/server"].includes(pathname) && (
+  <motion.nav
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: 20 }}
+    transition={{ duration: 0.3 }}
+    className="mt-20 flex justify-center"
+  >
+    <div className="bg-secondary flex justify-between items-center p-4 rounded-xl w-[600px] shadow-sm">
+      <div className="flex gap-x-2">
+        <SettingsButton
+          href="/server"
+          label="Server"
+          active={pathname?.startsWith("/server")}
+        />
+        <SettingsButton
+          href="/client"
+          label="Client"
+          active={pathname?.startsWith("/client")}
+        />
+        <SettingsButton
+          href="/admin"
+          label="Admin"
+          active={pathname?.startsWith("/admin")}
+        />
+        <SettingsButton
+          href="/settings"
+          label="Settings"
+          active={pathname === "/settings"}
+        />
+      </div>
+      <UserButton />
+    </div>
+  </motion.nav>
+)}
+
+  //
     </div>
   );
 }
 
-// NavLink component with black text
 const NavLink = ({ href, text }: { href: string; text: string }) => (
   <Link
     href={href}
@@ -122,20 +153,16 @@ const NavLink = ({ href, text }: { href: string; text: string }) => (
   </Link>
 );
 
-// MobileNavLink component with black text
-const MobileNavLink = ({ 
-  href, 
-  text, 
-  onClick 
-}: { 
-  href: string; 
-  text: string; 
-  onClick: () => void 
+const MobileNavLink = ({
+  href,
+  text,
+  onClick,
+}: {
+  href: string;
+  text: string;
+  onClick: () => void;
 }) => (
-  <motion.div
-    whileHover={{ scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-  >
+  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
     <Link
       href={href}
       className="block text-black text-lg py-3 px-4 hover:bg-gray-200/50 rounded-lg transition-colors"
@@ -144,4 +171,18 @@ const MobileNavLink = ({
       {text}
     </Link>
   </motion.div>
+);
+
+const SettingsButton = ({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) => (
+  <Button asChild variant={active ? "default" : "outline"}>
+    <Link href={href}>{label}</Link>
+  </Button>
 );

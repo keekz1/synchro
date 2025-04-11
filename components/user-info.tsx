@@ -75,11 +75,10 @@ return(
             <p className="text-sm font-medium">
                 Two Factor Authentication
             </p>
-           <Badge variant={user?.isTwoFactorEnabled?"success":
-           "destructive"}>
-{user?.isTwoFactorEnabled? "ON":"OFF"}
+            <Badge variant={user?.isTwoFactorEnabled ? "success" : "destructive"}>
+  {user?.isTwoFactorEnabled ? "ON" : "OFF"}
+</Badge>
 
-            </Badge>
 
         </div>
 
