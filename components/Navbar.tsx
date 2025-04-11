@@ -103,39 +103,26 @@ export default function Navbar() {
       </AnimatePresence>
 
       {["/settings", "/admin", "/client", "/server"].includes(pathname) && (
-  <motion.nav
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: 20 }}
-    transition={{ duration: 0.3 }}
-    className="mt-20 flex justify-center"
-  >
-    <div className="bg-secondary flex justify-between items-center p-4 rounded-xl w-[600px] shadow-sm">
-      <div className="flex gap-x-2">
-        <SettingsButton
-          href="/server"
-          label="Server"
-          active={pathname?.startsWith("/server")}
-        />
-        <SettingsButton
-          href="/client"
-          label="Client"
-          active={pathname?.startsWith("/client")}
-        />
-        <SettingsButton
-          href="/admin"
-          label="Admin"
-          active={pathname?.startsWith("/admin")}
-        />
-        <SettingsButton
-          href="/settings"
-          label="Settings"
-          active={pathname === "/settings"}
-        />
-      </div>
+        <motion.nav
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  exit={{ opacity: 0, y: 20 }}
+  transition={{ duration: 0.3 }}
+  className="mt-20 flex justify-center px-4"
+>
+  <div className="bg-secondary flex flex-wrap justify-between items-center p-4 rounded-xl w-full max-w-xl shadow-sm gap-y-2">
+    <div className="flex flex-wrap justify-center gap-2 w-full sm:justify-start">
+      <SettingsButton href="/server" label="Server" active={pathname?.startsWith("/server")} />
+      <SettingsButton href="/client" label="Client" active={pathname?.startsWith("/client")} />
+      <SettingsButton href="/admin" label="Admin" active={pathname?.startsWith("/admin")} />
+      <SettingsButton href="/settings" label="Settings" active={pathname === "/settings"} />
+    </div>
+    <div className="w-full sm:w-auto flex justify-center sm:justify-end">
       <UserButton />
     </div>
-  </motion.nav>
+  </div>
+</motion.nav>
+
 )}
     </div>
   );

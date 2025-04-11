@@ -81,12 +81,11 @@ const SettingsPage = () => {
     });
   };
 
-  // ... rest of your component
 
   return (
-    <Card className="w-[600px]">
-      <CardHeader>
-        <div className="flex justify-between items-center">
+<Card className="w-full max-w-[90%] md:max-w-[600px] mx-auto">
+<CardHeader>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <p className="text-2xl font-semibold">⚙️ Settings</p>
           {!isEditing ? (
             <Button variant="outline" onClick={() => setIsEditing(true)}>
