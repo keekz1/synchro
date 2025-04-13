@@ -118,3 +118,232 @@
   border-radius: 4px;
   background-color: #fef2f2;
 }
+/* Suggested Container */
+.suggested-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.toggle-rejected-btn {
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.toggle-rejected-btn:hover {
+  background: #e0e0e0;
+}
+
+/* Rejected Users Section */
+.rejected-users-section {
+  margin-bottom: 30px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.rejected-users-section h3 {
+  margin-top: 0;
+  color: #666;
+}
+
+.rejected-users-list {
+  display: grid;
+  gap: 15px;
+}
+
+.rejected-user-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.rejected-date {
+  font-size: 12px;
+  color: #888;
+}
+
+.remove-rejected-btn {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.remove-rejected-btn:hover {
+  background: #e0e0e0;
+}
+
+/* Toast Button */
+.toast-action-button {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.toast-action-button:hover {
+  background: #45a049;
+}
+/* Add these styles to your suggested.css file */
+
+/* Rejected Users Section */
+.rejected-users-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
+}
+
+.rejected-users-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.rejected-users-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.rejected-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rejected-user-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.rejected-user-card .user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-grow: 1;
+}
+
+.rejected-user-card .user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f1f3f5;
+}
+
+.rejected-user-card .user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.rejected-user-card .user-name {
+  font-weight: 500;
+  color: #212529;
+}
+
+.rejected-user-card .rejected-date {
+  font-size: 0.8rem;
+  color: #868e96;
+  margin-top: 0.25rem;
+}
+
+.rejected-user-card .user-actions {
+  margin-left: 1rem;
+}
+
+.remove-rejected-btn {
+  padding: 0.5rem 1rem;
+  background-color: #f1f3f5;
+  color: #495057;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-rejected-btn:hover {
+  background-color: #e9ecef;
+  color: #212529;
+}
+
+/* Toggle Button */
+.toggle-rejected-btn {
+  padding: 0.5rem 1rem;
+  background-color: #e9ecef;
+  color: #495057;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.toggle-rejected-btn:hover {
+  background-color: #dee2e6;
+}
+
+/* Empty State */
+.rejected-users-list:empty::after {
+  content: "No rejected users found";
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 1.5rem;
+  color: #868e96;
+  font-style: italic;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .rejected-users-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .rejected-user-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .user-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+}

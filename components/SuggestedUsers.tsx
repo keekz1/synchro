@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import axios from "axios";
 import "@/components/suggested.css";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -40,34 +41,35 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  const [sentRequests, setSentRequests] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem("sentRequests");
-    return saved ? new Set(JSON.parse(saved)) : new Set();
-  });
-
-  const [rejectedSenders, setRejectedSenders] = useState<Set<string>>(new Set());
+  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  const [rejectedByUsers, setRejectedByUsers] = useState<Set<string>>(new Set());
+  const [usersRejectedByMe, setUsersRejectedByMe] = useState<RejectedRequest[]>([]);
+  const [showRejectedList, setShowRejectedList] = useState(false);
 
   useEffect(() => {
-    const fetchRejectedSenders = async () => {
+    const fetchRejections = async () => {
       if (!userId) return;
-
+      
       try {
         const response = await axios.get<RejectedRequest[]>(`/api/users/${userId}/rejected-requests`);
-        const senderIds = response.data
-          .filter((r: RejectedRequest) => r.receiverId === userId)
-          .map((r: RejectedRequest) => r.senderId);
-        setRejectedSenders(new Set(senderIds));
+        
+        // Rejections where I was sender (my requests got rejected)
+        const rejectionSenderIds = response.data
+          .filter((r) => r.senderId === userId)
+          .map((r) => r.receiverId);
+          
+        setRejectedByUsers(new Set(rejectionSenderIds));
+
+        // Rejections where I was receiver (users I rejected)
+        const myRejections = response.data.filter((r) => r.receiverId === userId);
+        setUsersRejectedByMe(myRejections);
       } catch (error) {
         console.error("Error fetching rejected requests:", error);
       }
     };
 
-    fetchRejectedSenders();
+    fetchRejections();
   }, [userId]);
-
-  const isUserRejected = (id: string) => {
-    return (rejectedReceivers?.has?.(id) ?? false) || rejectedSenders.has(id);
-  };
 
   const filteredUsers = users.filter((user) => {
     if (user.id === userId) return false;
@@ -75,18 +77,70 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
     return true;
   });
 
-  const handleSendRequest = async (friendId: string) => {
-    if (!sentRequests.has(friendId)) {
-      try {
-        await sendFriendRequest(friendId);
-        setSentRequests(prev => {
-          const updated = new Set(prev).add(friendId);
-          localStorage.setItem("sentRequests", JSON.stringify(Array.from(updated)));
-          return updated;
-        });
-      } catch (error) {
-        console.error("Failed to send friend request:", error);
+  const handleRemoveFromRejected = async (rejectedUserId: string, rejectionId: string) => {
+    try {
+      const response = await axios.delete(
+        `/api/users/${userId}/rejected-requests`,
+        { 
+          data: { 
+            targetUserId: rejectedUserId,
+            rejectionId: rejectionId 
+          } 
+        }
+      );
+  
+      if (response.data.success) {
+        // Only remove the specific rejection from state
+        setUsersRejectedByMe(prev => prev.filter(rejection => 
+          rejection.id !== rejectionId
+        ));
+        toast.success("User removed from rejected list");
       }
+    } catch (error) {
+      console.error("Removal failed:", error);
+      toast.error("Failed to remove user from rejected list");
+    }
+  };
+const handleSendRequest = async (receiverId: string) => {
+  try {
+    const response = await axios.post("/api/friendRequest/send", {
+      receiverId
+    });
+
+    if (response.data.success) {
+      setSentRequests(prev => new Set(prev).add(receiverId));
+      toast.success("Friend request sent!", {
+        duration: 2000 // Sonner uses 'duration'
+      });
+    } else {
+      toast.error(response.data.error || "Failed to send request");
+    }
+  } catch (error) {
+    console.error("Request failed:", error);
+    toast.error("Failed to send friend request");
+  }
+};
+  const sendNewFriendRequest = async (friendId: string) => {
+    try {
+      const response = await axios.post("/api/friendRequest/send", {
+        receiverId: friendId
+      });
+  
+      if (response.data.success === false) {
+        toast.info(response.data.message);
+        setSentRequests(prev => new Set(prev).add(friendId));
+      } else {
+        setSentRequests(prev => new Set(prev).add(friendId));
+        setRejectedByUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(friendId);
+          return newSet;
+        });
+        toast.success("Friend request sent!");
+      }
+    } catch (error) {
+      console.error("Failed to send friend request:", error);
+      toast.error("Failed to send request");
     }
   };
 
@@ -95,46 +149,101 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   }
 
   return (
-    <div className="suggested-users">
-      <h2 className="suggested-title">Suggested Users</h2>
-      {filteredUsers.length > 0 ? (
-        <div className="user-cards-container">
-          {filteredUsers.map((user) => {
-            const isPending = sentRequests.has(user.id) || isRequestSentOrReceived(user.id);
-            const isRejected = isUserRejected(user.id);
+    <div className="suggested-container">
+      <div className="suggested-users">
+        <div className="section-header">
+          <h2 className="suggested-title">Suggested Users</h2>
+          {usersRejectedByMe.length > 0 && (
+            <button 
+              className="toggle-rejected-btn"
+              onClick={() => setShowRejectedList(!showRejectedList)}
+            >
+              {showRejectedList ? 'Hide' : 'Show'} Rejected Users ({usersRejectedByMe.length})
+            </button>
+          )}
+        </div>
 
-            return (
-              <div key={user.id} className="user-card">
-                <div className="user-info">
-                  {user.image && (
-                    <img src={user.image} alt={user.name} className="user-avatar" />
-                  )}
-                  <div className="user-details">
-                    <span className="user-name">{user.name}</span>
-                    {user.role && <span className="user-role">{user.role}</span>}
+        {showRejectedList && (
+          <div className="rejected-users-section">
+            <h3>Users You Rejected</h3>
+            <div className="rejected-users-list">
+              {usersRejectedByMe.map((rejection) => (
+                <div key={rejection.id} className="rejected-user-card">
+                  <div className="user-info">
+                    {rejection.sender?.image && (
+                      <img 
+                        src={rejection.sender.image} 
+                        alt={rejection.sender.name} 
+                        className="user-avatar" 
+                      />
+                    )}
+                    <div className="user-details">
+                      <span className="user-name">{rejection.sender?.name}</span>
+                      <span className="rejected-date">
+                        Rejected on: {new Date(rejection.rejectedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="user-actions">
+                  <button
+  className="remove-rejected-btn"
+  onClick={() => handleRemoveFromRejected(rejection.senderId, rejection.id)}
+>
+  Remove from Rejected
+</button>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-                <div className="user-actions">
-                  {!isRejected && !isPending && (
-                    <button
-                      className="request-button"
-                      onClick={() => handleSendRequest(user.id)}
-                      aria-label="Send Friend Request"
-                    >
-                      Add Friend
-                    </button>
-                  )}
+        {filteredUsers.length > 0 ? (
+          <div className="user-cards-container">
+            {filteredUsers.map((user) => {
+              const hasSentRequest = sentRequests.has(user.id) || isRequestSentOrReceived(user.id);
+              const wasRejectedByThisUser = rejectedByUsers.has(user.id);
+
+              return (
+                <div key={user.id} className="user-card">
+                  <div className="user-info">
+                    {user.image && (
+                      <img src={user.image} alt={user.name} className="user-avatar" />
+                    )}
+                    <div className="user-details">
+                      <span className="user-name">{user.name}</span>
+                      {user.role && <span className="user-role">{user.role}</span>}
+                    </div>
+                  </div>
+
+                  <div className="user-actions">
+                    {!wasRejectedByThisUser && !hasSentRequest && (
+                      <button
+                        className="request-button"
+                        onClick={() => handleSendRequest(user.id)}
+                        aria-label="Send Friend Request"
+                      >
+                        Add Friend
+                      </button>
+                    )}
+                    {wasRejectedByThisUser && (
+                      <span className="text-muted">Cannot send request</span>
+                    )}
+                    {hasSentRequest && !wasRejectedByThisUser && (
+                      <span className="text-success">Request sent</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="no-users">No suggested users found.</p>
-      )}
+              );
+            })}
+          </div>
+        ) : (
+          <p className="no-users">No suggested users found.</p>
+        )}
+      </div>
     </div>
   );
 };
 
 export default SuggestedUsers;
+//.

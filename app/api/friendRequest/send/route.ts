@@ -1,4 +1,3 @@
-// app/api/friendRequest/send/route.ts
 import { NextResponse } from "next/server";
 import { db as prisma } from "@/lib/db";
 import { auth } from "@/auth";
@@ -7,16 +6,14 @@ import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-// Validation schema
 const requestSchema = z.object({
   receiverId: z.string().min(1, "Receiver ID is required")
 });
 
-// Type for the response data
 interface FriendRequestResponse {
   success: boolean;
   message: string;
-  request: {
+  request?: {
     id: string;
     senderId: string;
     receiverId: string;
@@ -25,14 +22,14 @@ interface FriendRequestResponse {
       id: string;
       name: string;
       email: string;
-      image?: string | null;  // Made consistent with Prisma model
+      image?: string | null;
     };
   };
   receiver?: {
     id: string;
     name: string;
     email: string;
-    image?: string | null;  // Made consistent with Prisma model
+    image?: string | null;
   };
 }
 
@@ -41,7 +38,6 @@ export async function POST(req: Request) {
     const session = await auth();
     const userId = session?.user?.id;
     
-    // Authentication check
     if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -49,11 +45,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate request body
     const body = await req.json();
     const { receiverId } = requestSchema.parse(body);
 
-    // Prevent self-request
+    // Basic validations
     if (userId === receiverId) {
       return NextResponse.json(
         { error: "Cannot send friend request to yourself" },
@@ -61,7 +56,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate receiver existence
+    // Check if receiver exists
     const receiverExists = await prisma.user.findUnique({
       where: { id: receiverId },
       select: { id: true, name: true, email: true, image: true }
@@ -74,7 +69,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check for existing requests
+    // Check for existing requests first (before checking rejections)
     const existingRequest = await prisma.friendRequest.findFirst({
       where: {
         OR: [
@@ -90,19 +85,47 @@ export async function POST(req: Request) {
     });
     
     if (existingRequest) {
-      const errorMessage = existingRequest.senderId === userId ? 
-        "Friend request already sent" : 
-        "This user has already sent you a request";
-      
       return NextResponse.json(
-        { error: errorMessage },
-        { status: 409 }
+        {
+          success: false,
+          message: existingRequest.senderId === userId ? 
+            "Friend request already sent" : 
+            "This user has already sent you a request",
+          existingRequest: {
+            id: existingRequest.id,
+            status: existingRequest.status
+          }
+        },
+        { status: 200 }
       );
     }
 
-    // Transaction for atomic operations
+    // Check for active rejections (only if no existing request)
+    const activeRejection = await prisma.rejectedRequest.findFirst({
+      where: {
+        OR: [
+          { senderId: userId, receiverId },
+          { senderId: receiverId, receiverId: userId }
+        ]
+      }
+    });
+
+    if (activeRejection) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: activeRejection.senderId === userId ?
+            "You previously rejected this user" :
+            "This user previously rejected you",
+          canOverride: true
+        },
+        { status: 403 }
+      );
+    }
+
+    // Transaction for creating new request
     const result = await prisma.$transaction(async (tx) => {
-      // Create in Prisma
+      // Create new request
       const newRequest = await tx.friendRequest.create({
         data: {
           senderId: userId,
@@ -121,9 +144,11 @@ export async function POST(req: Request) {
         }
       });
 
-      // Create in Firestore
+      // Update Firestore - both in friendRequests and notifications
       const requestRef = doc(db, "users", receiverId, "friendRequests", newRequest.id);
-      await setDoc(requestRef, {
+      const notificationRef = doc(db, "users", receiverId, "notifications", newRequest.id);
+      
+      const requestData = {
         id: newRequest.id,
         senderId: newRequest.senderId,
         receiverId,
@@ -132,11 +157,20 @@ export async function POST(req: Request) {
           id: newRequest.sender.id,
           name: newRequest.sender.name,
           email: newRequest.sender.email,
-          image: newRequest.sender.image ?? null // Handle undefined image
+          image: newRequest.sender.image ?? null
         },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      });
+      };
+
+      await Promise.all([
+        setDoc(requestRef, requestData),
+        setDoc(notificationRef, {
+          ...requestData,
+          type: "friend-request",
+          read: false
+        })
+      ]);
 
       return {
         request: newRequest,
@@ -146,39 +180,27 @@ export async function POST(req: Request) {
 
     // Real-time notifications
     try {
+      const pusherPayload = {
+        id: result.request.id,
+        sender: {
+          ...result.request.sender,
+          image: result.request.sender.image ?? null
+        },
+        createdAt: new Date().toISOString(),
+        type: "friend-request"
+      };
+
       await Promise.all([
-        // Pusher notification
-        pusherServer.trigger(
-          `user-${receiverId}`,
-          "friend-request:new",
-          {
-            id: result.request.id,
-            sender: {
-              ...result.request.sender,
-              image: result.request.sender.image ?? null // Handle undefined image
-            },
-            createdAt: new Date().toISOString()
-          }
-        ),
-        
-        // Firebase notification
-        setDoc(doc(db, "users", receiverId, "notifications", result.request.id), {
-          type: "friend-request",
-          from: {
-            ...result.request.sender,
-            image: result.request.sender.image ?? null // Handle undefined image
-          },
-          createdAt: serverTimestamp(),
-          read: false,
-          requestId: result.request.id
-        })
+        pusherServer.trigger(`user-${receiverId}`, "friend-request:new", pusherPayload),
+        pusherServer.trigger(`presence-${receiverId}`, "friend-request:new", pusherPayload)
       ]);
     } catch (realtimeError) {
       console.error("Realtime notifications failed:", realtimeError);
+      // Not failing the request - just logging the error
     }
 
-    // Construct the response object
-    const responseData: FriendRequestResponse = {
+    // Success response
+    return NextResponse.json({
       success: true,
       message: "Friend request sent successfully",
       request: {
@@ -190,18 +212,16 @@ export async function POST(req: Request) {
           id: result.request.sender.id,
           name: result.request.sender.name,
           email: result.request.sender.email,
-          image: result.request.sender.image ?? null // Handle undefined image
+          image: result.request.sender.image ?? null
         }
       },
-      receiver: receiverExists ? {
+      receiver: {
         id: receiverExists.id,
         name: receiverExists.name,
         email: receiverExists.email,
-        image: receiverExists.image ?? null // Handle undefined image
-      } : undefined
-    };
-
-    return NextResponse.json(responseData, { status: 201 });
+        image: receiverExists.image ?? null
+      }
+    }, { status: 201 });
 
   } catch (error) {
     console.error("Error sending friend request:", error);
