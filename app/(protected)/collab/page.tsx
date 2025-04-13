@@ -154,7 +154,7 @@ export default function CollabPage() {
       toast.success("Friend request sent!");
     } catch (error) {
       removeSentRequest(receiverId);
-      toast.error(error instanceof Error ? error.message : "Failed to send request");
+      toast.error(error instanceof Error ? error.message : "Seems you already sent a request");
     }
   };
 
