@@ -49,7 +49,7 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
   const [showSuggestedUsers, setShowSuggestedUsers] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
 
-  // SWR hooks with optimized revalidation
+  // SWR hooks with  revalidation
   const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
     fallbackData: fallbackData?.users,
     revalidateIfStale: false,
@@ -81,7 +81,6 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
     user.id !== session?.user?.id
   );
 
-  // Combine API and real-time requests
   const allPendingRequests = [
     ...pendingRequests,
     ...realTimeRequests.filter(r => 
@@ -249,7 +248,7 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
     setFriends={() => mutateFriends()}
   />
 )}
-       //
+       
       </div>
     </div>
   );
