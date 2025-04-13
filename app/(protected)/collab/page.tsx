@@ -49,31 +49,30 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
   const [showSuggestedUsers, setShowSuggestedUsers] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
 
-  // SWR hooks with  revalidation
-  const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
-    fallbackData: fallbackData?.users,
-    revalidateIfStale: false,
-    revalidateOnFocus: false
-  });
-
-  const { data: friendsData, mutate: mutateFriends } = useSWR<User[]>(
-    session?.user?.id ? `/api/users/${session.user.id}/friends` : null, 
-    fetcher,
-    { 
-      fallbackData: fallbackData?.friends,
-      revalidateIfStale: false
-    }
-  );
-
-  const { data: pendingData } = useSWR<FriendRequest[]>(
-    session?.user?.id ? `/api/friendRequest/pending/${session.user.id}` : null,
-    fetcher,
-    { 
-      fallbackData: fallbackData?.pendingRequests,
-      revalidateIfStale: false
-    }
-  );
-
+    // SWR hooks with fallback data
+    const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
+      fallbackData: fallbackData?.users,
+      revalidateIfStale: false,
+      revalidateOnFocus: false
+    });
+  
+    const { data: friendsData, mutate: mutateFriends } = useSWR<User[]>(
+      session?.user?.id ? `/api/users/${session.user.id}/friends` : null, 
+      fetcher,
+      { 
+        fallbackData: fallbackData?.friends,
+        revalidateIfStale: false
+      }
+    );
+  
+    const { data: pendingData } = useSWR<FriendRequest[]>(
+      session?.user?.id ? `/api/friendRequest/pending/${session.user.id}` : null,
+      fetcher,
+      { 
+        fallbackData: fallbackData?.pendingRequests,
+        revalidateIfStale: false
+      }
+    );
   const friends = friendsData || [];
   const pendingRequests = pendingData || [];
   const suggestedUsers = (usersData || []).filter(user => 
