@@ -3,30 +3,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { userId: string; rejectedUserId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     const currentUserId = session?.user?.id;
-    const { userId, rejectedUserId } = params;
+    
+    // Extract both IDs from URL path
+    const url = new URL(request.url);
+    const pathSegments = url.pathname.split('/');
+    const userId = pathSegments[pathSegments.indexOf('users') + 1];
+    const rejectedUserId = pathSegments[pathSegments.indexOf('rejected-requests') + 1];
 
-    // Authorization check
-    if (!currentUserId || currentUserId !== userId) {
+    if (!currentUserId || !userId || !rejectedUserId) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        { error: "Missing required parameters" },
+        { status: 400 }
       );
     }
 
-    // Find the specific rejected request
+    if (currentUserId !== userId) {
+      return NextResponse.json(
+        { error: "Unauthorized to access this user's data" },
+        { status: 403 }
+      );
+    }
+
     const rejectedRequest = await db.rejectedRequest.findFirst({
       where: {
         id: rejectedUserId,
         OR: [
-          { senderId: currentUserId },
-          { receiverId: currentUserId }
+          { senderId: userId },
+          { receiverId: userId }
         ]
       },
       include: {
