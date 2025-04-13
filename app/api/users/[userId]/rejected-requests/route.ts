@@ -2,22 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
+// Helper function to extract userId from URL
+function getUserIdFromUrl(urlString: string): string | null {
+  try {
+    const url = new URL(urlString);
+    const pathSegments = url.pathname.split('/');
+    return pathSegments[pathSegments.indexOf('users') + 1] || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     const currentUserId = session?.user?.id;
-    
-    if (!currentUserId) {
+    const requestedUserId = getUserIdFromUrl(request.url);
+
+    if (!currentUserId || !requestedUserId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
-
-    // Manual extraction of userId from URL
-    const url = new URL(request.url);
-    const pathSegments = url.pathname.split('/');
-    const requestedUserId = pathSegments[pathSegments.indexOf('users') + 1];
 
     if (currentUserId !== requestedUserId) {
       return NextResponse.json(
@@ -34,8 +41,25 @@ export async function GET(request: NextRequest) {
         ]
       },
       include: {
-        sender: true,
-        receiver: true
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true
+          }
+        },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true
+          }
+        }
+      },
+      orderBy: {
+        rejectedAt: "desc"
       }
     });
 
@@ -49,17 +73,21 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-// DELETE endpoint for removing from rejected list with override option
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { userId: string } }
-) {
+
+export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
     const currentUserId = session?.user?.id;
-    const requestedUserId = params.userId;
-    
-    if (!currentUserId || currentUserId !== requestedUserId) {
+    const requestedUserId = getUserIdFromUrl(request.url);
+
+    if (!currentUserId || !requestedUserId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    if (currentUserId !== requestedUserId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -76,7 +104,6 @@ export async function DELETE(
       );
     }
 
-    // When overriding (just removing rejection without touching friend requests)
     if (override) {
       const deletedRejection = await db.rejectedRequest.delete({
         where: { 
@@ -96,9 +123,7 @@ export async function DELETE(
       });
     }
 
-    // Normal deletion (remove both rejection and related requests)
     const result = await db.$transaction([
-      // 1. Delete the specific rejection record
       db.rejectedRequest.delete({
         where: { 
           id: rejectionId,
@@ -108,8 +133,6 @@ export async function DELETE(
           ]
         }
       }),
-      
-      // 2. Delete all related friend requests between these users
       db.friendRequest.deleteMany({
         where: {
           OR: [
