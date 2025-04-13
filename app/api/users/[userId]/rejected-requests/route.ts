@@ -2,17 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
-// GET endpoint for fetching rejected requests
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { userId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     const currentUserId = session?.user?.id;
-    const requestedUserId = params.userId;
+    
+    if (!currentUserId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-    if (!currentUserId || currentUserId !== requestedUserId) {
+    // Manual extraction of userId from URL
+    const url = new URL(request.url);
+    const pathSegments = url.pathname.split('/');
+    const requestedUserId = pathSegments[pathSegments.indexOf('users') + 1];
+
+    if (currentUserId !== requestedUserId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -27,30 +34,13 @@ export async function GET(
         ]
       },
       include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true
-          }
-        },
-        receiver: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true
-          }
-        }
-      },
-      orderBy: {
-        rejectedAt: "desc"
+        sender: true,
+        receiver: true
       }
     });
 
     return NextResponse.json(rejectedRequests);
-    
+
   } catch (error) {
     console.error("Error fetching rejected requests:", error);
     return NextResponse.json(
