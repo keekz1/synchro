@@ -99,25 +99,74 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
       toast.error("Failed to remove user from rejected list");
     }
   };
-const handleSendRequest = async (receiverId: string) => {
-  try {
-    const response = await axios.post("/api/friendRequest/send", {
-      receiverId
-    });
-
-    if (response.data.success) {
-      setSentRequests(prev => new Set(prev).add(receiverId));
-      toast.success("Friend request sent!", {
-        duration: 2000 // Sonner uses 'duration'
-      });
-    } else {
-      toast.error(response.data.error || "Failed to send request");
+  const handleSendRequest = async (receiverId: string) => {
+    try {
+      const response = await axios.post(
+        "/api/friendRequest/send",
+        { receiverId },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
+        }
+      );
+  
+      if (response.data.success) {
+        setSentRequests(prev => new Set(prev).add(receiverId));
+        toast.success(response.data.message);
+      } else if (response.data.canOverride) {
+        // Handle case where there's a rejection but can be overridden
+        const shouldOverride = confirm(
+          response.data.error + "\n\nDo you want to send the request anyway?"
+        );
+        
+        if (shouldOverride) {
+          await handleOverrideRejection(receiverId);
+        }
+      } else {
+        toast.error(response.data.error || "Failed to send request");
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403 && error.response.data?.canOverride) {
+          const shouldOverride = confirm(
+            error.response.data.error + "\n\nDo you want to send the request anyway?"
+          );
+          
+          if (shouldOverride) {
+            await handleOverrideRejection(receiverId);
+          }
+        } else {
+          toast.error(error.response?.data?.error || "Failed to send friend request");
+        }
+      } else {
+        toast.error("Failed to send friend request");
+      }
     }
-  } catch (error) {
-    console.error("Request failed:", error);
-    toast.error("Failed to send friend request");
-  }
-};
+  };
+  
+  const handleOverrideRejection = async (receiverId: string) => {
+    try {
+      // First remove from rejected list
+      await axios.delete(`/api/users/${userId}/rejected-requests`, {
+        data: { 
+          targetUserId: receiverId,
+          override: true 
+        }
+      });
+      
+      // Then send new request
+      const response = await axios.post("/api/friendRequest/send", { receiverId });
+      
+      if (response.data.success) {
+        setSentRequests(prev => new Set(prev).add(receiverId));
+        toast.success("Friend request sent!");
+      }
+    } catch (error) {
+      toast.error("Failed to override previous rejection");
+    }
+  };
 
 
   if (loading) {
