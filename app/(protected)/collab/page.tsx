@@ -30,7 +30,11 @@ interface User {
 
 const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-const CollabPage = () => {
+const CollabPage = ({ fallbackData }: { fallbackData?: {
+  users?: User[];
+  friends?: User[];
+  pendingRequests?: FriendRequest[];
+} }) => {
   const { data: session, status } = useSession();
   const {
     realTimeRequests,
@@ -41,15 +45,13 @@ const CollabPage = () => {
     removeSentRequest,
     addRejectedReceiver
   } = useCollabStore();
-  
-  const [activeSection, setActiveSection] = useState({
-    friends: true,
-    suggested: false,
-    requests: false
-  });
+  const [showFriends, setShowFriends] = useState(true);
+  const [showSuggestedUsers, setShowSuggestedUsers] = useState(false);
+  const [showRequests, setShowRequests] = useState(false);
 
-  // SWR hooks
-  const { data: usersData } = useSWR<User[]>('/api/users', fetcher, {
+  // SWR hooks with  revalidation
+  const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
+    fallbackData: fallbackData?.users,
     revalidateIfStale: false,
     revalidateOnFocus: false
   });
@@ -57,16 +59,21 @@ const CollabPage = () => {
   const { data: friendsData, mutate: mutateFriends } = useSWR<User[]>(
     session?.user?.id ? `/api/users/${session.user.id}/friends` : null, 
     fetcher,
-    { revalidateIfStale: false }
+    { 
+      fallbackData: fallbackData?.friends,
+      revalidateIfStale: false
+    }
   );
 
   const { data: pendingData } = useSWR<FriendRequest[]>(
     session?.user?.id ? `/api/friendRequest/pending/${session.user.id}` : null,
     fetcher,
-    { revalidateIfStale: false }
+    { 
+      fallbackData: fallbackData?.pendingRequests,
+      revalidateIfStale: false
+    }
   );
 
-  // Derived state
   const friends = friendsData || [];
   const pendingRequests = pendingData || [];
   const suggestedUsers = (usersData || []).filter(user => 
@@ -80,11 +87,12 @@ const CollabPage = () => {
       !pendingRequests.some(pr => pr.id === r.id)
     )
   ];
+
   const receivedRequests = allPendingRequests.filter(
     (request) => request.receiverId === session?.user?.id && request.status === "pending"
   );
 
-  // Firebase listener
+  // Firebase real-time listener
   useEffect(() => {
     if (!session?.user?.id) return;
 
@@ -105,22 +113,18 @@ const CollabPage = () => {
     return () => unsubscribe();
   }, [session?.user?.id, setRealTimeRequests]);
 
-  // Section handlers
-  const showSection = (section: keyof typeof activeSection) => {
-    setActiveSection({
-      friends: section === 'friends',
-      suggested: section === 'suggested',
-      requests: section === 'requests'
-    });
+  const handleNavbarClick = (section: string) => {
+    setShowFriends(section === "friends");
+    setShowSuggestedUsers(section === "suggested");
+    setShowRequests(section === "requests");
   };
 
-  // Request handlers
   const handleRequestUpdate = async (requestId: string) => {
     setRealTimeRequests(realTimeRequests.filter(request => request.id !== requestId));
     await mutateFriends();
   };
 
-  const handleSendRequest = async (receiverId: string) => {
+  const handleSendFriendRequest = async (receiverId: string) => {
     if (!session?.user?.id) return;
   
     try {
@@ -161,13 +165,14 @@ const CollabPage = () => {
     }
   };
 
-  const requestStatusCheck = (userId: string) => {
-    return allPendingRequests.some(
-      (request) => request.sender?.id === userId || request.receiver?.id === userId
-    ) || sentRequests.has(userId);
+  const isRequestSentOrReceived = (userId: string) => {
+    return (
+      allPendingRequests.some(
+        (request) => request.sender?.id === userId || request.receiver?.id === userId
+      ) || sentRequests.has(userId)
+    );
   };
 
-  // Loading state
   if (status === "loading" || !session?.user?.id) {
     return (
       <div className="collab-page">
@@ -188,24 +193,27 @@ const CollabPage = () => {
   return (
     <div className="collab-page">
       <nav className="discord-navbar">
-        <button
-          className={activeSection.friends ? "active" : ""}
-          onClick={() => showSection('friends')}
+        <a
+          href="#"
+          className={showFriends ? "active" : ""}
+          onClick={() => handleNavbarClick("friends")}
           aria-label="Friends"
         >
           <i className="fas fa-users"></i>
-        </button>
+        </a>
         <hr />
-        <button
-          className={activeSection.suggested ? "active" : ""}
-          onClick={() => showSection('suggested')}
+        <a
+          href="#"
+          className={showSuggestedUsers ? "active" : ""}
+          onClick={() => handleNavbarClick("suggested")}
           aria-label="Suggested Users"
         >
           <i className="fas fa-user-plus"></i>
-        </button>
-        <button
-          className={`nav-icon ${activeSection.requests ? "active" : ""}`}
-          onClick={() => showSection('requests')}
+        </a>
+        <a
+          href="#"
+          className={`nav-icon ${showRequests ? "active" : ""}`}
+          onClick={() => handleNavbarClick("requests")}
           aria-label="Friend Requests"
         >
           <div className="icon-container">
@@ -216,32 +224,31 @@ const CollabPage = () => {
               </span>
             )}
           </div>
-        </button>
+        </a>
       </nav>
 
       <div className="main-content">
-        {activeSection.friends && <Friends />}
-        
-        {activeSection.suggested && (
+        {showFriends && <Friends friends={friends} loading={false} />}
+        {showSuggestedUsers && (
           <SuggestedUsers
             users={suggestedUsers}
             loading={false}
-            isRequestSentOrReceived={requestStatusCheck}
-            sendFriendRequest={handleSendRequest}
+            isRequestSentOrReceived={isRequestSentOrReceived}
+            sendFriendRequest={handleSendFriendRequest}
             rejectedReceivers={rejectedReceivers}
             friends={friends}
           />
         )}
-        
-        {activeSection.requests && (
-          <Notification
-            pendingRequests={receivedRequests}
-            userId={session.user.id}
-            onRequestUpdate={handleRequestUpdate}
-            setRejectedReceivers={addRejectedReceiver}
-            setFriends={() => mutateFriends()}
-          />
-        )}
+{showRequests && (
+  <Notification
+    pendingRequests={receivedRequests}
+    userId={session?.user?.id}
+    onRequestUpdate={handleRequestUpdate}
+    setRejectedReceivers={addRejectedReceiver} // Use the Zustand store action
+    setFriends={() => mutateFriends()}
+  />
+)}
+       
       </div>
     </div>
   );
