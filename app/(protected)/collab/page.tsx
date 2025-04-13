@@ -16,7 +16,6 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useCollabStore } from "@/stores/collab-store";
 
-// Core type definitions
 type FriendRequest = Prisma.FriendRequestGetPayload<{
   include: { sender: true; receiver: true };
 }>;
@@ -29,19 +28,9 @@ interface User {
   image?: string;
 }
 
-// Next.js page props type
-interface CollabPageProps {
-  fallback?: {
-    users?: User[];
-    friends?: User[];
-    pendingRequests?: FriendRequest[];
-  };
-}
-
-// SWR fetcher
 const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-const CollabPage = ({ fallback }: CollabPageProps) => {
+const CollabPage = () => {
   const { data: session, status } = useSession();
   const {
     realTimeRequests,
@@ -59,9 +48,8 @@ const CollabPage = ({ fallback }: CollabPageProps) => {
     requests: false
   });
 
-  // SWR hooks with type-safe fallback
+  // SWR hooks
   const { data: usersData } = useSWR<User[]>('/api/users', fetcher, {
-    fallbackData: fallback?.users || [],
     revalidateIfStale: false,
     revalidateOnFocus: false
   });
@@ -69,19 +57,13 @@ const CollabPage = ({ fallback }: CollabPageProps) => {
   const { data: friendsData, mutate: mutateFriends } = useSWR<User[]>(
     session?.user?.id ? `/api/users/${session.user.id}/friends` : null, 
     fetcher,
-    { 
-      fallbackData: fallback?.friends || [],
-      revalidateIfStale: false
-    }
+    { revalidateIfStale: false }
   );
 
   const { data: pendingData } = useSWR<FriendRequest[]>(
     session?.user?.id ? `/api/friendRequest/pending/${session.user.id}` : null,
     fetcher,
-    { 
-      fallbackData: fallback?.pendingRequests || [],
-      revalidateIfStale: false
-    }
+    { revalidateIfStale: false }
   );
 
   // Derived state
