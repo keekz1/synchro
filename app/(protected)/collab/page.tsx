@@ -29,14 +29,9 @@ interface User {
   skills?: string[];
 }
 
-interface PageProps {
-  params: { slug: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
 const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-export default function CollabPage({searchParams }: PageProps) {
+export default function CollabPage() {
   const { data: session, status } = useSession();
   const {
     realTimeRequests,
@@ -51,14 +46,8 @@ export default function CollabPage({searchParams }: PageProps) {
   const [showSuggestedUsers, setShowSuggestedUsers] = useState<boolean>(false);
   const [showRequests, setShowRequests] = useState<boolean>(false);
 
-  // Get fallbackData from searchParams if needed
-  const fallbackData = searchParams.fallbackData 
-    ? JSON.parse(searchParams.fallbackData as string)
-    : undefined;
-
   // SWR hooks with revalidation
   const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
-    fallbackData: fallbackData?.users,
     revalidateIfStale: false,
     revalidateOnFocus: false
   });
@@ -67,7 +56,6 @@ export default function CollabPage({searchParams }: PageProps) {
     session?.user?.id ? `/api/users/${session.user.id}/friends` : null, 
     fetcher,
     { 
-      fallbackData: fallbackData?.friends,
       revalidateIfStale: false
     }
   );
@@ -76,7 +64,6 @@ export default function CollabPage({searchParams }: PageProps) {
     session?.user?.id ? `/api/friendRequest/pending/${session.user.id}` : null,
     fetcher,
     { 
-      fallbackData: fallbackData?.pendingRequests,
       revalidateIfStale: false
     }
   );
@@ -98,7 +85,6 @@ export default function CollabPage({searchParams }: PageProps) {
   const receivedRequests: FriendRequest[] = allPendingRequests.filter(
     (request) => request.receiverId === session?.user?.id && request.status === "pending"
   );
-
   // Firebase real-time listener
   useEffect(() => {
     if (!session?.user?.id) return;
