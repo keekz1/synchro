@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Prisma } from "@prisma/client";
-import axios from "axios";  // Removed AxiosError from imports
+import axios from "axios";
 import { FaCheck, FaTimes, FaUserSlash } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -37,8 +37,8 @@ interface NotificationsProps {
   userId: string;
   pendingRequests: FriendRequest[];
   onRequestUpdate: (requestId: string) => void;
-  setFriends: React.Dispatch<React.SetStateAction<User[]>>;
-  setRejectedReceivers: React.Dispatch<React.SetStateAction<Set<string>>>;
+  setFriends: (newFriends: User[]) => void;
+  setRejectedReceivers: (id: string) => void;
 }
 
 const Notifications: React.FC<NotificationsProps> = ({
@@ -52,7 +52,6 @@ const Notifications: React.FC<NotificationsProps> = ({
   const [activeTab, setActiveTab] = useState<'pending' | 'rejected'>('pending');
   const [realTimeRequests, setRealTimeRequests] = useState<FriendRequest[]>([]);
 
-  // Fetch rejected requests on component mount
   useEffect(() => {
     const fetchRejectedRequests = async () => {
       try {
@@ -87,10 +86,8 @@ const Notifications: React.FC<NotificationsProps> = ({
 
   const handleAcceptFriendRequest = async (requestId: string, receiverId: string) => {
     try {
-      // 1. First update in Prisma
       const { data } = await axios.post<{ request: FriendRequest }>("/api/friendRequest/accept", { requestId });
       
-      // 2. Try to update Firestore
       try {
         const requestRef = doc(db, "users", receiverId, "friendRequests", requestId);
         await updateDoc(requestRef, {
@@ -100,7 +97,6 @@ const Notifications: React.FC<NotificationsProps> = ({
       } catch (firestoreError: unknown) {
         if (firestoreError instanceof Error && 'code' in firestoreError && firestoreError.code === "not-found") {
           console.warn("Firestore document missing, recreating...");
-          // Get request details from Prisma response or make another API call
           const requestDetails = data?.request || 
             (await axios.get<FriendRequest>(`/api/friendRequest/${requestId}`)).data;
           
@@ -118,7 +114,6 @@ const Notifications: React.FC<NotificationsProps> = ({
         }
       }
   
-      // 3. Update local state
       const friendsResponse = await axios.get<User[]>(`/api/users/${userId}/friends`);
       setFriends(friendsResponse.data);
       onRequestUpdate(requestId);
@@ -161,7 +156,7 @@ const Notifications: React.FC<NotificationsProps> = ({
         }
       }
   
-      setRejectedReceivers(prev => new Set(prev).add(request.senderId));
+      setRejectedReceivers(request.senderId);
       onRequestUpdate(requestId);
       toast.success("Friend request rejected");
   
@@ -193,7 +188,6 @@ const Notifications: React.FC<NotificationsProps> = ({
     }
   };
 
-  // Combine API and real-time requests
   const allPendingRequests = [
     ...pendingRequests,
     ...realTimeRequests.filter(r => 

@@ -5,7 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { SocketProvider } from "@/contexts/SocketContext";
-//
+import SWRConfigProvider from '@/components/SWRConfigProvider';
 import {Toaster} from "@/components/ui/sonner"
 
 const geistSans = Geist({
@@ -31,10 +31,14 @@ export const metadata: Metadata = {
 function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
+            <SWRConfigProvider>
+
       <SocketProvider>
         <Navbar />
         {children}
       </SocketProvider>
+      </SWRConfigProvider>
+
     </SessionProvider>
   );
 }
