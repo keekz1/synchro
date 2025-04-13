@@ -19,15 +19,16 @@ const Friends: React.FC = () => {
   const { friends, setFriends, loading, setLoading } = useFriendsStore();
 
   // SWR fetch with caching
-  const { data } = useSWR<User[]>('/api/friends', fetcher, {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-    onSuccess: (data) => {
-      setFriends(data);
-      setLoading(false);
-    },
-    onError: () => setLoading(false)
-  });
+// components/Friends.tsx
+const { } = useSWR<User[]>('/api/friends', fetcher, { // Remove the data variable
+  revalidateIfStale: false,
+  revalidateOnFocus: false,
+  onSuccess: (data) => {
+    setFriends(data);
+    setLoading(false);
+  },
+  onError: () => setLoading(false)
+});
 
   const openChat = (friendId: string) => {
     router.push(`/chat/${friendId}`);
