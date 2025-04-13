@@ -26,8 +26,7 @@ interface SuggestedUsersProps {
   loading: boolean;
   isRequestSentOrReceived: (friendId: string) => boolean;
   sendFriendRequest: (friendId: string) => Promise<void>;
-  rejectedReceivers: Set<string>;
-  friends?: User[];
+ friends?: User[];
 }
 
 const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
@@ -35,8 +34,6 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   loading,
   friends = [],
   isRequestSentOrReceived,
-  rejectedReceivers,
-  sendFriendRequest,
 }) => {
   const { data: session } = useSession();
   const userId = session?.user?.id;
@@ -120,29 +117,7 @@ const handleSendRequest = async (receiverId: string) => {
     toast.error("Failed to send friend request");
   }
 };
-  const sendNewFriendRequest = async (friendId: string) => {
-    try {
-      const response = await axios.post("/api/friendRequest/send", {
-        receiverId: friendId
-      });
-  
-      if (response.data.success === false) {
-        toast.info(response.data.message);
-        setSentRequests(prev => new Set(prev).add(friendId));
-      } else {
-        setSentRequests(prev => new Set(prev).add(friendId));
-        setRejectedByUsers(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(friendId);
-          return newSet;
-        });
-        toast.success("Friend request sent!");
-      }
-    } catch (error) {
-      console.error("Failed to send friend request:", error);
-      toast.error("Failed to send request");
-    }
-  };
+
 
   if (loading) {
     return <div className="loading-indicator">Loading users...</div>;

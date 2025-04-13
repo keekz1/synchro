@@ -12,7 +12,8 @@ const requestSchema = z.object({
 
 interface FriendRequestResponse {
   success: boolean;
-  message: string;
+  message?: string;
+  error?: string;
   request?: {
     id: string;
     senderId: string;
@@ -31,16 +32,24 @@ interface FriendRequestResponse {
     email: string;
     image?: string | null;
   };
+  existingRequest?: {
+    id: string;
+    status: string;
+    senderId: string;
+  };
+  canOverride?: boolean;
+  details?: z.ZodIssue[];
+  stack?: string;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse<FriendRequestResponse>> {
   try {
     const session = await auth();
     const userId = session?.user?.id;
     
     if (!userId) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
@@ -48,15 +57,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { receiverId } = requestSchema.parse(body);
 
-    // Basic validations
     if (userId === receiverId) {
       return NextResponse.json(
-        { error: "Cannot send friend request to yourself" },
+        { success: false, error: "Cannot send friend request to yourself" },
         { status: 400 }
       );
     }
 
-    // Check if receiver exists
     const receiverExists = await prisma.user.findUnique({
       where: { id: receiverId },
       select: { id: true, name: true, email: true, image: true }
@@ -64,12 +71,11 @@ export async function POST(req: Request) {
 
     if (!receiverExists) {
       return NextResponse.json(
-        { error: "User not found" },
+        { success: false, error: "User not found" },
         { status: 404 }
       );
     }
 
-    // Check for existing requests first (before checking rejections)
     const existingRequest = await prisma.friendRequest.findFirst({
       where: {
         OR: [
@@ -93,14 +99,14 @@ export async function POST(req: Request) {
             "This user has already sent you a request",
           existingRequest: {
             id: existingRequest.id,
-            status: existingRequest.status
+            status: existingRequest.status,
+            senderId: existingRequest.senderId
           }
         },
         { status: 200 }
       );
     }
 
-    // Check for active rejections (only if no existing request)
     const activeRejection = await prisma.rejectedRequest.findFirst({
       where: {
         OR: [
@@ -123,9 +129,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Transaction for creating new request
     const result = await prisma.$transaction(async (tx) => {
-      // Create new request
       const newRequest = await tx.friendRequest.create({
         data: {
           senderId: userId,
@@ -144,7 +148,6 @@ export async function POST(req: Request) {
         }
       });
 
-      // Update Firestore - both in friendRequests and notifications
       const requestRef = doc(db, "users", receiverId, "friendRequests", newRequest.id);
       const notificationRef = doc(db, "users", receiverId, "notifications", newRequest.id);
       
@@ -178,7 +181,6 @@ export async function POST(req: Request) {
       };
     });
 
-    // Real-time notifications
     try {
       const pusherPayload = {
         id: result.request.id,
@@ -196,10 +198,8 @@ export async function POST(req: Request) {
       ]);
     } catch (realtimeError) {
       console.error("Realtime notifications failed:", realtimeError);
-      // Not failing the request - just logging the error
     }
 
-    // Success response
     return NextResponse.json({
       success: true,
       message: "Friend request sent successfully",
@@ -229,9 +229,9 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { 
+          success: false,
           error: "Invalid request data",
-          details: error.errors,
-          success: false
+          details: error.errors
         },
         { status: 422 }
       );
@@ -239,8 +239,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { 
-        error: error instanceof Error ? error.message : "Internal server error",
         success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
         stack: process.env.NODE_ENV === "development" ? (error as Error)?.stack : undefined
       },
       { status: 500 }
