@@ -26,15 +26,22 @@ interface User {
   email: string;
   role?: string;
   image?: string;
+  skills?: string[];
+}
+
+interface FallbackData {
+  users?: User[];
+  friends?: User[];
+  pendingRequests?: FriendRequest[];
+}
+
+interface CollabPageProps {
+  fallbackData?: FallbackData;
 }
 
 const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-const CollabPage = ({ fallbackData }: { fallbackData?: {
-  users?: User[];
-  friends?: User[];
-  pendingRequests?: FriendRequest[];
-} }) => {
+const CollabPage = ({ fallbackData }: CollabPageProps) => {
   const { data: session, status } = useSession();
   const {
     realTimeRequests,
@@ -45,11 +52,11 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
     removeSentRequest,
     addRejectedReceiver
   } = useCollabStore();
-  const [showFriends, setShowFriends] = useState(true);
-  const [showSuggestedUsers, setShowSuggestedUsers] = useState(false);
-  const [showRequests, setShowRequests] = useState(false);
+  const [showFriends, setShowFriends] = useState<boolean>(true);
+  const [showSuggestedUsers, setShowSuggestedUsers] = useState<boolean>(false);
+  const [showRequests, setShowRequests] = useState<boolean>(false);
 
-  // SWR hooks with  revalidation
+  // SWR hooks with revalidation
   const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
     fallbackData: fallbackData?.users,
     revalidateIfStale: false,
@@ -74,21 +81,21 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
     }
   );
 
-  const friends = friendsData || [];
-  const pendingRequests = pendingData || [];
-  const suggestedUsers = (usersData || []).filter(user => 
+  const friends: User[] = friendsData || [];
+  const pendingRequests: FriendRequest[] = pendingData || [];
+  const suggestedUsers: User[] = (usersData || []).filter(user => 
     !friends.some(friend => friend.id === user.id) && 
     user.id !== session?.user?.id
   );
 
-  const allPendingRequests = [
+  const allPendingRequests: FriendRequest[] = [
     ...pendingRequests,
     ...realTimeRequests.filter(r => 
       !pendingRequests.some(pr => pr.id === r.id)
     )
   ];
 
-  const receivedRequests = allPendingRequests.filter(
+  const receivedRequests: FriendRequest[] = allPendingRequests.filter(
     (request) => request.receiverId === session?.user?.id && request.status === "pending"
   );
 
@@ -113,18 +120,18 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
     return () => unsubscribe();
   }, [session?.user?.id, setRealTimeRequests]);
 
-  const handleNavbarClick = (section: string) => {
+  const handleNavbarClick = (section: string): void => {
     setShowFriends(section === "friends");
     setShowSuggestedUsers(section === "suggested");
     setShowRequests(section === "requests");
   };
 
-  const handleRequestUpdate = async (requestId: string) => {
+  const handleRequestUpdate = async (requestId: string): Promise<void> => {
     setRealTimeRequests(realTimeRequests.filter(request => request.id !== requestId));
     await mutateFriends();
   };
 
-  const handleSendFriendRequest = async (receiverId: string) => {
+  const handleSendFriendRequest = async (receiverId: string): Promise<void> => {
     if (!session?.user?.id) return;
   
     try {
@@ -165,7 +172,7 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
     }
   };
 
-  const isRequestSentOrReceived = (userId: string) => {
+  const isRequestSentOrReceived = (userId: string): boolean => {
     return (
       allPendingRequests.some(
         (request) => request.sender?.id === userId || request.receiver?.id === userId
@@ -239,16 +246,15 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
             friends={friends}
           />
         )}
-{showRequests && (
-  <Notification
-    pendingRequests={receivedRequests}
-    userId={session?.user?.id}
-    onRequestUpdate={handleRequestUpdate}
-    setRejectedReceivers={addRejectedReceiver} // Use the Zustand store action
-    setFriends={() => mutateFriends()}
-  />
-)}
-       
+        {showRequests && (
+          <Notification
+            pendingRequests={receivedRequests}
+            userId={session?.user?.id}
+            onRequestUpdate={handleRequestUpdate}
+            setRejectedReceivers={addRejectedReceiver}
+            setFriends={() => mutateFriends()}
+          />
+        )}
       </div>
     </div>
   );
