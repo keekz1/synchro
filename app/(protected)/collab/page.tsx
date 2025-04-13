@@ -228,8 +228,8 @@ const CollabPage = ({ fallbackData }: { fallbackData?: {
       </nav>
 
       <div className="main-content">
-        {showFriends && <Friends friends={friends} loading={false} />}
-        {showSuggestedUsers && (
+      {showFriends && <Friends />}
+      {showSuggestedUsers && (
           <SuggestedUsers
             users={suggestedUsers}
             loading={false}

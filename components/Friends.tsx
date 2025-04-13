@@ -1,7 +1,10 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import "../components/friends.css"
+import useSWR from "swr";
+import axios from "axios";
+import "../components/friends.css";
+import { useFriendsStore } from "@/stores/friends-store"; // New store
 
 interface User {
   id: string;
@@ -9,19 +12,28 @@ interface User {
   email: string;
 }
 
-interface FriendsProps {
-  friends: User[];
-  loading: boolean;
-}
+const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-const Friends: React.FC<FriendsProps> = ({ friends, loading }) => {
+const Friends: React.FC = () => {
   const router = useRouter();
+  const { friends, setFriends, loading, setLoading } = useFriendsStore();
 
-  if (loading) return <p className="loading">Loading friends...</p>;
+  // SWR fetch with caching
+  const { data } = useSWR<User[]>('/api/friends', fetcher, {
+    revalidateIfStale: false,
+    revalidateOnFocus: false,
+    onSuccess: (data) => {
+      setFriends(data);
+      setLoading(false);
+    },
+    onError: () => setLoading(false)
+  });
 
   const openChat = (friendId: string) => {
     router.push(`/chat/${friendId}`);
   };
+
+  if (loading) return <p className="loading">Loading friends...</p>;
 
   return (
     <div className="friends-section">
