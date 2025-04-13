@@ -29,19 +29,14 @@ interface User {
   skills?: string[];
 }
 
-interface FallbackData {
-  users?: User[];
-  friends?: User[];
-  pendingRequests?: FriendRequest[];
-}
-
-interface CollabPageProps {
-  fallbackData?: FallbackData;
+interface PageProps {
+  params: { slug: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 }
 
 const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-const CollabPage = ({ fallbackData }: CollabPageProps) => {
+export default function CollabPage({ params, searchParams }: PageProps) {
   const { data: session, status } = useSession();
   const {
     realTimeRequests,
@@ -55,6 +50,11 @@ const CollabPage = ({ fallbackData }: CollabPageProps) => {
   const [showFriends, setShowFriends] = useState<boolean>(true);
   const [showSuggestedUsers, setShowSuggestedUsers] = useState<boolean>(false);
   const [showRequests, setShowRequests] = useState<boolean>(false);
+
+  // Get fallbackData from searchParams if needed
+  const fallbackData = searchParams.fallbackData 
+    ? JSON.parse(searchParams.fallbackData as string)
+    : undefined;
 
   // SWR hooks with revalidation
   const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
@@ -258,6 +258,4 @@ const CollabPage = ({ fallbackData }: CollabPageProps) => {
       </div>
     </div>
   );
-};
-
-export default CollabPage;
+}
