@@ -12,6 +12,7 @@ export async function GET(
     const currentUserId = session?.user?.id;
     const { userId, rejectedUserId } = params;
 
+    // Authorization check
     if (!currentUserId || currentUserId !== userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -19,17 +20,32 @@ export async function GET(
       );
     }
 
-    const rejectedRequest = await db.rejectedRequest.findUnique({
-      where: { 
+    // Find the specific rejected request
+    const rejectedRequest = await db.rejectedRequest.findFirst({
+      where: {
         id: rejectedUserId,
         OR: [
-          { senderId: userId },
-          { receiverId: userId }
+          { senderId: currentUserId },
+          { receiverId: currentUserId }
         ]
       },
       include: {
-        sender: true,
-        receiver: true
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true
+          }
+        },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true
+          }
+        }
       }
     });
 
