@@ -1,29 +1,37 @@
+// app/api/users/[userId]/rejected-requests/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
-// GET endpoint for fetching rejected requests
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { userId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     const currentUserId = session?.user?.id;
-    const requestedUserId = params.userId;
+    
+    // Extract userId from URL path
+    const url = new URL(request.url);
+    const pathSegments = url.pathname.split('/');
+    const userId = pathSegments[pathSegments.indexOf('users') + 1];
 
-    if (!currentUserId || currentUserId !== requestedUserId) {
+    if (!currentUserId || !userId) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Authentication required" },
         { status: 401 }
+      );
+    }
+
+    if (currentUserId !== userId) {
+      return NextResponse.json(
+        { error: "Unauthorized to access this user's data" },
+        { status: 403 }
       );
     }
 
     const rejectedRequests = await db.rejectedRequest.findMany({
       where: {
         OR: [
-          { senderId: currentUserId },
-          { receiverId: currentUserId }
+          { senderId: userId },
+          { receiverId: userId }
         ]
       },
       include: {
@@ -49,79 +57,10 @@ export async function GET(
       }
     });
 
-    return NextResponse.json(rejectedRequests);
-    
+    return NextResponse.json(rejectedRequests, { status: 200 });
+
   } catch (error) {
     console.error("Error fetching rejected requests:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE endpoint for removing from rejected list
-// DELETE endpoint for removing from rejected list and deleting related friend requests
-// DELETE endpoint for removing from rejected list and deleting related friend request
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { userId: string } }
-) {
-  try {
-    const session = await auth();
-    const currentUserId = session?.user?.id;
-    const requestedUserId = params.userId;
-    
-    if (!currentUserId || currentUserId !== requestedUserId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    const { targetUserId, rejectionId } = body;
-    
-    if (!targetUserId || !rejectionId) {
-      return NextResponse.json(
-        { error: "Target user ID and rejection ID are required" },
-        { status: 400 }
-      );
-    }
-
-    // Use transaction to ensure both operations complete successfully
-    const result = await db.$transaction([
-      // 1. Delete the specific rejection record
-      db.rejectedRequest.delete({
-        where: { 
-          id: rejectionId,
-          OR: [
-            { senderId: targetUserId, receiverId: currentUserId },
-            { senderId: currentUserId, receiverId: targetUserId }
-          ]
-        }
-      }),
-      
-      // 2. Delete any related friend requests between these users
-      db.friendRequest.deleteMany({
-        where: {
-          OR: [
-            { senderId: currentUserId, receiverId: targetUserId },
-            { senderId: targetUserId, receiverId: currentUserId }
-          ]
-        }
-      })
-    ]);
-
-    return NextResponse.json({
-      success: true,
-      message: "User removed from rejected list and related requests deleted",
-      deletedRejection: result[0],
-      deletedRequestsCount: result[1].count
-    });
-
-  } catch (error) {
-    console.error("Error removing from rejected list:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
