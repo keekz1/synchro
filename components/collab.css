@@ -1,13 +1,16 @@
 
 .collab-page {
-    display: flex;
-    background-color: #FFFFFF;
-    height: 100%;
-  }
+  display: flex;
+  background-color: #FFFFFF;
+  height: 100%;
+  margin-top: 60px; /* Same as navbar height */
+}
   
   .discord-navbar {
     background: #1b1c1c;
     height: 100%;
+    margin-top: 60px; /* Same as navbar height */
+
     width: 72px;
     display: flex;
     flex-direction: column;
@@ -23,6 +26,8 @@
     display: block;
     width: 48px;
     height: 48px;
+    margin-top: 60px; /* Same as navbar height */
+
     border-radius: 50%;
     background: #edf3ff;
     margin-bottom: 15px;
