@@ -24,9 +24,10 @@ interface RejectedRequest {
 interface SuggestedUsersProps {
   users: User[];
   loading: boolean;
-  isRequestSentOrReceived: (friendId: string) => boolean;
-  sendFriendRequest: (friendId: string) => Promise<void>;
- friends?: User[];
+  isRequestSentOrReceived: (userId: string) => boolean;
+  sendFriendRequest: (receiverId: string) => Promise<void>;
+  rejectedReceivers: Set<string>;
+  friends?: User[];
 }
 
 const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
