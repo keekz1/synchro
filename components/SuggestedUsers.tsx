@@ -57,15 +57,16 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
           .map((r) => r.receiverId);
           
         setRejectedByUsers(new Set(rejectionSenderIds));
-
+  
         // Rejections where I was receiver (users I rejected)
         const myRejections = response.data.filter((r) => r.receiverId === userId);
         setUsersRejectedByMe(myRejections);
-      } catch (error) {
-        console.error("Error fetching rejected requests:", error);
+      } catch (err) {
+        console.error("Error fetching rejected requests:", err);
+        // You could add toast.error here if needed
       }
     };
-
+  
     fetchRejections();
   }, [userId]);
 
@@ -88,14 +89,13 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
       );
   
       if (response.data.success) {
-        // Only remove the specific rejection from state
         setUsersRejectedByMe(prev => prev.filter(rejection => 
           rejection.id !== rejectionId
         ));
         toast.success("User removed from rejected list");
       }
-    } catch (error) {
-      console.error("Removal failed:", error);
+    } catch (err) {
+      console.error("Removal failed:", err);
       toast.error("Failed to remove user from rejected list");
     }
   };
@@ -163,11 +163,11 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
         setSentRequests(prev => new Set(prev).add(receiverId));
         toast.success("Friend request sent!");
       }
-    } catch (error) {
+    } catch (err) {
+      console.error("Override failed:", err);
       toast.error("Failed to override previous rejection");
     }
   };
-
 
   if (loading) {
     return <div className="loading-indicator">Loading users...</div>;
