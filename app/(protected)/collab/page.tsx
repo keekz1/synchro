@@ -36,7 +36,7 @@ interface PageProps {
 
 const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-export default function CollabPage({ params, searchParams }: PageProps) {
+export default function CollabPage({searchParams }: PageProps) {
   const { data: session, status } = useSession();
   const {
     realTimeRequests,
