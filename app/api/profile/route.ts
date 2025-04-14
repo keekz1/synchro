@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth"; // Assuming NextAuth is set up
-import { db } from "@/lib/db"; // Your database helper
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
 
 export async function GET() {
   try {
     const session = await auth();
-    console.log("Session Data:", session);
 
-    if (!session || !session.user || !session.user.email) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -19,7 +18,9 @@ export async function GET() {
         email: true,
         role: true,
         image: true,
-        skills: true, 
+        skills: true,
+        experience: true,  // Add this
+        age: true          // Add this
       },
     });
 
@@ -30,6 +31,9 @@ export async function GET() {
     return NextResponse.json(user);
   } catch (error) {
     console.error("Error fetching current user:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

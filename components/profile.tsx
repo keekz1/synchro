@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil } from "lucide-react"; // Add this import
+import { Pencil } from "lucide-react";
+import { ExperienceLevel } from "@prisma/client";
 
 interface User {
   id: string;
@@ -10,6 +11,8 @@ interface User {
   role: string;
   image?: string;
   skills: string[];
+  experience?: ExperienceLevel;
+  age?: number;
 }
 
 interface ProfileProps {
@@ -17,6 +20,7 @@ interface ProfileProps {
 }
 
 export default function Profile({ user }: ProfileProps) {
+  // State management
   const [role, setRole] = useState(user.role.replace(/_/g, " "));
   const [image, setImage] = useState(user.image || "https://via.placeholder.com/100");
   const [skills, setSkills] = useState<string[]>(user.skills);
@@ -25,7 +29,12 @@ export default function Profile({ user }: ProfileProps) {
   const [message, setMessage] = useState("");
   const [rolesFromDb, setRolesFromDb] = useState<string[]>([]);
   const [isEditingRole, setIsEditingRole] = useState(false);
+  const [experience, setExperience] = useState<ExperienceLevel | undefined>(user.experience);
+  const [age, setAge] = useState<number | undefined>(user.age);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // Fetch roles on mount
   useEffect(() => {
     async function fetchRoles() {
       try {
@@ -37,10 +46,45 @@ export default function Profile({ user }: ProfileProps) {
         setMessage("Failed to fetch roles.");
       }
     }
-
     fetchRoles();
   }, []);
 
+  // Profile save handler
+  async function saveProfile() {
+    setIsSavingProfile(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/updatexpag", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          experience: experience || null,
+          age: age || null
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setMessage("Profile updated successfully!");
+        setIsEditingProfile(false);
+        // Refresh user data
+        const userRes = await fetch("/api/profile");
+        const userData = await userRes.json();
+        setExperience(userData.experience);
+        setAge(userData.age);
+      } else {
+        setMessage(data.error || "Failed to update profile");
+      }
+    } catch (error) {
+      setMessage("Failed to update profile");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
+  // Role update handler
   async function updateRole(newRole: string) {
     setLoading(true);
     setMessage("");
@@ -67,6 +111,7 @@ export default function Profile({ user }: ProfileProps) {
     }
   }
 
+  // Skill add handler
   async function addSkill() {
     if (skills.includes(newSkill.trim())) {
       setMessage("This skill already exists.");
@@ -98,6 +143,7 @@ export default function Profile({ user }: ProfileProps) {
     }
   }
 
+  // Image upload handler
   async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
@@ -143,6 +189,13 @@ export default function Profile({ user }: ProfileProps) {
     }
   }
 
+  // Display formatters
+  const experienceDisplay = experience ? 
+    experience.replace(/_/g, ' ').toLowerCase() : 
+    "Not specified";
+    
+  const ageDisplay = age ? `${age} years` : "Not specified";
+
   return (
     <div className="p-6 rounded-xl shadow-lg w-full max-w-md mx-auto bg-gradient-to-br from-teal-400 to-teal-700 text-white">
       {/* Profile Header */}
@@ -167,6 +220,7 @@ export default function Profile({ user }: ProfileProps) {
             accept="image/*"
             className="hidden"
             onChange={handleImageUpload}
+            aria-label="Upload profile picture"
           />
         </label>
 
@@ -182,6 +236,7 @@ export default function Profile({ user }: ProfileProps) {
             <button
               onClick={() => setIsEditingRole(true)}
               className="text-teal-200 hover:text-white text-sm flex items-center"
+              aria-label="Edit role"
             >
               <Pencil className="w-4 h-4 mr-1" />
               Edit
@@ -199,12 +254,14 @@ export default function Profile({ user }: ProfileProps) {
               placeholder="Select your role"
               disabled={loading}
               autoFocus
+              aria-label="Select role"
             />
             <datalist id="role-options">
               {rolesFromDb.map((r) => (
                 <option key={r} value={r.replace(/_/g, " ")} />
               ))}
             </datalist>
+            
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -230,6 +287,98 @@ export default function Profile({ user }: ProfileProps) {
           </div>
         ) : (
           <p className="text-lg font-medium">{role}</p>
+        )}
+      </div>
+
+      {/* Profile Details Section */}
+      <div className="mt-6 bg-white/10 p-4 rounded-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold">Profile Details</h3>
+          {!isEditingProfile && (
+            <button
+              onClick={() => setIsEditingProfile(true)}
+              className="text-teal-200 hover:text-white text-sm flex items-center"
+              aria-label="Edit profile details"
+            >
+              <Pencil className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
+
+        {isEditingProfile ? (
+          <>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2" id="experienceLabel">
+                Experience Level
+              </label>
+              <select
+                aria-labelledby="experienceLabel"
+                value={experience || ""}
+                onChange={(e) => setExperience(e.target.value as ExperienceLevel)}
+                className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                disabled={isSavingProfile}
+                title="Select experience level"
+              >
+                <option value="">Select experience</option>
+                <option value="LESS_THAN_1_YEAR">Less than 1 year</option>
+                <option value="ONE_TO_2_YEARS">1-2 years</option>
+                <option value="THREE_TO_5_YEARS">3-5 years</option>
+                <option value="FIVE_PLUS_YEARS">5+ years</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2" id="ageLabel">
+                Age (optional)
+              </label>
+              <input
+                type="number"
+                aria-labelledby="ageLabel"
+                value={age || ""}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  setAge(isNaN(value) ? undefined : Math.max(18, Math.min(100, value)));
+                }}
+                min="0"
+                max="100"
+                className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter your age"
+                disabled={isSavingProfile}
+              />
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={saveProfile}
+                disabled={isSavingProfile}
+                className="flex-1 bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors font-medium"
+              >
+                {isSavingProfile ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingProfile(false);
+                  setExperience(user.experience);
+                  setAge(user.age);
+                }}
+                className="flex-1 bg-teal-800 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-teal-200">Experience Level</p>
+              <p className="font-medium">{experienceDisplay}</p>
+            </div>
+            <div>
+              <p className="text-sm text-teal-200">Age</p>
+              <p className="font-medium">{ageDisplay}</p>
+            </div>
+          </div>
         )}
       </div>
 
@@ -260,6 +409,7 @@ export default function Profile({ user }: ProfileProps) {
             className="flex-1 p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
             placeholder="Add new skill"
             onKeyDown={(e) => e.key === "Enter" && addSkill()}
+            aria-label="Add new skill"
           />
           <button
             onClick={addSkill}

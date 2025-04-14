@@ -1,0 +1,37 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { type ExperienceLevel } from "@prisma/client";
+
+export async function PUT(req: Request) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { experience, age } = await req.json();
+
+    const updatedUser = await db.user.update({
+      where: { email: session.user.email },
+      data: {
+        experience: experience ? experience as ExperienceLevel : null,
+        age: age ? Number(age) : null
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      experience: updatedUser.experience,
+      age: updatedUser.age
+    });
+
+  } catch (error) {
+    console.error("Error updating experience/age:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

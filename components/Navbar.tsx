@@ -90,7 +90,7 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ type: "spring", damping: 25 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
             className="md:hidden fixed z-30 bg-white/95 backdrop-blur-sm w-full pt-4 pb-4"
             style={{ top: isNavVisible ? '64px' : '4px' }}
           >
@@ -157,6 +157,7 @@ const MobileNavLink = ({
       className="block text-black text-lg py-3 px-4 hover:bg-gray-200/50 rounded-lg transition-colors"
       onClick={onClick}
     >
+
       {text}
     </Link>
   </motion.div>

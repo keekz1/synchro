@@ -9,7 +9,7 @@
   .discord-navbar {
     background: #1b1c1c;
     height: 100%;
-    margin-top: 60px; /* Same as navbar height */
+    margin-top: 35px; /* Same as navbar height */
 
     width: 72px;
     display: flex;

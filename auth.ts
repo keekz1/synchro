@@ -1,5 +1,5 @@
 import NextAuth from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter";  // This is the native Prisma adapter
+import { PrismaAdapter } from "@auth/prisma-adapter";  
 
 import {getUserById} from "./data/user"
 import {db} from "./lib/db";
@@ -41,8 +41,7 @@ data:{emailVerified: new Date()}
 
   },
 callbacks:{
-//
-//
+
 
 async signIn({ user, account}) {
 
@@ -52,17 +51,16 @@ async signIn({ user, account}) {
   })
 
 
-  //Allo oAuth
+  
 
   if (account?.provider !== "credentials") return true;
 
-  if (!user.id) return false; // or throw an error if it's unexpected
+  if (!user.id) return false; 
 
   const existingUser = await getUserById(user.id);
   
   
 
-  //prevent sign in without email verification
   if(!existingUser?.emailVerified) return false;
 
 
@@ -79,7 +77,6 @@ console.log({
   if (!twoFactorConfirmation) return false;
 
 
-  //delete two factor confirmation for next sign in
 
 await db.twoFactorConfirmation.delete({
 where :{id: twoFactorConfirmation.id}

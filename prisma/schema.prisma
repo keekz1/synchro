@@ -127,11 +127,17 @@ enum UserRole {
   Volunteer
   Entrepreneur
   Other
+  HR
 USER
 ADMIN
 }
 
-
+enum ExperienceLevel {
+  LESS_THAN_1_YEAR
+  ONE_TO_2_YEARS
+  THREE_TO_5_YEARS
+  FIVE_PLUS_YEARS
+}
 
 model User {
   id                     String         @id @default(cuid()) @map("_id")
@@ -145,6 +151,7 @@ model User {
   friendRequestsSent     FriendRequest[] @relation("Sender")
   friendRequestsReceived FriendRequest[] @relation("Receiver")
   accounts               Account[]
+  hrPreferences HRPreferences[]  // Changed from HRPreferences? to HRPreferences[]
 
   isTwoFactorEnabled Boolean @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
@@ -156,6 +163,11 @@ model User {
   messagesSent           Message[]      @relation("MessagesSent")
   messagesReceived       Message[]      @relation("MessagesReceived")
   skills                 String[]       // No need for @db.Array here
+    age        Int?              // Add this line
+
+  experience   ExperienceLevel?  // Add this new field
+  educationLevel String[] @default([]) // Add this line
+
   rejectedRequestsSent     RejectedRequest[] @relation("rejectedBySender")
   rejectedRequestsReceived RejectedRequest[] @relation("rejectedByReceiver")
 
@@ -266,4 +278,29 @@ model TwoFactorConfirmation {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId])
+}
+enum LocationType {
+  REMOTE
+  HYBRID
+  ONSITE
+}
+model HRPreferences {
+  id          String     @id @default(cuid()) @map("_id")
+  userId      String
+  name        String
+  requiredSkills String[]
+  minExperience Int
+  locationType  String
+  educationLevel String[]
+  minAge        Int?
+  maxAge        Int?
+  role          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Change to one-to-many relationship
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Add compound unique constraint if needed
+  @@unique([id, userId])
 }
