@@ -41,8 +41,8 @@ export default function Profile({ user }: ProfileProps) {
         const res = await fetch("/api/role");
         const data = await res.json();
         setRolesFromDb(data);
-      } catch (error) {
-        console.error("Error fetching roles", error);
+      } catch  {
+        console.error("Error fetching roles");
         setMessage("Failed to fetch roles.");
       }
     }
