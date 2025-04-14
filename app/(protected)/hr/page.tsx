@@ -53,7 +53,20 @@ type RoleOption = {
   value: string;
   label: string;
 };
-
+interface DbPreference {
+  id: string;
+  name: string;
+  requiredSkills: string[];
+  minExperience: number;
+  locationType: string;
+  educationLevel: string[];
+  minAge: number | null;  // Changed from number | undefined
+  maxAge: number | null;  // Changed from number | undefined
+  role: string;
+  updatedAt: Date;
+  createdAt: Date;
+  userId: string;  // Added this since it appears in the error
+}
 // Constants
 const educationOptions: EducationLevel[] = [
   "Bachelor's",
@@ -74,7 +87,7 @@ const isValidLocationType = (value: string): value is LocationPreference => {
   return ["REMOTE", "HYBRID", "ONSITE"].includes(value);
 };
 
-const transformDbPreferences = (dbPrefs: any): PreferenceSet => {
+const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
   return {
     ...dbPrefs,
     locationType: isValidLocationType(dbPrefs.locationType) ? dbPrefs.locationType : "HYBRID",
@@ -83,7 +96,6 @@ const transformDbPreferences = (dbPrefs: any): PreferenceSet => {
     maxAge: dbPrefs.maxAge ?? undefined
   };
 };
-
 // Main Component
 const HRPage = () => {
   const role = useCurrentRole();
