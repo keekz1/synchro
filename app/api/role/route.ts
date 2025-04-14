@@ -10,7 +10,7 @@ export async function GET() {
       .map(role => role); // Just return the raw role strings
     
     return NextResponse.json(roles);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch roles' },
       { status: 500 }
