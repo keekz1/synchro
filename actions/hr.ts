@@ -3,7 +3,7 @@
 import { UserRole, type ExperienceLevel } from "@prisma/client";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getRoles } from "@/app/api/role/route";
+import { getRoles } from '@/lib/role';
 
 type LocationPreference = "REMOTE" | "HYBRID" | "ONSITE";
 
@@ -177,53 +177,6 @@ export const deleteHRPreference = async (id: string) => {
   } catch (error) {
     console.error("Error deleting HR preference:", error);
     return { error: "Failed to delete preference" };
-  }
-};
-export const getMatchedUsersForHRPreference = async (preferenceId: string) => {
-  const user = await currentUser();
-
-  if (!user || user.role !== UserRole.HR) {
-    return { error: "Unauthorized access" };
-  }
-
-  const preference = await db.hRPreferences.findUnique({
-    where: { id: preferenceId }
-  });
-
-  if (!preference) {
-    return { error: "Preference not found" };
-  }
-
-  const {
-    role,
-    locationType,
-    minExperience,
-    educationLevel,
-    requiredSkills,
-    minAge
-  } = preference;
-
-  try {
-    const matchedUsers = await db.user.findMany({
-      where: {
-        role,
-        locationType,
-        experience: { gte: minExperience },
-        age: { gte: minAge },
-        educationLevel: {
-          in: educationLevel.length ? educationLevel : undefined
-        },
-        skills: {
-          hasEvery: requiredSkills.length ? requiredSkills : undefined
-        },
-        NOT: { role: UserRole.HR }
-      }
-    });
-
-    return { matchedUsers };
-  } catch (error) {
-    console.error("Error fetching matched users:", error);
-    return { error: "Failed to retrieve matched users" };
   }
 };
 
