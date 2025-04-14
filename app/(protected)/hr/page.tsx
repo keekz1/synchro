@@ -157,8 +157,8 @@ const HRPage = () => {
             averageExperience: analysisResult.averageExperience,
           });
         }
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      } catch  {
+        console.error("Error fetching data:");
         toast.error("Failed to load HR data");
       } finally {
         setLoading(false);
@@ -210,7 +210,7 @@ const HRPage = () => {
         setNewPreferenceName("");
         toast.success("New preference set saved!");
       }
-    } catch (error) {
+    } catch  {
       toast.error("Failed to save preferences");
     } finally {
       setLoading(false);
@@ -228,7 +228,7 @@ const HRPage = () => {
         }
         toast.success("Preference set deleted");
       }
-    } catch (error) {
+    } catch  {
       toast.error("Failed to delete preference");
     } finally {
       setLoading(false);
@@ -252,7 +252,7 @@ const HRPage = () => {
           role: pref.role,
         });
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to load preference");
     } finally {
       setLoading(false);
@@ -308,7 +308,7 @@ const HRPage = () => {
         });
         toast.success("Preferences refreshed");
       }
-    } catch (error) {
+    } catch  {
       toast.error("Failed to refresh preferences");
     } finally {
       setLoading(false);
@@ -332,7 +332,7 @@ const HRPage = () => {
       } else {
         toast.error(result.error || "Failed to update preference");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update preference");
     } finally {
       setLoading(false);

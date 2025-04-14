@@ -13,7 +13,7 @@ export const getRoles = async () => {
       }));
       
     return { data: roles, error: null };
-  } catch (error) {
+  } catch  {
     return { data: null, error: 'Failed to fetch roles' };
   }
 };
