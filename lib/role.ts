@@ -11,7 +11,7 @@ export async function getRoles() {
         label: role.replace(/_/g, ' ')
       }));
     return { data: roles, error: null };
-  } catch (error) {
+  } catch  {
     return { data: null, error: 'Failed to fetch roles' };
   }
 }
