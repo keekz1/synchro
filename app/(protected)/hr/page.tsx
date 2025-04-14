@@ -125,16 +125,21 @@ const HRPage = () => {
         setLoading(false);
         return;
       }
-
+  
       try {
         setLoading(true);
-
-        // Fetch roles
+  
+        // Fetch roles - fixed version
         const rolesResponse = await fetch("/api/role");
         if (!rolesResponse.ok) throw new Error("Failed to fetch roles");
-        const rolesData: RoleOption[] = await rolesResponse.json();
+        const roleStrings: string[] = await rolesResponse.json();
+        
+        const rolesData: RoleOption[] = roleStrings.map((role) => ({
+          value: role,
+          label: role.replace(/_/g, ' ')
+        }));
         setRoles(rolesData);
-
+  
         // Fetch HR preferences
         const prefResult = await getAllHRPreferences();
         if (prefResult.error) {
@@ -155,7 +160,7 @@ const HRPage = () => {
             });
           }
         }
-
+  
         // Fetch candidate analysis
         const analysisResult = await getCandidateSkillsAnalysis();
         if (analysisResult?.error) {
@@ -169,14 +174,14 @@ const HRPage = () => {
             averageExperience: analysisResult.averageExperience,
           });
         }
-      } catch  {
-        console.error("Error fetching data:");
+      } catch (error) {
+        console.error("Error fetching data:", error);
         toast.error("Failed to load HR data");
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchData();
   }, [role]);
 
