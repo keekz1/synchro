@@ -77,7 +77,7 @@ export default function Profile({ user }: ProfileProps) {
       } else {
         setMessage(data.error || "Failed to update profile");
       }
-    } catch (error) {
+    } catch  {
       setMessage("Failed to update profile");
     } finally {
       setIsSavingProfile(false);
