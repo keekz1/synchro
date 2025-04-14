@@ -19,7 +19,7 @@ export default function ProfilePage() {
   if (error) {
     return (
       <div className="flex flex-col items-center mt-10">
-        <h1 className="text-2xl font-bold">Profile Page</h1>
+        <h1 className="text-2xl font-bold"></h1>
         <p className="text-red-500">Error: {error.message}</p>
       </div>
     );

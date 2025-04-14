@@ -6,12 +6,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@/components/auth/user-button";
 import { Button } from "@/components/ui/button";
+import { useCurrentRole } from "@/hooks/use-current-role";
+import { UserRole } from "@prisma/client";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const role = useCurrentRole();
 
   const toggleNav = () => {
     setIsNavVisible(!isNavVisible);
@@ -32,7 +35,7 @@ export default function Navbar() {
             transition={{ type: "spring", damping: 20 }}
             className={`${
               isSettingsPage ? "bg-secondary" : "bg-white"
-            } backdrop-blur-sm text-black p-2 fixed top-0 left-0 right-0 z-40 shadow-lg max-h-[60px]`} // Increased height for better comfort
+            } backdrop-blur-sm text-black p-2 fixed top-0 left-0 right-0 z-40 shadow-lg max-h-[60px]`}
           >
             <div className="container mx-auto flex justify-between items-center h-full">
               <Link href="/" className="text-xl font-bold hover:text-gray-600 transition-colors">
@@ -44,6 +47,9 @@ export default function Navbar() {
                 <NavLink href="/" text="Home" />
                 <NavLink href="/map" text="Map" />
                 <NavLink href="/profile" text="Profile" />
+                {role === UserRole.HR && (
+                  <NavLink href="/hr-dashboard" text="HR Dashboard" />
+                )}
                 <NavLink href="/settings" text="Settings" />
                 <NavLink href="/collab" text="Collab" />
                 <NavLink href="/self-growth" text="Personal growth" />
@@ -98,6 +104,9 @@ export default function Navbar() {
               <MobileNavLink href="/" text="Home" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/map" text="Map" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/profile" text="Profile" onClick={() => setIsMenuOpen(false)} />
+              {role === UserRole.HR && (
+                <MobileNavLink href="/hr-dashboard" text="HR Dashboard" onClick={() => setIsMenuOpen(false)} />
+              )}
               <MobileNavLink href="/settings" text="Settings" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/collab" text="Collab" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/self-growth" text="Personal Development" onClick={() => setIsMenuOpen(false)} />
@@ -113,8 +122,8 @@ export default function Navbar() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.3 }}
-          className="fixed left-0 right-0 z-30 bg-secondary backdrop-blur-sm p-2 shadow-lg top-16"  // Change top-16 to desired value
-          >
+          className="fixed left-0 right-0 z-30 bg-secondary backdrop-blur-sm p-2 shadow-lg top-16"
+        >
           <div className="flex justify-between items-center w-full max-w-full p-4">
             <div className="flex gap-2">
               <SettingsButton href="/server" label="Server" active={pathname?.startsWith("/server")} />
@@ -132,6 +141,7 @@ export default function Navbar() {
   );
 }
 
+//
 const NavLink = ({ href, text }: { href: string; text: string }) => (
   <Link
     href={href}
