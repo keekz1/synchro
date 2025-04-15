@@ -1,4 +1,4 @@
-// components/SWRConfigProvider.tsx
+
 'use client';
 
 import { SWRConfig } from 'swr';

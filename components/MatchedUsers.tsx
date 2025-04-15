@@ -47,17 +47,22 @@ export const MatchedUsers = ({ preference }: MatchedUsersProps) => {
         },
         body: JSON.stringify(preference),
       });
-
+  
       if (!response.ok) throw new Error("Failed to fetch matched users");
-
+  
       const data = await response.json();
-      setMatchedUsers(data.users);
+  
+      // Filter users to include only those with openToWork set to true
+      const filteredUsers = data.users.filter((user: MatchedUser) => user.openToWork);
+  
+      setMatchedUsers(filteredUsers);
     } catch (error) {
       console.error("Error fetching matched users:", error);
     } finally {
       setLoading(false);
     }
   };
+  
 
   useEffect(() => {
     if (preference.role) {

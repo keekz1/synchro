@@ -40,7 +40,7 @@ export default function ProfilePage() {
   // Render Profile component once data is fetched
   return (
     <div className="flex flex-col items-center mt-10">
-      <h1 className="text-2xl font-bold">Profile Page</h1>
+      <h1 className="text-2xl font-bold"></h1>
       <Profile user={user} />
     </div>
   );

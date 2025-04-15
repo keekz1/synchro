@@ -13,7 +13,10 @@ interface User {
   skills: string[];
   experience?: ExperienceLevel;
   age?: number;
+  educationLevel: string[];
+  openToWork: boolean; // ✅ add this
 }
+
 
 interface ProfileProps {
   user: User;
@@ -33,37 +36,46 @@ export default function Profile({ user }: ProfileProps) {
   const [age, setAge] = useState<number | undefined>(user.age);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-
-  // Fetch roles on mount
+  const [educationLevel, setEducationLevel] = useState<string[]>(user.educationLevel || []);
+  const [newEducation, setNewEducation] = useState("");
+  const [isOpenToWork, setIsOpenToWork] = useState(false);
   useEffect(() => {
-    async function fetchRoles() {
+    async function fetchData() {
       try {
-        const res = await fetch("/api/role");
-        const data = await res.json();
-        setRolesFromDb(data);
-      } catch  {
-        console.error("Error fetching roles");
-        setMessage("Failed to fetch roles.");
+        // Fetch roles
+        const rolesRes = await fetch("/api/role");
+        const rolesData = await rolesRes.json();
+        setRolesFromDb(rolesData);
+
+        // Fetch user profile
+        const profileRes = await fetch("/api/profile");
+        const profileData = await profileRes.json();
+        setExperience(profileData.experience);
+        setAge(profileData.age);
+        setEducationLevel(profileData.educationLevel || []);
+        setIsOpenToWork(profileData.openToWork);
+      } catch {
+        setMessage("Failed to fetch data.");
       }
     }
-    fetchRoles();
+    fetchData();
   }, []);
-
   // Profile save handler
   async function saveProfile() {
     setIsSavingProfile(true);
     setMessage("");
-
+  
     try {
-      const response = await fetch("/api/updatexpag", {
+      const response = await fetch("/api/updatexpag", {  // Fix the endpoint name
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           experience: experience || null,
-          age: age || null
+          age: age || null,
+          educationLevel: educationLevel  // Add this line
         }),
       });
-
+  
       const data = await response.json();
       
       if (response.ok) {
@@ -74,16 +86,16 @@ export default function Profile({ user }: ProfileProps) {
         const userData = await userRes.json();
         setExperience(userData.experience);
         setAge(userData.age);
+        setEducationLevel(userData.educationLevel || []);  // Update education level
       } else {
         setMessage(data.error || "Failed to update profile");
       }
-    } catch  {
+    } catch {
       setMessage("Failed to update profile");
     } finally {
       setIsSavingProfile(false);
     }
   }
-
   // Role update handler
   async function updateRole(newRole: string) {
     setLoading(true);
@@ -197,7 +209,7 @@ export default function Profile({ user }: ProfileProps) {
   const ageDisplay = age ? `${age} years` : "Not specified";
 
   return (
-    <div className="p-6 rounded-xl shadow-lg w-full max-w-md mx-auto bg-gradient-to-br from-teal-400 to-teal-700 text-white">
+    <div className="p-6 rounded-xl shadow-lg w-full max-w-md mx-auto bg-[radial-gradient(ellipse_at_top,_#c084fc,_#581c87)] from-purple-300 to-purple-900">
       {/* Profile Header */}
       <div className="flex flex-col items-center">
         <div className="relative w-28 h-28 mb-4">
@@ -212,7 +224,7 @@ export default function Profile({ user }: ProfileProps) {
             </div>
           )}
         </div>
-
+  
         <label className="cursor-pointer text-white hover:text-teal-200 transition-colors mb-1">
           <span className="text-sm font-medium">Change Photo</span>
           <input
@@ -223,15 +235,58 @@ export default function Profile({ user }: ProfileProps) {
             aria-label="Upload profile picture"
           />
         </label>
-
-        <h2 className="text-2xl font-bold mt-2 text-center">{user.name}</h2>
-        <p className="text-teal-100 text-sm">{user.email}</p>
+  
+        <h2 className="text-2xl font-bold mt-2 text-center text-white">{user.name}</h2>
+        <p className="text-teal-200 text-sm">{user.email}</p>
       </div>
+  
+      {/* Open to Work Toggle */}
+      <div className="mt-4 bg-white/10 p-4 rounded-lg flex justify-between items-center">
+        <div>
+          <h3 className="font-semibold text-white">Open to Work</h3>
+          <p className="text-sm text-teal-200">Let recruiters know you're available</p>
+        </div>
+        <button
+  onClick={async () => {
+    const newValue = !isOpenToWork;
+    try {
+      const response = await fetch('/api/updatexpag', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ openToWork: newValue }),
+      });
 
+      if (response.ok) {
+        const data = await response.json();
+        setIsOpenToWork(data.openToWork);
+      } else {
+        console.error('Failed to update status');
+        // Optionally revert UI state
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      // Optionally revert UI state
+    }
+  }}
+  aria-label={isOpenToWork ? "Turn off open to work" : "Turn on open to work"}
+  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+    isOpenToWork ? 'bg-teal-600' : 'bg-gray-400'
+  }`}
+>
+  <span
+    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+      isOpenToWork ? 'translate-x-6' : 'translate-x-1'
+    }`}
+  />
+</button>
+      </div>
+  
       {/* Role Section */}
       <div className="mt-6 bg-white/10 p-4 rounded-lg">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="font-semibold">Your Role</h3>
+          <h3 className="font-semibold text-white">Your Role</h3>
           {!isEditingRole && (
             <button
               onClick={() => setIsEditingRole(true)}
@@ -243,7 +298,7 @@ export default function Profile({ user }: ProfileProps) {
             </button>
           )}
         </div>
-
+  
         {isEditingRole ? (
           <div className="space-y-3">
             <input
@@ -261,7 +316,6 @@ export default function Profile({ user }: ProfileProps) {
                 <option key={r} value={r.replace(/_/g, " ")} />
               ))}
             </datalist>
-            
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -286,14 +340,14 @@ export default function Profile({ user }: ProfileProps) {
             </div>
           </div>
         ) : (
-          <p className="text-lg font-medium">{role}</p>
+          <p className="text-lg font-medium text-white">{role}</p>
         )}
       </div>
-
+  
       {/* Profile Details Section */}
       <div className="mt-6 bg-white/10 p-4 rounded-lg">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-semibold">Profile Details</h3>
+          <h3 className="font-semibold text-white">Profile Details</h3>
           {!isEditingProfile && (
             <button
               onClick={() => setIsEditingProfile(true)}
@@ -305,11 +359,11 @@ export default function Profile({ user }: ProfileProps) {
             </button>
           )}
         </div>
-
+  
         {isEditingProfile ? (
           <>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" id="experienceLabel">
+              <label className="block text-sm font-medium text-white mb-2" id="experienceLabel">
                 Experience Level
               </label>
               <select
@@ -327,9 +381,9 @@ export default function Profile({ user }: ProfileProps) {
                 <option value="FIVE_PLUS_YEARS">5+ years</option>
               </select>
             </div>
-
+  
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" id="ageLabel">
+              <label className="block text-sm font-medium text-white mb-2" id="ageLabel">
                 Age (optional)
               </label>
               <input
@@ -347,12 +401,69 @@ export default function Profile({ user }: ProfileProps) {
                 disabled={isSavingProfile}
               />
             </div>
-
+  
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-white mb-2">Education</label>
+              {educationLevel.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {educationLevel.map((edu, index) => (
+                    <div
+                      key={index}
+                      className="relative bg-teal-100 text-teal-800 px-3 py-1 rounded-full flex items-center"
+                    >
+                      <span>{edu}</span>
+                      <button
+                        onClick={() => {
+                          const updated = educationLevel.filter((_, i) => i !== index);
+                          setEducationLevel(updated);
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+  
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add education"
+                  value={newEducation}
+                  onChange={(e) => setNewEducation(e.target.value)}
+                  className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900"
+                  list="education-options"
+                />
+                <datalist id="education-options">
+                  <option value="High School" />
+                  <option value="Associate Degree" />
+                  <option value="Bachelor's Degree" />
+                  <option value="Master's Degree" />
+                  <option value="PhD" />
+                  <option value="Diploma" />
+                  <option value="Other" />
+                </datalist>
+                <button
+                  onClick={() => {
+                    if (newEducation && !educationLevel.includes(newEducation)) {
+                      setEducationLevel([...educationLevel, newEducation]);
+                      setNewEducation("");
+                    }
+                  }}
+                  className="bg-white text-teal-700 px-3 rounded hover:bg-teal-100 transition"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+  
             <div className="flex gap-2 mt-4">
               <button
                 onClick={saveProfile}
                 disabled={isSavingProfile}
-                className="flex-1 bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors font-medium"
+                className="flex-1 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors font-medium"
               >
                 {isSavingProfile ? "Saving..." : "Save Changes"}
               </button>
@@ -361,6 +472,7 @@ export default function Profile({ user }: ProfileProps) {
                   setIsEditingProfile(false);
                   setExperience(user.experience);
                   setAge(user.age);
+                  setEducationLevel(user.educationLevel || []);
                 }}
                 className="flex-1 bg-teal-800 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
               >
@@ -372,65 +484,24 @@ export default function Profile({ user }: ProfileProps) {
           <div className="space-y-3">
             <div>
               <p className="text-sm text-teal-200">Experience Level</p>
-              <p className="font-medium">{experienceDisplay}</p>
+              <p className="font-medium text-white">{experienceDisplay}</p>
             </div>
             <div>
               <p className="text-sm text-teal-200">Age</p>
-              <p className="font-medium">{ageDisplay}</p>
+              <p className="font-medium text-white">{ageDisplay}</p>
+            </div>
+            <div>
+              <p className="text-sm text-teal-200">Education</p>
+              <ul className="list-disc list-inside text-sm text-white/90 space-y-1 mt-1">
+                {educationLevel.map((edu, index) => (
+                  <li key={index}>{edu}</li>
+                ))}
+              </ul>
             </div>
           </div>
         )}
       </div>
-
-      {/* Skills Section */}
-      <div className="mt-6 bg-white/10 p-4 rounded-lg">
-        <h3 className="font-semibold mb-3">Your Skills</h3>
-        
-        {skills.length > 0 ? (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {skills.map((skill, index) => (
-              <span 
-                key={index} 
-                className="bg-teal-600/50 text-white px-3 py-1 rounded-full text-sm"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-teal-200 mb-4">No skills added yet</p>
-        )}
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newSkill}
-            onChange={(e) => setNewSkill(e.target.value)}
-            className="flex-1 p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            placeholder="Add new skill"
-            onKeyDown={(e) => e.key === "Enter" && addSkill()}
-            aria-label="Add new skill"
-          />
-          <button
-            onClick={addSkill}
-            disabled={loading || !newSkill.trim()}
-            className="bg-white text-teal-700 px-4 py-2 rounded-md hover:bg-teal-50 transition-colors font-medium disabled:opacity-50"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-
-      {/* Status Message */}
-      {message && (
-        <div className={`mt-4 p-3 rounded-md text-center ${
-          message.startsWith('Error') 
-            ? 'bg-amber-100/20 text-amber-300' 
-            : 'bg-teal-100/20 text-teal-200'
-        }`}>
-          {message}
-        </div>
-      )}
     </div>
   );
-}
+  
+}  

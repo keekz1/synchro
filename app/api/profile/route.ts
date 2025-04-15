@@ -19,8 +19,10 @@ export async function GET() {
         role: true,
         image: true,
         skills: true,
-        experience: true,  // Add this
-        age: true          // Add this
+        experience: true,
+        age: true,
+        educationLevel: true,
+        openToWork: true, // ✅ Added this line
       },
     });
 

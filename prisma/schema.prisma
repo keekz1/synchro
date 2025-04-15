@@ -167,6 +167,7 @@ model User {
 
   experience   ExperienceLevel?  // Add this new field
   educationLevel String[] @default([]) // Add this line
+  openToWork             Boolean        @default(false) // Added openToWork toggle
 
   rejectedRequestsSent     RejectedRequest[] @relation("rejectedBySender")
   rejectedRequestsReceived RejectedRequest[] @relation("rejectedByReceiver")
