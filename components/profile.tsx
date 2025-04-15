@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Pencil } from "lucide-react";
 import { ExperienceLevel } from "@prisma/client";
+import Image from "next/image";
 
 interface User {
   id: string;
@@ -10,13 +11,11 @@ interface User {
   email: string;
   role: string;
   image?: string;
-  skills: string[];
   experience?: ExperienceLevel;
   age?: number;
   educationLevel: string[];
-  openToWork: boolean; // ✅ add this
+  openToWork: boolean;
 }
-
 
 interface ProfileProps {
   user: User;
@@ -26,8 +25,6 @@ export default function Profile({ user }: ProfileProps) {
   // State management
   const [role, setRole] = useState(user.role.replace(/_/g, " "));
   const [image, setImage] = useState(user.image || "https://via.placeholder.com/100");
-  const [skills, setSkills] = useState<string[]>(user.skills);
-  const [newSkill, setNewSkill] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [rolesFromDb, setRolesFromDb] = useState<string[]>([]);
@@ -38,7 +35,8 @@ export default function Profile({ user }: ProfileProps) {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [educationLevel, setEducationLevel] = useState<string[]>(user.educationLevel || []);
   const [newEducation, setNewEducation] = useState("");
-  const [isOpenToWork, setIsOpenToWork] = useState(false);
+  const [isOpenToWork, setIsOpenToWork] = useState(user.openToWork);
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -60,19 +58,20 @@ export default function Profile({ user }: ProfileProps) {
     }
     fetchData();
   }, []);
-  // Profile save handler
-  async function saveProfile() {
+
+  const saveProfile = async () => {
     setIsSavingProfile(true);
     setMessage("");
   
     try {
-      const response = await fetch("/api/updatexpag", {  // Fix the endpoint name
+      const response = await fetch("/api/updatexpag", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           experience: experience || null,
           age: age || null,
-          educationLevel: educationLevel  // Add this line
+          educationLevel,
+          openToWork: isOpenToWork
         }),
       });
   
@@ -81,12 +80,11 @@ export default function Profile({ user }: ProfileProps) {
       if (response.ok) {
         setMessage("Profile updated successfully!");
         setIsEditingProfile(false);
-        // Refresh user data
         const userRes = await fetch("/api/profile");
         const userData = await userRes.json();
         setExperience(userData.experience);
         setAge(userData.age);
-        setEducationLevel(userData.educationLevel || []);  // Update education level
+        setEducationLevel(userData.educationLevel || []);
       } else {
         setMessage(data.error || "Failed to update profile");
       }
@@ -95,9 +93,9 @@ export default function Profile({ user }: ProfileProps) {
     } finally {
       setIsSavingProfile(false);
     }
-  }
-  // Role update handler
-  async function updateRole(newRole: string) {
+  };
+
+  const updateRole = async (newRole: string) => {
     setLoading(true);
     setMessage("");
 
@@ -121,42 +119,9 @@ export default function Profile({ user }: ProfileProps) {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  // Skill add handler
-  async function addSkill() {
-    if (skills.includes(newSkill.trim())) {
-      setMessage("This skill already exists.");
-      return;
-    }
-
-    setLoading(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/addSkill", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skill: newSkill }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setSkills((prevSkills) => [...prevSkills, newSkill.trim()]);
-        setNewSkill("");
-        setMessage("Skill added!");
-      } else {
-        setMessage(`Error: ${data.message}`);
-      }
-    } catch {
-      setMessage("Failed to add skill.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Image upload handler
-  async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       setMessage("No file selected.");
@@ -199,7 +164,7 @@ export default function Profile({ user }: ProfileProps) {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   // Display formatters
   const experienceDisplay = experience ? 
@@ -213,10 +178,13 @@ export default function Profile({ user }: ProfileProps) {
       {/* Profile Header */}
       <div className="flex flex-col items-center">
         <div className="relative w-28 h-28 mb-4">
-          <img 
+          <Image 
             src={image} 
             alt="Profile" 
+            width={112}
+            height={112}
             className="w-full h-full rounded-full object-cover border-4 border-white/20"
+            priority
           />
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
@@ -239,12 +207,18 @@ export default function Profile({ user }: ProfileProps) {
         <h2 className="text-2xl font-bold mt-2 text-center text-white">{user.name}</h2>
         <p className="text-teal-200 text-sm">{user.email}</p>
       </div>
+
+      {message && (
+        <div className="mt-4 p-2 text-center text-white bg-teal-600 rounded">
+          {message}
+        </div>
+      )}
   
       {/* Open to Work Toggle */}
       <div className="mt-4 bg-white/10 p-4 rounded-lg flex justify-between items-center">
         <div>
           <h3 className="font-semibold text-white">Open to Work</h3>
-          <p className="text-sm text-teal-200">Let recruiters know you're available</p>
+          <p className="text-sm text-teal-200">Let recruiters know you&apos;re available</p>
         </div>
         <button
           onClick={async () => {
@@ -259,15 +233,10 @@ export default function Profile({ user }: ProfileProps) {
               });
   
               if (response.ok) {
-                const data = await response.json();
-                setIsOpenToWork(data.openToWork);
-              } else {
-                console.error('Failed to update status');
-                // Optionally revert UI state
+                setIsOpenToWork(newValue);
               }
             } catch (error) {
               console.error('Error updating status:', error);
-              // Optionally revert UI state
             }
           }}
           aria-label={isOpenToWork ? "Turn off open to work" : "Turn on open to work"}
@@ -394,7 +363,7 @@ export default function Profile({ user }: ProfileProps) {
                   const value = parseInt(e.target.value);
                   setAge(isNaN(value) ? undefined : Math.max(18, Math.min(100, value)));
                 }}
-                min="0"
+                min="18"
                 max="100"
                 className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="Enter your age"
@@ -439,8 +408,8 @@ export default function Profile({ user }: ProfileProps) {
                 <datalist id="education-options">
                   <option value="High School" />
                   <option value="Associate Degree" />
-                  <option value="Bachelor's Degree" />
-                  <option value="Master's Degree" />
+                  <option value="Bachelor&apos;s Degree" />
+                  <option value="Master&apos;s Degree" />
                   <option value="PhD" />
                   <option value="Diploma" />
                   <option value="Other" />
@@ -503,5 +472,4 @@ export default function Profile({ user }: ProfileProps) {
       </div>
     </div>
   );
-  
-}  
+}
