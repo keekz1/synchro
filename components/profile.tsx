@@ -247,40 +247,40 @@ export default function Profile({ user }: ProfileProps) {
           <p className="text-sm text-teal-200">Let recruiters know you're available</p>
         </div>
         <button
-  onClick={async () => {
-    const newValue = !isOpenToWork;
-    try {
-      const response = await fetch('/api/updatexpag', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ openToWork: newValue }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setIsOpenToWork(data.openToWork);
-      } else {
-        console.error('Failed to update status');
-        // Optionally revert UI state
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      // Optionally revert UI state
-    }
-  }}
-  aria-label={isOpenToWork ? "Turn off open to work" : "Turn on open to work"}
-  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-    isOpenToWork ? 'bg-teal-600' : 'bg-gray-400'
-  }`}
->
-  <span
-    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-      isOpenToWork ? 'translate-x-6' : 'translate-x-1'
-    }`}
-  />
-</button>
+          onClick={async () => {
+            const newValue = !isOpenToWork;
+            try {
+              const response = await fetch('/api/updatexpag', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ openToWork: newValue }),
+              });
+  
+              if (response.ok) {
+                const data = await response.json();
+                setIsOpenToWork(data.openToWork);
+              } else {
+                console.error('Failed to update status');
+                // Optionally revert UI state
+              }
+            } catch (error) {
+              console.error('Error updating status:', error);
+              // Optionally revert UI state
+            }
+          }}
+          aria-label={isOpenToWork ? "Turn off open to work" : "Turn on open to work"}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+            isOpenToWork ? 'bg-teal-600' : 'bg-gray-400'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              isOpenToWork ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
       </div>
   
       {/* Role Section */}
@@ -492,7 +492,7 @@ export default function Profile({ user }: ProfileProps) {
             </div>
             <div>
               <p className="text-sm text-teal-200">Education</p>
-              <ul className="list-disc list-inside text-sm text-white/90 space-y-1 mt-1">
+              <ul className="list-disc list-inside text-sm text-white/90 space-y-1">
                 {educationLevel.map((edu, index) => (
                   <li key={index}>{edu}</li>
                 ))}
