@@ -10,7 +10,9 @@ interface MatchedUser extends User {
   educationLevel: string[];
   experience: ExperienceLevel | null;
   age: number | null;
+  openToWork: boolean; // ← Add this line
 }
+
 
 interface MatchedUsersProps {
   preference: {

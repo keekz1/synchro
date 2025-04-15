@@ -356,19 +356,16 @@ export default function Profile({ user }: ProfileProps) {
                 Age (optional)
               </label>
               <input
-                type="number"
-                aria-labelledby="ageLabel"
-                value={age || ""}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  setAge(isNaN(value) ? undefined : Math.max(18, Math.min(100, value)));
-                }}
-                min="18"
-                max="100"
-                className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter your age"
-                disabled={isSavingProfile}
-              />
+  type="number"
+  min={19}
+  max={60}
+  value={age || ""}
+  onChange={(e) => setAge(Number(e.target.value))}
+  className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+  placeholder="Enter your age"
+  aria-label="Age"
+/>
+
             </div>
   
             <div className="mb-4">

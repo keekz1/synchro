@@ -14,15 +14,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Redirects must be exported as a top-level async function
-export async function redirects() {
-  return [
-    {
-      source: "/",
-      destination: "/profile",
-      permanent: true,
-    },
-  ];
-}
+//
 
 export default nextConfig;

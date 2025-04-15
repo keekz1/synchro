@@ -12,6 +12,7 @@ interface UserWithMatchScore {
   experience: ExperienceLevel | null;
   age: number | null;
   matchScore: number;
+  openToWork: boolean; 
 }
 
 function experienceToYears(exp: ExperienceLevel | null): number {
@@ -92,8 +93,10 @@ export async function POST(req: Request) {
         educationLevel: true,
         experience: true,
         age: true,
+        openToWork: true, // ← Add this line
       },
     });
+    
 
     // Calculate match score for each user
     const matchedUsers: UserWithMatchScore[] = users.map((user) => ({
