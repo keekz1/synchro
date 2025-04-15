@@ -347,3 +347,9 @@
     justify-content: flex-end;
   }
 }
+.user-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 60%;
+  object-fit: cover; /* Ensures image fills the space */
+}

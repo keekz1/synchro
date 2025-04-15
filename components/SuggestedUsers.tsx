@@ -47,7 +47,7 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   useEffect(() => {
     const fetchRejections = async () => {
       if (!userId) return;
-      
+  
       try {
         const response = await axios.get<RejectedRequest[]>(`/api/users/${userId}/rejected-requests`);
         
@@ -61,9 +61,14 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
         // Rejections where I was receiver (users I rejected)
         const myRejections = response.data.filter((r) => r.receiverId === userId);
         setUsersRejectedByMe(myRejections);
-      } catch (err) {
-        console.error("Error fetching rejected requests:", err);
-        // You could add toast.error here if needed
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Error fetching rejected requests:", error.response?.data || error.message);
+          toast.error(error.response?.data?.message || "Failed to fetch rejected requests");
+        } else {
+          console.error("Error fetching rejected requests:", error);
+          toast.error("An unknown error occurred while fetching rejected requests");
+        }
       }
     };
   
@@ -223,52 +228,57 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
           </div>
         )}
 
-        {filteredUsers.length > 0 ? (
-          <div className="user-cards-container">
-            {filteredUsers.map((user) => {
-              const hasSentRequest = sentRequests.has(user.id) || isRequestSentOrReceived(user.id);
-              const wasRejectedByThisUser = rejectedByUsers.has(user.id);
+{filteredUsers.length > 0 ? (
+  <div className="user-cards-container">
+    {filteredUsers.map((user) => {
+      const hasSentRequest =
+        sentRequests.has(user.id) || isRequestSentOrReceived(user.id);
+      const wasRejectedByThisUser = rejectedByUsers.has(user.id);
 
-              return (
-                <div key={user.id} className="user-card">
-                  <div className="user-info">
-                    {user.image && (
-                      <img src={user.image} alt={user.name} className="user-avatar" />
+      return (
+        <div key={user.id} className="user-card">
+          <div className="user-info">
+          {user?.image && (
+                      <img 
+                        src={user?.image} 
+                        alt={user?.name} 
+                        className="user-avatar" 
+                      />
                     )}
-                    <div className="user-details">
-                      <span className="user-name">{user.name}</span>
-                      {user.role && <span className="user-role">{user.role}</span>}
-                    </div>
-                  </div>
-
-                  <div className="user-actions">
-                    {!wasRejectedByThisUser && !hasSentRequest && (
-                      <button
-                        className="request-button"
-                        onClick={() => handleSendRequest(user.id)}
-                        aria-label="Send Friend Request"
-                      >
-                        Add Friend
-                      </button>
-                    )}
-                    {wasRejectedByThisUser && (
-                      <span className="text-muted">Cannot send request</span>
-                    )}
-                    {hasSentRequest && !wasRejectedByThisUser && (
-                      <span className="text-success">Request sent</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            <div className="user-details">
+              <span className="user-name">{user.name}</span>
+              {user.role && <span className="user-role">{user.role}</span>}
+            </div>
           </div>
-        ) : (
-          <p className="no-users">No suggested users found.</p>
-        )}
+
+          <div className="user-actions">
+            {!wasRejectedByThisUser && !hasSentRequest && (
+              <button
+                className="request-button"
+                onClick={() => handleSendRequest(user.id)}
+                aria-label="Send Friend Request"
+              >
+                Add Friend
+              </button>
+            )}
+            {wasRejectedByThisUser && (
+              <span className="text-muted">Cannot send request</span>
+            )}
+            {hasSentRequest && !wasRejectedByThisUser && (
+              <span className="text-success">Request sent</span>
+            )}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+) : (
+  <p className="no-users">No suggested users found.</p>
+)}
+
       </div>
     </div>
   );
 };
 
-export default SuggestedUsers;
-//.
+export default SuggestedUsers

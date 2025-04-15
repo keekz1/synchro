@@ -30,10 +30,9 @@ export async function GET(request: NextRequest) {
 
     const rejectedRequest = await db.rejectedRequest.findFirst({
       where: {
-        id: rejectedUserId,
         OR: [
-          { senderId: userId },
-          { receiverId: userId }
+          { senderId: userId, receiverId: rejectedUserId },
+          { senderId: rejectedUserId, receiverId: userId }
         ]
       },
       include: {
@@ -55,6 +54,7 @@ export async function GET(request: NextRequest) {
         }
       }
     });
+    
 
     if (!rejectedRequest) {
       return NextResponse.json(

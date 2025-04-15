@@ -1,12 +1,13 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import "../components/friends.css"
+import "../components/friends.css";
 
 interface User {
   id: string;
   name: string;
   email: string;
+  image?: string; // Use this property instead of avatar
 }
 
 interface FriendsProps {
@@ -34,6 +35,9 @@ const Friends: React.FC<FriendsProps> = ({ friends, loading }) => {
             <li key={friend.id} className="friend-item">
               <div className="friend-card" onClick={() => openChat(friend.id)}>
                 <div className="friend-info">
+                  <div className="friend-avatar">
+                    <img src={friend.image} alt={friend.name} className="avatar-img" />
+                  </div>
                   <h2 className="friend-name">{friend.name}</h2>
                 </div>
               </div>
