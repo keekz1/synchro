@@ -11,18 +11,18 @@ const nextConfig: NextConfig = {
         pathname: "/**", // Allows all paths
       },
     ],
-    // domains: ["firebasestorage.googleapis.com"], // Alternative approach
   },
-// Force redirect non-www to www
-async redirects() {
+};
+
+// Redirects must be exported as a top-level async function
+export async function redirects() {
   return [
     {
-      source: 'https://wesynchro.com',
-      destination: 'https://www.wesynchro.com/profile',
+      source: "/",
+      destination: "/profile",
       permanent: true,
     },
-  ]
+  ];
 }
-};
 
 export default nextConfig;
