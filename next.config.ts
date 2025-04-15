@@ -13,16 +13,7 @@ const nextConfig: NextConfig = {
     ],
     // domains: ["firebasestorage.googleapis.com"], // Alternative approach
   },
-// Force redirect non-www to www
-async redirects() {
-  return [
-    {
-      source: 'https://wesynchro.com/:path*',
-      destination: 'https://www.wesynchro.com/:path*',
-      permanent: true,
-    },
-  ]
-}
+  // Other Next.js configurations...
 };
 
 export default nextConfig;
