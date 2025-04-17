@@ -135,9 +135,11 @@ async jwt({ token }) {
   return token;
 }
 
+
     },
     adapter: PrismaAdapter(db),
     session: {strategy: "jwt"},
+    
     ...authConfig,
 
 });
