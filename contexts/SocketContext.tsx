@@ -2,19 +2,29 @@
 import { createContext, useContext, ReactNode, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SocketContext = createContext<{
+interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
-}>({ socket: null, isConnected: false });
+  emit: (event: string, ...args: any[]) => void;
+}
+
+const SocketContext = createContext<SocketContextType>({ 
+  socket: null, 
+  isConnected: false,
+  emit: () => {}
+});
 
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Initialize socket only once
+  const emit = (event: string, ...args: any[]) => {
+    if (socketRef.current) socketRef.current.emit(event, ...args);
+  };
+
   useEffect(() => {
     socketRef.current = io("https://api.wesynchro.com", {
-      transports: ["websocket", "polling"], // Polling fallback for reliability
+      transports: ["websocket", "polling"],
       upgrade: true,
       timeout: 10000,
       reconnectionAttempts: 5,
@@ -25,7 +35,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       forceNew: false
     });
 
-    // Connection events
     socketRef.current.on('connect', () => {
       setIsConnected(true);
       console.log('Socket connected');
@@ -40,7 +49,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       console.error('Connection error:', err.message);
     });
 
-    // Cleanup
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
@@ -50,48 +58,16 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, isConnected }}>
+    <SocketContext.Provider value={{ 
+      socket: socketRef.current, 
+      isConnected,
+      emit 
+    }}>
       {children}
     </SocketContext.Provider>
   );
 };
 
 export const useSocket = () => {
-  const { socket, isConnected } = useContext(SocketContext);
-
-  // Enhanced debug logging
-  useEffect(() => {
-    if (!socket) return;
-
-    const eventLogger = (event: string) => (...args: any[]) => {
-      console.log(`Socket ${event}:`, args);
-    };
-
-    const events = [
-      'connect',
-      'disconnect',
-      'error',
-      'reconnect',
-      'reconnect_attempt',
-      'reconnect_error'
-    ];
-
-    events.forEach(event => {
-      socket.on(event, eventLogger(event));
-    });
-
-    return () => {
-      events.forEach(event => {
-        socket.off(event);
-      });
-    };
-  }, [socket]);
-
-  return {
-    socket,
-    isConnected,
-    emit: (event: string, ...args: any[]) => {
-      if (socket) socket.emit(event, ...args);
-    }
-  };
+  return useContext(SocketContext);
 };

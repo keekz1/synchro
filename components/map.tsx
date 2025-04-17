@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { debounce } from 'lodash'; // Import debounce function
+import { debounce } from 'lodash';
 import styles from './map.module.css';
 import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, useJsApiLoader, Circle } from '@react-google-maps/api';
-import { io } from 'socket.io-client'; // Updated import
 import CustomMarker from './Map/CustomMarker';
-import { useSocket } from '@/contexts/SocketContext'; // Adjust the path as needed
-
-
-
+import { useSocket } from '@/contexts/SocketContext';
 
 interface User {
   id: string;
@@ -16,8 +12,8 @@ interface User {
   lng: number;
   role: string;
   image: string;  
-
 }
+
 interface Ticket {
   id: string;
   lat: number;
@@ -27,31 +23,29 @@ interface Ticket {
   creatorName: string;
 }
 
-
 const MapComponent: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [userRole, setUserRole] = useState<string | null>(null); // State to store the role
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
-  const [userImage, setUserImage] = useState<string | null>(null); // State to store the role
+  const [userImage, setUserImage] = useState<string | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-const [newTicketMessage, setNewTicketMessage] = useState('');
-const [isCreatingTicket, setIsCreatingTicket] = useState(false);
-
+  const [newTicketMessage, setNewTicketMessage] = useState('');
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
-
-  const socketRef = useRef<ReturnType<typeof io> | null>(null);
-  const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
-  const mapContainerRef = useRef<HTMLDivElement>(null); // Correctly declare mapContainerRef here!
-
   const [isOpen, setIsOpen] = useState(false);
-  const socket = useSocket(); // Get socket from context
+
+  const { socket, isConnected, emit } = useSocket();
+  const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: 'AIzaSyDDmC7UTacmsXQ5c_9z4W1VozgoFwUn9AA',
     libraries: ['places'],
   });
+
 
   const mapStyle = [
     {
@@ -204,8 +198,8 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const debouncedLocationUpdate = useMemo(
     () => debounce((lat: number, lng: number) => {
       setCurrentLocation({ lat, lng });
-      if (socketRef.current?.connected && userRole) {
-        socketRef.current.emit('user-location', { 
+      if (isConnected && userRole) {
+        emit('user-location', { 
           lat, 
           lng, 
           role: userRole,
@@ -213,17 +207,17 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
           image: userImage
         });
       }
-    }, 500), [userRole, userName, userImage]
+    }, 500), [emit, isConnected, userRole, userName, userImage]
   );
 
   const handleVisibilityToggle = useCallback(() => {
     setIsVisible((prev) => {
       const newVisibility = !prev;
       localStorage.setItem('isVisible', JSON.stringify(newVisibility));
-      socketRef.current?.emit('visibility-change', newVisibility);
+      emit('visibility-change', newVisibility);
       return newVisibility;
     });
-  }, []);
+  }, [emit]);
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -243,25 +237,21 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     fetchUserDetails();
     setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
   
-    // Get socket from context
     if (!socket) {
       setMapError("Connecting to server...");
       return;
     }
   
-    socketRef.current = socket;
-  
     const handleConnect = () => {
       setIsConnecting(false);
       setMapError(null);
       
-      // Check for cached location first
       const cachedLocation = localStorage.getItem('cachedLocation');
       if (cachedLocation) {
         const location = JSON.parse(cachedLocation);
         setCurrentLocation(location);
-        if (socketRef.current?.connected && userRole) {
-          socketRef.current.emit('user-location', { 
+        if (isConnected && userRole) {
+          emit('user-location', { 
             lat: location.lat, 
             lng: location.lng,
             role: userRole,
@@ -271,7 +261,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         }
       }
   
-      // Then get fresh location
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const realLocation = { 
@@ -302,11 +291,9 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     };
   
     const handleNearbyUsers = (data: User[]) => {
-      if (!userRole) return; // Don't process if we don't know our role yet
+      if (!userRole) return;
       
-      // Filter users to only show those with matching role
       const filteredUsers = data.filter(user => user.role === userRole);
-      
       const uniqueUsers = new Map<string, User>();
       filteredUsers.forEach((user) => {
         if (!uniqueUsers.has(user.id)) {
@@ -319,57 +306,50 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
       
       setNearbyUsers(Array.from(uniqueUsers.values()));
     };
+
     const handleNewTicket = (ticket: Ticket) => {
       setTickets((prev) => [...prev, ticket]);
     };
   
-    // Add event listeners
-    socket.on("connect", handleConnect);
-    socket.on("connect_error", handleConnectError);
-    socket.on("disconnect", handleDisconnect);
-    socket.on("nearby-users", handleNearbyUsers);
-    socket.on("new-ticket", handleNewTicket);
-    socket.on("all-tickets", setTickets);
+    // Add event listeners using the socket object directly
+    socket?.on("connect", handleConnect);
+    socket?.on("connect_error", handleConnectError);
+    socket?.on("disconnect", handleDisconnect);
+    socket?.on("nearby-users", handleNearbyUsers);
+    socket?.on("new-ticket", handleNewTicket);
+    socket?.on("all-tickets", setTickets);
   
     // Initialize connection if not already connected
-    if (!socket.connected) {
+    if (socket && !isConnected) {
       socket.connect();
-    } else {
-      // If already connected, trigger the connect handler
+    } else if (isConnected) {
       handleConnect();
     }
   
     return () => {
-      // Cleanup event listeners but don't disconnect socket
-      socket.off("connect", handleConnect);
-      socket.off("connect_error", handleConnectError);
-      socket.off("disconnect", handleDisconnect);
-      socket.off("nearby-users", handleNearbyUsers);
-      socket.off("new-ticket", handleNewTicket);
-      socket.off("all-tickets", setTickets);
+      // Cleanup event listeners
+      socket?.off("connect", handleConnect);
+      socket?.off("connect_error", handleConnectError);
+      socket?.off("disconnect", handleDisconnect);
+      socket?.off("nearby-users", handleNearbyUsers);
+      socket?.off("new-ticket", handleNewTicket);
+      socket?.off("all-tickets", setTickets);
       
       locationCache.current.clear();
     };
-  }, [socket, isLoaded, generatePersistentOffset, debouncedLocationUpdate, userRole, userName, userImage]);
+  }, [socket, isConnected, emit, generatePersistentOffset, debouncedLocationUpdate, userRole, userName, userImage]);
 
-  
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
   };
 
- 
   const handleMapLoad = (map: google.maps.Map): void => {
-    // Perform necessary actions with the map instance
     console.log("Map loaded", map);
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isCreatingTicket &&
-        mapContainerRef.current &&
-        !mapContainerRef.current.contains(event.target as Node)
-      ) {
+      if (isCreatingTicket && mapContainerRef.current && !mapContainerRef.current.contains(event.target as Node)) {
         setIsCreatingTicket(false);
       }
     };
@@ -384,54 +364,49 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   }, [isCreatingTicket]);
 
   const handleTicketSubmit = () => {
-    if (currentLocation && newTicketMessage.trim()) {
+    if (currentLocation && newTicketMessage.trim() && socket) {
       const ticket: Ticket = {
         id: Date.now().toString(),
         lat: currentLocation.lat,
         lng: currentLocation.lng,
         message: newTicketMessage,
-        creatorId: socketRef.current?.id || 'unknown',
+        creatorId: socket.id || 'unknown',
         creatorName: userName || 'unknown',
       };
-      socketRef.current?.emit('create-ticket', ticket);
+      emit('create-ticket', ticket);
       setNewTicketMessage('');
       setIsCreatingTicket(false);
     }
   };
-
-
 
   if (!isLoaded) return <div className={styles.loading}>Loading map...</div>;
   if (isConnecting) return <div className={styles.loading}>Connecting to server...</div>;
   if (mapError) return <div className={styles.error}>{mapError}</div>;
   if (!currentLocation) return <div className={styles.loading}>Getting your location...</div>;
 
-
   return (
     <div className={styles.container} ref={mapContainerRef}>
-<GoogleMap
-  mapContainerClassName={styles.map}
-  center={currentLocation}
-  zoom={15}
-  options={{
-    styles: mapStyle,
-    disableDefaultUI: true,
-    fullscreenControl: false,
-    restriction: {
-      latLngBounds: {
-        north: 85,
-        south: -60,
-        west: -170,
-        east: 180,
-      },
-      strictBounds: true,
-    },
-    keyboardShortcuts: false,
-  }}
-  onLoad={handleMapLoad}
->
-
-        
+      <GoogleMap
+        mapContainerClassName={styles.map}
+        center={currentLocation}
+        zoom={15}
+        options={{
+          styles: mapStyle,
+          disableDefaultUI: true,
+          fullscreenControl: false,
+          restriction: {
+            latLngBounds: {
+              north: 85,
+              south: -60,
+              west: -170,
+              east: 180,
+            },
+            strictBounds: true,
+          },
+          keyboardShortcuts: false,
+        }}
+        onLoad={handleMapLoad}
+      >
         {isVisible && (
           <>
             <Circle
@@ -439,52 +414,39 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
               radius={16093.4}
               options={{ fillColor: '#6600CC', fillOpacity: 0.1, strokeColor: '#FFFFFF', strokeOpacity: 0.5, strokeWeight: 2 }}
             />
-    
-
-{nearbyUsers.map((user) => (
-  <CustomMarker 
-    key={user.id} 
-    user={user}  // Only pass user prop
-  />
-))}            
-
-
-            
-        
+            {nearbyUsers.map((user) => (
+              <CustomMarker key={user.id} user={user} />
+            ))}
           </>
         )}
 
-
-
-<div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
-        <h3>Tickets</h3>
-        {tickets.length > 0 ? (
-          tickets.map((ticket) => (
-            <div key={ticket.id} className={styles.ticketItem}>
-              <strong>{ticket.creatorName}</strong>
-              <p>{ticket.message}</p>
-            </div>
-          ))
-        ) : (
-          <p>No tickets yet</p>
-        )}
-      </div>
-      <button 
-        className={styles.ticketToggleButton} 
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? "←" : "→"}
-      </button>
- 
-
-
+        <div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
+          <h3>Tickets</h3>
+          {tickets.length > 0 ? (
+            tickets.map((ticket) => (
+              <div key={ticket.id} className={styles.ticketItem}>
+                <strong>{ticket.creatorName}</strong>
+                <p>{ticket.message}</p>
+              </div>
+            ))
+          ) : (
+            <p>No tickets yet</p>
+          )}
+        </div>
+        <button 
+          className={styles.ticketToggleButton} 
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? "←" : "→"}
+        </button>
       </GoogleMap>
+      
       <FloatingChat />
       <button onClick={handleVisibilityToggle} className={styles.toggleButton}>
         {isVisible ? 'Hide your Location' : 'Show Location'}
       </button>
       <button onClick={handleCreateTicket} className={styles.createTicketButton}>
-         {""}
+        {""}
       </button>
       
       {isCreatingTicket && (
@@ -496,7 +458,6 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
           />
           <button onClick={handleTicketSubmit}>Submit</button>
         </div>
-        
       )}
     </div>
   );
