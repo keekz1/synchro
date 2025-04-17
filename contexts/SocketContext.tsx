@@ -9,7 +9,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize socket only once
   if (!socketRef.current) {
-    socketRef.current = io("https://18.175.220.231", {
+    socketRef.current = io("http://18.175.220.231", {
       transports: ["websocket"],
       timeout: 20000,
       reconnectionAttempts: 5,
