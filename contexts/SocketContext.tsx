@@ -13,20 +13,16 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize socket only once
   useEffect(() => {
-    socketRef.current = io("http://18.175.220.231", { // Removed :80 (default port)
-      transports: ["websocket", "polling"], // Added polling fallback
-      upgrade: true, // Changed to allow upgrades
-      timeout: 10000, // Reduced timeout
-      reconnectionAttempts: 5, // Limited attempts
+    socketRef.current = io("https://api.wesynchro.com", {
+      transports: ["websocket", "polling"], // Polling fallback for reliability
+      upgrade: true,
+      timeout: 10000,
+      reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       randomizationFactor: 0.5,
       withCredentials: true,
-      forceNew: false, // Allow connection reuse
-      query: { // Added required query params
-        EIO: "4",
-        transport: "polling"
-      }
+      forceNew: false
     });
 
     // Connection events
@@ -62,11 +58,11 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
 export const useSocket = () => {
   const { socket, isConnected } = useContext(SocketContext);
-  
+
   // Enhanced debug logging
   useEffect(() => {
     if (!socket) return;
-    
+
     const eventLogger = (event: string) => (...args: any[]) => {
       console.log(`Socket ${event}:`, args);
     };
