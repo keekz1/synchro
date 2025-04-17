@@ -8,17 +8,17 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
 
   // Initialize socket only once
-  if (!socketRef.current) {
-    socketRef.current = io("http://18.175.220.231:80", {
-      transports: ["websocket"],
-      timeout: 20000,
-      reconnectionAttempts: 5,
-      autoConnect: true, // Ensure automatic reconnection
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-    });
-  }
+  socketRef.current = io("http://18.175.220.231:80", {
+    transports: ["websocket"],
+    upgrade: false,
+    timeout: 60000,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    randomizationFactor: 0.5,
+    withCredentials: true,
+    forceNew: true
+  });
 
   // Cleanup only on full page unload (not route changes)
   useEffect(() => {
