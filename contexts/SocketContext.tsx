@@ -1,43 +1,69 @@
 "use client";
-import { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
+import { createContext, useContext, ReactNode, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SocketContext = createContext<Socket | null>(null);
+const SocketContext = createContext<{
+  socket: Socket | null;
+  isConnected: boolean;
+}>({ socket: null, isConnected: false });
 
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  // Initialize socket only once (moved inside useEffect)
+  // Initialize socket only once
   useEffect(() => {
-    socketRef.current = io("http://18.175.220.231", {  // Removed :80 (default port)
-      transports: ["websocket", "polling"],  // Added polling as fallback
-      timeout: 60000,
-      reconnectionAttempts: 5,  // Changed from Infinity to prevent infinite retries
+    socketRef.current = io("http://18.175.220.231", { // Removed :80 (default port)
+      transports: ["websocket", "polling"], // Added polling fallback
+      upgrade: true, // Changed to allow upgrades
+      timeout: 10000, // Reduced timeout
+      reconnectionAttempts: 5, // Limited attempts
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      randomizationFactor: 0.5,
       withCredentials: true,
-      autoConnect: true,  // Explicitly enable
-      forceNew: false,  // Changed to reuse connections
-      // Removed upgrade: false to allow protocol upgrades
+      forceNew: false, // Allow connection reuse
+      query: { // Added required query params
+        EIO: "4",
+        transport: "polling"
+      }
     });
 
+    // Connection events
+    socketRef.current.on('connect', () => {
+      setIsConnected(true);
+      console.log('Socket connected');
+    });
+
+    socketRef.current.on('disconnect', () => {
+      setIsConnected(false);
+      console.log('Socket disconnected');
+    });
+
+    socketRef.current.on('connect_error', (err) => {
+      console.error('Connection error:', err.message);
+    });
+
+    // Cleanup
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
+        socketRef.current = null;
       }
     };
-  }, []);  // Empty dependency array ensures single initialization
+  }, []);
 
   return (
-    <SocketContext.Provider value={socketRef.current}>
+    <SocketContext.Provider value={{ socket: socketRef.current, isConnected }}>
       {children}
     </SocketContext.Provider>
   );
 };
 
 export const useSocket = () => {
-  const socket = useContext(SocketContext);
+  const { socket, isConnected } = useContext(SocketContext);
   
+  // Enhanced debug logging
   useEffect(() => {
     if (!socket) return;
     
@@ -45,16 +71,31 @@ export const useSocket = () => {
       console.log(`Socket ${event}:`, args);
     };
 
-    socket.on('connect', eventLogger('connect'));
-    socket.on('disconnect', eventLogger('disconnect'));
-    socket.on('error', eventLogger('error'));
+    const events = [
+      'connect',
+      'disconnect',
+      'error',
+      'reconnect',
+      'reconnect_attempt',
+      'reconnect_error'
+    ];
+
+    events.forEach(event => {
+      socket.on(event, eventLogger(event));
+    });
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('error');
+      events.forEach(event => {
+        socket.off(event);
+      });
     };
   }, [socket]);
 
-  return socket;
+  return {
+    socket,
+    isConnected,
+    emit: (event: string, ...args: any[]) => {
+      if (socket) socket.emit(event, ...args);
+    }
+  };
 };
