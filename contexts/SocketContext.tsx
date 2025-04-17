@@ -7,32 +7,26 @@ const SocketContext = createContext<Socket | null>(null);
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
 
-  // Initialize socket only once
-  socketRef.current = io("http://18.175.220.231:80", {
-    transports: ["websocket"],
-    upgrade: false,
-    timeout: 60000,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    randomizationFactor: 0.5,
-    withCredentials: true,
-    forceNew: true
-  });
-
-  // Cleanup only on full page unload (not route changes)
+  // Initialize socket only once (moved inside useEffect)
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (socketRef.current?.connected) {
+    socketRef.current = io("http://18.175.220.231", {  // Removed :80 (default port)
+      transports: ["websocket", "polling"],  // Added polling as fallback
+      timeout: 60000,
+      reconnectionAttempts: 5,  // Changed from Infinity to prevent infinite retries
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      withCredentials: true,
+      autoConnect: true,  // Explicitly enable
+      forceNew: false,  // Changed to reuse connections
+      // Removed upgrade: false to allow protocol upgrades
+    });
+
+    return () => {
+      if (socketRef.current) {
         socketRef.current.disconnect();
       }
     };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
+  }, []);  // Empty dependency array ensures single initialization
 
   return (
     <SocketContext.Provider value={socketRef.current}>
@@ -44,24 +38,21 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 export const useSocket = () => {
   const socket = useContext(SocketContext);
   
-  // Optional: Add debug logging
   useEffect(() => {
     if (!socket) return;
     
-    const logSocketEvent = (event: string) => {
-      return (...args: any[]) => {
-        console.log(`Socket event: ${event}`, args);
-      };
+    const eventLogger = (event: string) => (...args: any[]) => {
+      console.log(`Socket ${event}:`, args);
     };
 
-    socket.on('connect', logSocketEvent('connect'));
-    socket.on('disconnect', logSocketEvent('disconnect'));
-    socket.on('error', logSocketEvent('error'));
+    socket.on('connect', eventLogger('connect'));
+    socket.on('disconnect', eventLogger('disconnect'));
+    socket.on('error', eventLogger('error'));
 
     return () => {
-      socket.off('connect', logSocketEvent('connect'));
-      socket.off('disconnect', logSocketEvent('disconnect'));
-      socket.off('error', logSocketEvent('error'));
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('error');
     };
   }, [socket]);
 
