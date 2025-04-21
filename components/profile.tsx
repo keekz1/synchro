@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { Pencil } from "lucide-react";
 import { ExperienceLevel } from "@prisma/client";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-
+ 
 interface User {
   id: string;
   name: string;
@@ -36,8 +35,7 @@ export default function Profile({ user }: ProfileProps) {
   const [educationLevel, setEducationLevel] = useState<string[]>(user.educationLevel || []);
   const [newEducation, setNewEducation] = useState("");
   const [isOpenToWork, setIsOpenToWork] = useState(user.openToWork);
-  const router = useRouter();
-
+ 
   useEffect(() => {
     async function fetchData() {
       try {
@@ -79,7 +77,7 @@ export default function Profile({ user }: ProfileProps) {
       if (response.ok) {
         setMessage("Profile updated successfully!");
         setIsEditingProfile(false);
-        router.refresh();  
+        window.location.reload();
       } else {
         setMessage(data.error || "Failed to update profile");
       }
@@ -106,7 +104,7 @@ export default function Profile({ user }: ProfileProps) {
         setRole(newRole.replace(/_/g, " "));
         setMessage("Role updated successfully!");
         setIsEditingRole(false);
-        router.refresh();  
+        window.location.reload();
       }
       else {
         setMessage(`Error: ${data.message}`);
