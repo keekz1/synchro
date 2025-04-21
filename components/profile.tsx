@@ -1,10 +1,9 @@
-"use client";
-
+ "use client"
 import { useState, useEffect } from "react";
 import { Pencil } from "lucide-react";
 import { ExperienceLevel } from "@prisma/client";
 import Image from "next/image";
- 
+
 interface User {
   id: string;
   name: string;
@@ -22,7 +21,8 @@ interface ProfileProps {
 }
 
 export default function Profile({ user }: ProfileProps) {
-   const [role, setRole] = useState(user.role.replace(/_/g, " "));
+  // State management
+  const [role, setRole] = useState(user.role.replace(/_/g, " "));
   const [image, setImage] = useState(user.image || "https://via.placeholder.com/100");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -35,15 +35,17 @@ export default function Profile({ user }: ProfileProps) {
   const [educationLevel, setEducationLevel] = useState<string[]>(user.educationLevel || []);
   const [newEducation, setNewEducation] = useState("");
   const [isOpenToWork, setIsOpenToWork] = useState(user.openToWork);
- 
+
   useEffect(() => {
     async function fetchData() {
       try {
-         const rolesRes = await fetch("/api/role");
+        // Fetch roles
+        const rolesRes = await fetch("/api/role");
         const rolesData = await rolesRes.json();
         setRolesFromDb(rolesData);
 
-         const profileRes = await fetch("/api/profile");
+        // Fetch user profile
+        const profileRes = await fetch("/api/profile");
         const profileData = await profileRes.json();
         setExperience(profileData.experience);
         setAge(profileData.age);
@@ -73,19 +75,16 @@ export default function Profile({ user }: ProfileProps) {
       });
   
       const data = await response.json();
-  
+      
       if (response.ok) {
         setMessage("Profile updated successfully!");
         setIsEditingProfile(false);
- 
         const userRes = await fetch("/api/profile");
         const userData = await userRes.json();
         setExperience(userData.experience);
         setAge(userData.age);
         setEducationLevel(userData.educationLevel || []);
-        window.location.reload();
-
-        } else {
+      } else {
         setMessage(data.error || "Failed to update profile");
       }
     } catch {
@@ -111,9 +110,7 @@ export default function Profile({ user }: ProfileProps) {
         setRole(newRole.replace(/_/g, " "));
         setMessage("Role updated successfully!");
         setIsEditingRole(false);
- 
-       }
-      else {
+      } else {
         setMessage(`Error: ${data.message}`);
       }
     } catch {
@@ -168,7 +165,8 @@ export default function Profile({ user }: ProfileProps) {
     }
   };
 
-   const experienceDisplay = experience ? 
+  // Display formatters
+  const experienceDisplay = experience ? 
     experience.replace(/_/g, ' ').toLowerCase() : 
     "Not specified";
     
