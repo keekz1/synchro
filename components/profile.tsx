@@ -77,13 +77,13 @@ export default function Profile({ user }: ProfileProps) {
       if (response.ok) {
         setMessage("Profile updated successfully!");
         setIsEditingProfile(false);
- 
+        window.location.reload();
+
           setExperience(data.experience);
         setAge(data.age);
         setEducationLevel(data.educationLevel || []);
         setIsOpenToWork(data.openToWork);
-        window.location.reload();
-
+ 
         } else {
         setMessage(data.error || "Failed to update profile");
       }
@@ -110,7 +110,8 @@ export default function Profile({ user }: ProfileProps) {
         setRole(newRole.replace(/_/g, " "));
         setMessage("Role updated successfully!");
         setIsEditingRole(false);
- 
+        window.location.reload();
+
        }
       else {
         setMessage(`Error: ${data.message}`);
