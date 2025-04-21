@@ -77,13 +77,14 @@ export default function Profile({ user }: ProfileProps) {
       if (response.ok) {
         setMessage("Profile updated successfully!");
         setIsEditingProfile(false);
-        window.location.reload();
-
+ 
         const userRes = await fetch("/api/profile");
         const userData = await userRes.json();
         setExperience(userData.experience);
         setAge(userData.age);
         setEducationLevel(userData.educationLevel || []);
+        window.location.reload();
+
         } else {
         setMessage(data.error || "Failed to update profile");
       }
