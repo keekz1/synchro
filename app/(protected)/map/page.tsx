@@ -10,10 +10,8 @@ export default function MapPage() {
 
   useEffect(() => {
     setIsLoaded(true);
-    // Disable scrolling on mount
     document.body.style.overflow = 'hidden';
     return () => {
-      // Re-enable scrolling when component unmounts
       document.body.style.overflow = '';
     };
   }, []);

@@ -129,7 +129,6 @@ async jwt({ token }) {
   token.email = existingUser.email;    
   token.role = existingUser.role;
   token.image = existingUser.image; 
-  // Fix the typo here too (was isTwoFactoEnabled)
   token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
 
   return token;

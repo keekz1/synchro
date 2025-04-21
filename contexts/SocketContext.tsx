@@ -79,7 +79,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,
       secure: true,
-      rejectUnauthorized: process.env.NODE_ENV === 'production', // Only validate cert in production
+      rejectUnauthorized: process.env.NODE_ENV === 'production',
       timeout: 10000,
       query: {
         clientType: 'web',
@@ -114,17 +114,13 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     socketInstance.on('disconnect', handleDisconnect);
     socketInstance.on('connect_error', handleConnectError);
 
-    // Listen to server events
     socketInstance.on('nearby-users', (users: any[]) => {
-      // Handle nearby users update
     });
 
     socketInstance.on('new-ticket', (ticket: any) => {
-      // Handle new ticket
     });
 
     socketInstance.on('all-tickets', (tickets: any[]) => {
-      // Handle initial tickets load
     });
 
     socketRef.current = socketInstance;
@@ -160,7 +156,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Validation functions
 function validateLocationData(data: any): boolean {
   return !!(
     data &&

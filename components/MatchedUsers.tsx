@@ -10,7 +10,7 @@ interface MatchedUser extends User {
   educationLevel: string[];
   experience: ExperienceLevel | null;
   age: number | null;
-  openToWork: boolean; // ← Add this line
+  openToWork: boolean; 
 }
 
 
@@ -54,8 +54,7 @@ export const MatchedUsers = ({ preference }: MatchedUsersProps) => {
   
       const data = await response.json();
   
-      // Filter users to include only those with openToWork set to true
-      const filteredUsers = data.users.filter((user: MatchedUser) => user.openToWork);
+       const filteredUsers = data.users.filter((user: MatchedUser) => user.openToWork);
   
       setMatchedUsers(filteredUsers);
     } catch (error) {

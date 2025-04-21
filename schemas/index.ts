@@ -3,7 +3,7 @@ import * as z from "zod";
 export const SettingsSchema = z.object({
     name: z.optional(z.string()),
     isTwoFactorEnabled: z.optional(z.boolean()),
-    role: z.optional(z.nativeEnum(UserRole)), // Use nativeEnum to accept any UserRole value
+    role: z.optional(z.nativeEnum(UserRole)), 
     email: z.optional(z.string().email()),
     password: z.union([z.string().min(6), z.literal("")]).optional(),
     newPassword: z.union([z.string().min(6), z.literal("")]).optional()
@@ -26,7 +26,6 @@ export const SettingsSchema = z.object({
     message: "New password must be at least 6 characters",
     path: ["newPassword"]
   });
-// Rest of your schemas remain the same
 export const NewPasswordSchema = z.object({
   password: z.string().min(6, {
     message: "Minimum of 6 characters required",

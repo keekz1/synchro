@@ -33,7 +33,6 @@ interface SkillChartProps {
 }
 
 export default function SkillChart({ data }: SkillChartProps) {
-  // Sort data by count (descending)
   const sortedData = [...data].sort((a, b) => b.count - a.count);
 
   const chartData = {
@@ -48,14 +47,14 @@ export default function SkillChart({ data }: SkillChartProps) {
         item.type === 'rare' ? 'rgba(16, 185, 129, 1)' : 'rgba(59, 130, 246, 1)'
       ),
       borderWidth: 1,
-      barThickness: 20, // Fixed width for each bar
-      categoryPercentage: 0.8, // Controls the space between bars
+      barThickness: 20, 
+      categoryPercentage: 0.8, 
       barPercentage: 0.9
     }]
   };
 
   const options = {
-    indexAxis: 'x' as const, // Changed to horizontal bars
+    indexAxis: 'x' as const, 
     responsive: true,
     maintainAspectRatio: false,
     scales: {

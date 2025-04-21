@@ -1,59 +1,81 @@
-import NextAuth from "next-auth";
+ import NextAuth from "next-auth";
 import authConfig from "./auth.config";
-
 import {
-    DEFAULT_LOGIN_REDIRECT,
-    apiAuthPrefix,
-    authRoutes,
-    publicRoutes,
-    
+  DEFAULT_LOGIN_REDIRECT,
+  apiAuthPrefix,
+  authRoutes,
+  publicRoutes,
+  hrRoutes,
 } from "./routes";
-
 import { NextResponse } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
 export default auth(async (req) => {
-    const { nextUrl } = req;
-    const session = req.auth;
+  const { nextUrl } = req;
+  const session = req.auth;
+  const pathname = nextUrl.pathname;
 
-    const isLoggedIn = !!session;
+   console.log('\n=== Middleware Triggered ===');
+  console.log('Path:', pathname);
+  console.log('Session:', session?.user ? 'Authenticated' : 'Not authenticated');
+  console.log('User Role:', session?.user?.role || 'No role');
 
-    const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
-    const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
-    const isAuthRoute = authRoutes.includes(nextUrl.pathname);
-    const isHRRoute= publicRoutes.includes(nextUrl.pathname);
-    if (isApiAuthRoute) {
-        return; 
+  const isLoggedIn = !!session?.user;
+  const isApiAuthRoute = pathname.startsWith(apiAuthPrefix);
+  const isPublicRoute = publicRoutes.includes(pathname);
+  const isAuthRoute = authRoutes.includes(pathname);
+  const isHRRoute = hrRoutes.some(route => pathname.startsWith(route));
+
+  console.log('Route Checks:', {
+    isApiAuthRoute,
+    isPublicRoute,
+    isAuthRoute,
+    isHRRoute
+  });
+
+  if (isApiAuthRoute) {
+    console.log('API Auth Route - Skipping middleware');
+    return NextResponse.next();
+  }
+
+  if (isAuthRoute) {
+    if (isLoggedIn) {
+      console.log('Auth Route: Logged in user - Redirecting to default');
+      return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+    }
+    console.log('Auth Route: Allowing access');
+    return NextResponse.next();
+  }
+
+  if (isHRRoute) {
+    console.log('HR Route Detected');
+
+    if (!isLoggedIn) {
+      console.log('HR Route: Not logged in - Redirecting to login');
+      return NextResponse.redirect(new URL("/auth/login", nextUrl));
     }
 
-    if (isAuthRoute) {
-        if (isLoggedIn) {
-            return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
-        }
-        return; 
+    if (session.user.role !== "HR") {
+      console.log(`HR Route: Access Denied (Role: ${session.user.role})`);
+      return NextResponse.redirect(new URL("/", nextUrl));
     }
 
-    if (isHRRoute) {
-        if (!isLoggedIn) {
-            return NextResponse.redirect(new URL("/auth/login", nextUrl));
-        }
-        if (session?.user?.role !== "HR") {
-            return NextResponse.redirect(new URL("/", nextUrl));
-        }
-        return NextResponse.next();
-    }
+    console.log('HR Route: Access Granted');
+    return NextResponse.next();
+  }
 
-    if (!isLoggedIn && !isPublicRoute) {
-        return NextResponse.redirect(new URL("/auth/login", nextUrl));
-    }
+  if (!isLoggedIn && !isPublicRoute) {
+    console.log('Protected Route: Not logged in - Redirecting to login');
+    return NextResponse.redirect(new URL("/auth/login", nextUrl));
+  }
 
-    return; 
+  console.log('No restrictions - Allowing access');
+  return NextResponse.next();
 });
 
 export const config = {
-    matcher: [
-        '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-        '/(api|trpc)(.*)',
-    ],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

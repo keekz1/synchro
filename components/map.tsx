@@ -52,7 +52,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#2E2E3A"  // Slate Gray for background and land areas
+          "color": "#2E2E3A" 
         }
       ]
     },
@@ -68,7 +68,7 @@ const MapComponent: React.FC = () => {
       "elementType": "labels.text.fill",
       "stylers": [
         {
-          "color": "#E5E5E5"  // Platinum for text labels
+          "color": "#E5E5E5"  
         }
       ]
     },
@@ -76,7 +76,7 @@ const MapComponent: React.FC = () => {
       "elementType": "labels.text.stroke",
       "stylers": [
         {
-          "color": "#2E2E3A"  // Matching the background for a sleek look
+          "color": "#2E2E3A" 
         }
       ]
     },
@@ -85,7 +85,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#3C3C47"  // Charcoal for administrative boundaries
+          "color": "#3C3C47"  
         }
       ]
     },
@@ -94,7 +94,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#1A1A2E"  // Deep Navy for Points of Interest (POI)
+          "color": "#1A1A2E" 
         }
       ]
     },
@@ -103,7 +103,7 @@ const MapComponent: React.FC = () => {
       "elementType": "labels.text.fill",
       "stylers": [
         {
-          "color": "#E5E5E5"  // Platinum for POI labels
+          "color": "#E5E5E5"  
         }
       ]
     },
@@ -112,7 +112,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#3C3C47"  // Charcoal for main roads
+          "color": "#3C3C47" 
         }
       ]
     },
@@ -121,7 +121,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#C5A880"  // Muted Gold for arterial roads
+          "color": "#C5A880"  
         }
       ]
     },
@@ -130,7 +130,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#C5A880"  // Muted Gold for highways
+          "color": "#C5A880" 
         }
       ]
     },
@@ -139,7 +139,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#3C3C47"  // Charcoal for local roads
+          "color": "#3C3C47"  
         }
       ]
     },
@@ -148,7 +148,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#3C3C47"  // Charcoal for transit routes
+          "color": "#3C3C47"
         }
       ]
     },
@@ -157,7 +157,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#0E4D92"  // Royal Blue for water bodies
+          "color": "#0E4D92"  
         }
       ]
     },
@@ -166,7 +166,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#2E2E3A"  // Slate Gray for landscape areas
+          "color": "#2E2E3A" 
         }
       ]
     },
@@ -175,7 +175,7 @@ const MapComponent: React.FC = () => {
       "elementType": "geometry",
       "stylers": [
         {
-          "color": "#2E8B57"  // Emerald Green for parks and green spaces
+          "color": "#2E8B57"  
         }
       ]
     }
@@ -311,7 +311,6 @@ const MapComponent: React.FC = () => {
       setTickets((prev) => [...prev, ticket]);
     };
   
-    // Add event listeners using the socket object directly
     socket?.on("connect", handleConnect);
     socket?.on("connect_error", handleConnectError);
     socket?.on("disconnect", handleDisconnect);
@@ -319,7 +318,6 @@ const MapComponent: React.FC = () => {
     socket?.on("new-ticket", handleNewTicket);
     socket?.on("all-tickets", setTickets);
   
-    // Initialize connection if not already connected
     if (socket && !isConnected) {
       socket.connect();
     } else if (isConnected) {
@@ -327,7 +325,6 @@ const MapComponent: React.FC = () => {
     }
   
     return () => {
-      // Cleanup event listeners
       socket?.off("connect", handleConnect);
       socket?.off("connect_error", handleConnectError);
       socket?.off("disconnect", handleDisconnect);

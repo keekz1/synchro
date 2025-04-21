@@ -130,7 +130,6 @@ else{
 
     return {
       success: "Login successful!",
-     // error: undefined,
       userId: userDetails.id,
       user: userDetails,
     };

@@ -46,7 +46,6 @@ export default function CollabPage() {
   const [showSuggestedUsers, setShowSuggestedUsers] = useState<boolean>(false);
   const [showRequests, setShowRequests] = useState<boolean>(false);
 
-  // SWR hooks with revalidation
   const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
     revalidateIfStale: false,
     revalidateOnFocus: false

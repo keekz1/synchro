@@ -22,7 +22,7 @@ export async function GET() {
         experience: true,
         age: true,
         educationLevel: true,
-        openToWork: true, // ✅ Added this line
+        openToWork: true,  
       },
     });
 

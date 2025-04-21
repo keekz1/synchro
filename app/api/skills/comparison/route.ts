@@ -10,7 +10,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get current user
     const currentUser = await db.user.findUnique({
       where: { email: session.user.email },
       select: { id: true, role: true, skills: true }

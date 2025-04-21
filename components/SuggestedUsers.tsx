@@ -121,7 +121,6 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
         setSentRequests(prev => new Set(prev).add(receiverId));
         toast.success(response.data.message);
       } else if (response.data.canOverride) {
-        // Handle case where there's a rejection but can be overridden
         const shouldOverride = confirm(
           response.data.error + "\n\nDo you want to send the request anyway?"
         );
@@ -153,7 +152,7 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   
   const handleOverrideRejection = async (receiverId: string) => {
     try {
-      // First remove from rejected list
+      //  remove from rejected list
       await axios.delete(`/api/users/${userId}/rejected-requests`, {
         data: { 
           targetUserId: receiverId,
