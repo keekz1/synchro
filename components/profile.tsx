@@ -77,7 +77,7 @@ export default function Profile({ user }: ProfileProps) {
       if (response.ok) {
         setMessage("Profile updated successfully!");
         setIsEditingProfile(false);
-       } else {
+        } else {
         setMessage(data.error || "Failed to update profile");
       }
     } catch {
@@ -103,8 +103,7 @@ export default function Profile({ user }: ProfileProps) {
         setRole(newRole.replace(/_/g, " "));
         setMessage("Role updated successfully!");
         setIsEditingRole(false);
-        window.location.reload();
-      }
+       }
       else {
         setMessage(`Error: ${data.message}`);
       }
