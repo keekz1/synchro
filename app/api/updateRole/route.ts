@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth"; // Using auth() from your auth.ts
-import { db } from "@/lib/db"; // Ensure this path is correct
+import { auth } from "@/auth";  
+import { db } from "@/lib/db"; 
 
 export async function PUT(req: Request) {
   const session = await auth();
@@ -14,7 +14,7 @@ export async function PUT(req: Request) {
   try {
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
-      data: { role: newRole || "" }, // If newRole is an empty string, it will set it as empty
+      data: { role: newRole || "" },  
     });
 
     return NextResponse.json({ message: "Role updated successfully", user: updatedUser });
