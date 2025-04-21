@@ -77,8 +77,7 @@ export default function Profile({ user }: ProfileProps) {
       if (response.ok) {
         setMessage("Profile updated successfully!");
         setIsEditingProfile(false);
-        window.location.reload();
-      } else {
+       } else {
         setMessage(data.error || "Failed to update profile");
       }
     } catch {
@@ -161,8 +160,7 @@ export default function Profile({ user }: ProfileProps) {
     }
   };
 
-  // Display formatters
-  const experienceDisplay = experience ? 
+   const experienceDisplay = experience ? 
     experience.replace(/_/g, ' ').toLowerCase() : 
     "Not specified";
     

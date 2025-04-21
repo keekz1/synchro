@@ -18,8 +18,7 @@ export async function PUT(req: Request) {
       openToWork: boolean;
     }> = {};
 
-    // Only update fields that are provided
-    if ('experience' in body) updateData.experience = body.experience;
+     if ('experience' in body) updateData.experience = body.experience;
     if ('age' in body) updateData.age = Number(body.age);
     if ('educationLevel' in body) updateData.educationLevel = body.educationLevel;
     if ('openToWork' in body) updateData.openToWork = Boolean(body.openToWork);
@@ -32,8 +31,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({
       success: true,
       openToWork: updatedUser.openToWork,
-      // Include other fields if needed
-    });
+     });
 
   } catch (error) {
     console.error("Error updating user data:", error);
