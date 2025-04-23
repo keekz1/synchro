@@ -5,19 +5,7 @@ import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, useJsApiLoader, Circle } from '@react-google-maps/api';
 import CustomMarker from './Map/CustomMarker';
 import { useSocket } from '@/contexts/SocketContext';
-const MemoizedCircle = React.memo(({ center }: { center: { lat: number; lng: number } }) => (
-  <Circle
-    center={center}
-    radius={16093.4}
-    options={{
-      fillColor: '#6600CC',
-      fillOpacity: 0.08,
-      strokeColor: '#FFFFFF',
-      strokeOpacity: 0.5,
-      strokeWeight: 2
-    }}
-  />
-));
+ 
 interface User {
   id: string;
   lat: number;
@@ -52,7 +40,19 @@ const MapComponent: React.FC = () => {
   const { socket, isConnected, emit } = useSocket();
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null);
-
+  const MemoizedCircle = React.memo(({ center }: { center: { lat: number; lng: number } }) => (
+    <Circle
+      center={center}
+      radius={16093.4}
+      options={{
+        fillColor: '#6600CC',
+        fillOpacity: 0.08,
+        strokeColor: '#FFFFFF',
+        strokeOpacity: 0.5,
+        strokeWeight: 2
+      }}
+    />
+  ));
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: 'AIzaSyDDmC7UTacmsXQ5c_9z4W1VozgoFwUn9AA',
     libraries: ['places'],
