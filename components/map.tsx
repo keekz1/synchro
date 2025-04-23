@@ -36,7 +36,8 @@ const MapComponent: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-
+  const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
+  const [editTicketMessage, setEditTicketMessage] = useState('');
   const { socket, isConnected, emit } = useSocket();
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -364,7 +365,11 @@ const MapComponent: React.FC = () => {
       });
       setTickets(nearbyTickets);
     });
-    
+ socket?.on("ticket-updated", (updatedTicket: Ticket) => {
+  setTickets(tickets.map(ticket => 
+    ticket.id === updatedTicket.id ? updatedTicket : ticket
+  ));
+});
       
     if (socket && !isConnected) {
       socket.connect();
@@ -387,7 +392,23 @@ const MapComponent: React.FC = () => {
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
   };
-
+  const handleUpdateTicket = (ticketId: string) => {
+    if (!editTicketMessage.trim() || !socket) return;
+    
+    // Optimistic update
+    setTickets(tickets.map(ticket => 
+      ticket.id === ticketId 
+        ? {...ticket, message: editTicketMessage} 
+        : ticket
+    ));
+    
+    emit('update-ticket', {
+      id: ticketId,
+      message: editTicketMessage
+    });
+    
+    setEditingTicketId(null);
+  };
   const handleMapLoad = (map: google.maps.Map): void => {
     console.log("Map loaded", map);
   };
@@ -463,20 +484,61 @@ const MapComponent: React.FC = () => {
       ))}
     </>
   )}
-
-        <div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
-          <h3>Tickets</h3>
-          {tickets.length > 0 ? (
-            tickets.map((ticket) => (
-              <div key={ticket.id} className={styles.ticketItem}>
-                <strong>{ticket.creatorName}</strong>
-                <p>{ticket.message}</p>
-              </div>
-            ))
-          ) : (
-            <p>No tickets yet</p>
-          )}
-        </div>
+<div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
+  <h3>Tickets</h3>
+  {tickets.length > 0 ? (
+    tickets.map((ticket) => (
+      <div key={ticket.id} className={styles.ticketItem}>
+        <strong>{ticket.creatorName}</strong>
+        {editingTicketId === ticket.id ? (
+          <div className={styles.editForm}>
+            <textarea
+              value={editTicketMessage}
+              onChange={(e) => setEditTicketMessage(e.target.value)}
+              className={styles.editTextarea}
+              aria-label="Edit ticket message"
+              placeholder="Edit your ticket message"
+            />
+            <div className={styles.editButtons}>
+              <button 
+                onClick={() => handleUpdateTicket(ticket.id)}
+                className={styles.saveButton}
+                aria-label="Save changes"
+              >
+                Save
+              </button>
+              <button 
+                onClick={() => setEditingTicketId(null)}
+                className={styles.cancelButton}
+                aria-label="Cancel editing"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p>{ticket.message}</p>
+            {ticket.creatorId === socket?.id && (
+              <button 
+                onClick={() => {
+                  setEditingTicketId(ticket.id);
+                  setEditTicketMessage(ticket.message);
+                }}
+                className={styles.editButton}
+                aria-label={`Edit ticket from ${ticket.creatorName}`}
+              >
+                Edit
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    ))
+  ) : (
+    <p>No tickets yet</p>
+  )}
+</div>
         <button 
           className={styles.ticketToggleButton} 
           onClick={() => setIsOpen(!isOpen)}

@@ -10,16 +10,14 @@ const FloatingChat = () => {
 
   return (
     <div className="fixed bottom-5 right-5 z-50">
-      {/* Chat Toggle Button */}
-      <button
+       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition"
       >
         {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
       </button>
 
-      {/* Floating Chat Window */}
-      {isOpen && (
+       {isOpen && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}

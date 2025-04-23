@@ -3,20 +3,20 @@
   display: flex;
   background-color: #FFFFFF;
   height: 100%;
-  margin-top: 60px; /* Same as navbar height */
+  margin-top: 60px; 
 }
   
   .discord-navbar {
     background: #1b1c1c;
     height: 100%;
-    margin-top: 35px; /* Same as navbar height */
+    margin-top: 35px; 
 
     width: 72px;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding-top: 12px;
-    position: fixed; /* Make navbar fixed */
+    position: fixed; 
     left: 0;
     top: 0;
     bottom: 0;
@@ -26,7 +26,7 @@
     display: block;
     width: 48px;
     height: 48px;
-    margin-top: 60px; /* Same as navbar height */
+    margin-top: 60px; 
 
     border-radius: 50%;
     background: #edf3ff;
@@ -52,11 +52,11 @@
   
   .main-content {
 
-    background: none; /* Remove any background */
+    background: none; 
 
-    margin-left: 72px; /* Adjust the margin to avoid overlap with navbar */
+    margin-left: 72px;  
     padding: 20px;
-    width: calc(100% - 72px); /* Ensure it fills the remaining space */
+    width: calc(100% - 72px);  
   }
   
   .suggested-users-list {
@@ -102,19 +102,19 @@
   }
   
   .chat-box {
-    position: fixed; /* Fixed position on the screen */
+    position: fixed;  
     bottom: 0;
-    left: 50%; /* Centers the chat box horizontally */
-    transform: translateX(-50%); /* Centers the chat box based on its width */
-    width: 70vw; /* 70% of the viewport width */
-    height:90vh;/* 60% of the viewport height */
+    left: 50%;  
+    transform: translateX(-50%);  
+    width: 70vw;  
+    height:90vh; 
     background-color: #f9f9f9;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     transition: width 0.3s ease-in-out;
-    max-width: 100%; /* Ensures it doesn't stretch too wide on larger screens */
-    max-height: 90vh; /* Restricts height on large screens */
+    max-width: 100%; 
+    max-height: 90vh;  
   }
   
 
@@ -127,14 +127,12 @@
     text-align: center;
   }
   
-  /* Loading state styling */
-  .loading {
+   .loading {
     text-align: center;
     font-size: 1.5rem;
     color: #7F00FF;
   }
-  /* styles/skeleton.css */
-.skeleton-nav-icon {
+ .skeleton-nav-icon {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -163,5 +161,5 @@
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  display: block; /* Add this */
+  display: block; 
 }
