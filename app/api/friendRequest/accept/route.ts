@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
-// Validation schema
-const acceptSchema = z.object({
+ const acceptSchema = z.object({
   requestId: z.string().min(1, "Request ID is required")
 });
 
 export async function POST(request: Request) {
   try {
-    // Validate input
-    const body = await request.json();
+     const body = await request.json();
     const { requestId } = acceptSchema.parse(body);
 
-    // Transaction
-    const result = await db.$transaction(async (tx) => {
+     const result = await db.$transaction(async (tx) => {
       // 1. Get and validate the request
       const friendRequest = await tx.friendRequest.findUnique({
         where: { id: requestId },

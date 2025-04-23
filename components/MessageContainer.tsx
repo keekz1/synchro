@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { QuerySnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
 
 interface Message {
@@ -11,9 +11,16 @@ interface Message {
 interface MessagesContainerProps {
   messagesSnapshot: QuerySnapshot<DocumentData> | null | undefined;
   userId: string | null;
+  onDeleteMessage: (messageId: string) => void;
 }
 
-const MessagesContainer: React.FC<MessagesContainerProps> = ({ messagesSnapshot, userId }) => {
+const MessagesContainer: React.FC<MessagesContainerProps> = ({ 
+  messagesSnapshot, 
+  userId,
+  onDeleteMessage 
+}) => {
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+
   if (!messagesSnapshot) {
     return <div className="messages-container">No messages found</div>;
   }
@@ -30,7 +37,11 @@ const MessagesContainer: React.FC<MessagesContainerProps> = ({ messagesSnapshot,
         });
 
         return (
-          <div key={doc.id} className={`message ${isSender ? "sent" : "received"}`}>
+          <div 
+            key={doc.id} 
+            className={`message ${isSender ? "sent" : "received"}`}
+            onClick={() => isSender && setSelectedMessageId(doc.id)}
+          >
             <div className="message-content">
               <p>{message.text}</p>
               <div className="message-meta">
@@ -39,6 +50,21 @@ const MessagesContainer: React.FC<MessagesContainerProps> = ({ messagesSnapshot,
                   <span className="message-status">✓</span>
                 )}
               </div>
+              
+              {isSender && selectedMessageId === doc.id && (
+                <div className="message-actions">
+                  <button 
+                    className="delete-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteMessage(doc.id);
+                      setSelectedMessageId(null);
+                    }}
+                  >
+                    Delete for everyone
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );

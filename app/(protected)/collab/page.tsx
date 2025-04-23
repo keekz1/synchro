@@ -42,6 +42,7 @@ export default function CollabPage() {
     removeSentRequest,
     addRejectedReceiver
   } = useCollabStore();
+  
   const [showFriends, setShowFriends] = useState<boolean>(true);
   const [showSuggestedUsers, setShowSuggestedUsers] = useState<boolean>(false);
   const [showRequests, setShowRequests] = useState<boolean>(false);
@@ -84,6 +85,7 @@ export default function CollabPage() {
   const receivedRequests: FriendRequest[] = allPendingRequests.filter(
     (request) => request.receiverId === session?.user?.id && request.status === "pending"
   );
+
   // Firebase real-time listener
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -132,8 +134,9 @@ export default function CollabPage() {
       if (!request?.id) throw new Error("Failed to get request ID");
 
       const db = getFirestore(app);
+      const friendRequestRef = collection(db, "users", receiverId, "friendRequests");      
       await setDoc(
-        doc(db, "users", receiverId, "friendRequests", request.id), 
+        doc(db, "users", receiverId, "friendRequests", request.id),
         {
           id: request.id,
           senderId: request.senderId,
@@ -147,9 +150,10 @@ export default function CollabPage() {
           },
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
-        }
+        },
+        { merge: true }
       );
-
+      
       toast.success("Friend request sent!");
     } catch (error) {
       removeSentRequest(receiverId);
@@ -220,7 +224,7 @@ export default function CollabPage() {
       </nav>
 
       <div className="main-content">
-        {showFriends && <Friends friends={friends} loading={false} />}
+        {showFriends && <Friends friends={friends} loading={false} currentUserId={session?.user?.id || ''} />}
         {showSuggestedUsers && (
           <SuggestedUsers
             users={suggestedUsers}
@@ -244,3 +248,5 @@ export default function CollabPage() {
     </div>
   );
 }
+
+ 

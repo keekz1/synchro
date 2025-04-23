@@ -7,7 +7,7 @@ const regions = ["London", "Manchester", "Birmingham", "Edinburgh", "Liverpool",
 
 const PublicChatPage = () => {
   const [newMessage, setNewMessage] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState("London"); // Default region
+  const [selectedRegion, setSelectedRegion] = useState("London");  
   const [userRegion, setUserRegion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,8 +16,7 @@ const PublicChatPage = () => {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Get User's Location
-  useEffect(() => {
+   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
@@ -73,8 +72,7 @@ const PublicChatPage = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Region Selector */}
-      <div className="p-2 border-b">
+       <div className="p-2 border-b">
         <label htmlFor="region">Select Region:</label>
         <select
           id="region"
@@ -93,8 +91,7 @@ const PublicChatPage = () => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
         {messagesSnapshot?.docs.map((doc) => {
-          // Only show the message if it belongs to the selected region
-          if (userRegion === selectedRegion) {
+           if (userRegion === selectedRegion) {
             return (
               <div key={doc.id} className="p-2 border-b">
                 {doc.data().text}

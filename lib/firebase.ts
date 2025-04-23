@@ -3,8 +3,7 @@ import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 
-// Firebase Config
-export const firebaseConfig = {
+ export const firebaseConfig = {
   apiKey: "AIzaSyBXDeUqkvSrli6q2eLlX14q2Seq2HKItLc",
   authDomain: "synkro-791d3.firebaseapp.com",
   projectId: "synkro-791d3",
@@ -14,13 +13,10 @@ export const firebaseConfig = {
   measurementId: "G-86BXE2LSLC"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+ const app = initializeApp(firebaseConfig);
 
-// Initialize services
-export const db = getFirestore(app);
+ export const db = getFirestore(app);
 export const functions = getFunctions(app, "europe-west2"); // Using London region
 export const storage = getStorage(app); // 🔹 Add Firebase Storage
 
-// Export app instance
-export { app };
+ export { app };
