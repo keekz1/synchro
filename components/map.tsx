@@ -53,6 +53,8 @@ const MapComponent: React.FC = () => {
       }}
     />
   ));
+  MemoizedCircle.displayName = 'MemoizedCircle';
+
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: 'AIzaSyDDmC7UTacmsXQ5c_9z4W1VozgoFwUn9AA',
     libraries: ['places'],
