@@ -342,16 +342,30 @@ const MapComponent: React.FC = () => {
     };
     
     const handleNewTicket = (ticket: Ticket) => {
-      setTickets((prev) => [...prev, ticket]);
+      if (currentLocation) {
+        const distance = getDistanceInMiles(currentLocation.lat, currentLocation.lng, ticket.lat, ticket.lng);
+        if (distance <= 10) {
+          setTickets((prev) => [...prev, ticket]);
+        }
+      }
     };
+    
   
     socket?.on("connect", handleConnect);
     socket?.on("connect_error", handleConnectError);
     socket?.on("disconnect", handleDisconnect);
     socket?.on("nearby-users", handleNearbyUsers);
     socket?.on("new-ticket", handleNewTicket);
-    socket?.on("all-tickets", setTickets);
-  
+    socket?.on("all-tickets", (data: Ticket[]) => {
+      if (!currentLocation) return;
+      const nearbyTickets = data.filter(ticket => {
+        const distance = getDistanceInMiles(currentLocation.lat, currentLocation.lng, ticket.lat, ticket.lng);
+        return distance <= 10;
+      });
+      setTickets(nearbyTickets);
+    });
+    
+      
     if (socket && !isConnected) {
       socket.connect();
     } else if (isConnected) {
