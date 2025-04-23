@@ -318,8 +318,14 @@ const MapComponent: React.FC = () => {
       if (!userRole || !currentLocation) return;
     
       const filteredUsers = data.filter(user => {
-        const distance = getDistanceInMiles(currentLocation.lat, currentLocation.lng, user.lat, user.lng);
-        return distance <= 10; // Only include users within 10 miles
+        const distance = getDistanceInMiles(
+          currentLocation.lat,
+          currentLocation.lng,
+          user.lat,
+          user.lng
+        );
+        // Only show same-role users within 10 miles
+        return distance <= 10 && user.role === userRole;
       });
     
       const uniqueUsers = new Map<string, User>();
