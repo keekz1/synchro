@@ -134,8 +134,7 @@ export default function CollabPage() {
       if (!request?.id) throw new Error("Failed to get request ID");
 
       const db = getFirestore(app);
-      const friendRequestRef = collection(db, "users", receiverId, "friendRequests");      
-      await setDoc(
+       await setDoc(
         doc(db, "users", receiverId, "friendRequests", request.id),
         {
           id: request.id,
