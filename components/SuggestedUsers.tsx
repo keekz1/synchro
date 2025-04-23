@@ -105,6 +105,9 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
     }
   };
   const handleSendRequest = async (receiverId: string) => {
+    // Optimistically add to sentRequests
+    setSentRequests(prev => new Set(prev).add(receiverId));
+  
     try {
       const response = await axios.post(
         "/api/friendRequest/send",
@@ -118,26 +121,30 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
       );
   
       if (response.data.success) {
-        setSentRequests(prev => new Set(prev).add(receiverId));
         toast.success(response.data.message);
       } else if (response.data.canOverride) {
         const shouldOverride = confirm(
           response.data.error + "\n\nDo you want to send the request anyway?"
         );
-        
         if (shouldOverride) {
           await handleOverrideRejection(receiverId);
         }
       } else {
-        toast.error(response.data.error || "Failed to send request");
+        throw new Error(response.data.error || "Failed to send request");
       }
     } catch (error) {
+      // Rollback UI if the request fails
+      setSentRequests(prev => {
+        const updated = new Set(prev);
+        updated.delete(receiverId);
+        return updated;
+      });
+  
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 403 && error.response.data?.canOverride) {
           const shouldOverride = confirm(
             error.response.data.error + "\n\nDo you want to send the request anyway?"
           );
-          
           if (shouldOverride) {
             await handleOverrideRejection(receiverId);
           }
@@ -145,10 +152,11 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
           toast.error(error.response?.data?.error || "Failed to send friend request");
         }
       } else {
-        toast.error("Failed to send friend request");
+        toast.error("Failed to send friend request seems you already have pending request with this user");
       }
     }
   };
+  
   
   const handleOverrideRejection = async (receiverId: string) => {
     try {

@@ -5,7 +5,19 @@ import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, useJsApiLoader, Circle } from '@react-google-maps/api';
 import CustomMarker from './Map/CustomMarker';
 import { useSocket } from '@/contexts/SocketContext';
-
+const MemoizedCircle = React.memo(({ center }: { center: { lat: number; lng: number } }) => (
+  <Circle
+    center={center}
+    radius={16093.4}
+    options={{
+      fillColor: '#6600CC',
+      fillOpacity: 0.08,
+      strokeColor: '#FFFFFF',
+      strokeOpacity: 0.5,
+      strokeWeight: 2
+    }}
+  />
+));
 interface User {
   id: string;
   lat: number;
@@ -218,7 +230,17 @@ const MapComponent: React.FC = () => {
       return newVisibility;
     });
   }, [emit]);
-
+  function getDistanceInMiles(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 3958.8; // Radius of Earth in miles
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+  
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
@@ -291,9 +313,13 @@ const MapComponent: React.FC = () => {
     };
   
     const handleNearbyUsers = (data: User[]) => {
-      if (!userRole) return;
-      
-      const filteredUsers = data.filter(user => user.role === userRole);
+      if (!userRole || !currentLocation) return;
+    
+      const filteredUsers = data.filter(user => {
+        const distance = getDistanceInMiles(currentLocation.lat, currentLocation.lng, user.lat, user.lng);
+        return distance <= 10; // Only include users within 10 miles
+      });
+    
       const uniqueUsers = new Map<string, User>();
       filteredUsers.forEach((user) => {
         if (!uniqueUsers.has(user.id)) {
@@ -303,10 +329,10 @@ const MapComponent: React.FC = () => {
           });
         }
       });
-      
+    
       setNearbyUsers(Array.from(uniqueUsers.values()));
     };
-
+    
     const handleNewTicket = (ticket: Ticket) => {
       setTickets((prev) => [...prev, ticket]);
     };
@@ -384,38 +410,37 @@ const MapComponent: React.FC = () => {
   return (
     <div className={styles.container} ref={mapContainerRef}>
       <GoogleMap
-        mapContainerClassName={styles.map}
-        center={currentLocation}
-        zoom={15}
-        options={{
-          styles: mapStyle,
-          disableDefaultUI: true,
-          fullscreenControl: false,
-          restriction: {
-            latLngBounds: {
-              north: 85,
-              south: -60,
-              west: -170,
-              east: 180,
-            },
-            strictBounds: true,
-          },
-          keyboardShortcuts: false,
-        }}
-        onLoad={handleMapLoad}
-      >
-        {isVisible && (
-          <>
-            <Circle
-              center={currentLocation}
-              radius={16093.4}
-              options={{ fillColor: '#6600CC', fillOpacity: 0.1, strokeColor: '#FFFFFF', strokeOpacity: 0.5, strokeWeight: 2 }}
-            />
-            {nearbyUsers.map((user) => (
-              <CustomMarker key={user.id} user={user} />
-            ))}
-          </>
-        )}
+  mapContainerClassName={styles.map}
+  center={currentLocation}
+  zoom={15}
+  options={{
+    styles: mapStyle,
+    disableDefaultUI: true,
+    fullscreenControl: false,
+    restriction: {
+      latLngBounds: {
+        north: 85,
+        south: -60,
+        west: -170,
+        east: 180,
+      },
+      strictBounds: true,
+    },
+    keyboardShortcuts: false,
+  }}
+  onLoad={handleMapLoad}
+>
+  {isVisible && (
+    <>
+      <MemoizedCircle 
+        key={`circle-${isVisible}`}
+        center={currentLocation} 
+      />
+      {nearbyUsers.map((user) => (
+        <CustomMarker key={user.id} user={user} />
+      ))}
+    </>
+  )}
 
         <div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
           <h3>Tickets</h3>
