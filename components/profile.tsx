@@ -189,7 +189,7 @@ export default function Profile({ user }: ProfileProps) {
       } else {
         setMessage(data.message || "Failed to add skill");
       }
-    } catch (error) {
+    } catch  {
       setMessage("Failed to add skill");
     }
   };
@@ -208,7 +208,7 @@ export default function Profile({ user }: ProfileProps) {
       } else {
         setMessage(data.message || "Failed to remove skill");
       }
-    } catch (error) {
+    } catch  {
       setMessage("Failed to remove skill");
     }
   };
@@ -280,8 +280,8 @@ export default function Profile({ user }: ProfileProps) {
               if (response.ok) {
                 setIsOpenToWork(newValue);
               }
-            } catch (error) {
-              console.error('Error updating status:', error);
+            } catch   {
+              console.log('Error updating status:' );
             }
           }}
           aria-label={isOpenToWork ? "Turn off open to work" : "Turn on open to work"}
