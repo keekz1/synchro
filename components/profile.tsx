@@ -15,6 +15,7 @@ interface User {
   age?: number;
   educationLevel: string[];
   openToWork: boolean;
+  skills: string[];
 }
 
 interface ProfileProps {
@@ -35,6 +36,8 @@ export default function Profile({ user }: ProfileProps) {
   const [educationLevel, setEducationLevel] = useState<string[]>(user.educationLevel || []);
   const [newEducation, setNewEducation] = useState("");
   const [isOpenToWork, setIsOpenToWork] = useState(user.openToWork);
+  const [skills, setSkills] = useState<string[]>(user.skills || []);
+  const [newSkill, setNewSkill] = useState("");
  
   useEffect(() => {
     async function fetchData() {
@@ -49,6 +52,7 @@ export default function Profile({ user }: ProfileProps) {
         setAge(profileData.age);
         setEducationLevel(profileData.educationLevel || []);
         setIsOpenToWork(profileData.openToWork);
+        setSkills(profileData.skills || []);
       } catch {
         setMessage("Failed to fetch data.");
       }
@@ -68,7 +72,8 @@ export default function Profile({ user }: ProfileProps) {
           experience: experience || null,
           age: age || null,
           educationLevel,
-          openToWork: isOpenToWork
+          openToWork: isOpenToWork,
+          skills
         }),
       });
   
@@ -83,6 +88,7 @@ export default function Profile({ user }: ProfileProps) {
         setAge(data.age);
         setEducationLevel(data.educationLevel || []);
         setIsOpenToWork(data.openToWork);
+        setSkills(data.skills || []);
  
         } else {
         setMessage(data.error || "Failed to update profile");
@@ -167,7 +173,45 @@ export default function Profile({ user }: ProfileProps) {
       setLoading(false);
     }
   };
-
+  const addSkill = async (skill: string) => {
+    try {
+      const response = await fetch('/api/addSkill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill }),
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        setSkills([...skills, skill.trim()]);
+        setNewSkill("");
+        setMessage("Skill added successfully");
+      } else {
+        setMessage(data.message || "Failed to add skill");
+      }
+    } catch (error) {
+      setMessage("Failed to add skill");
+    }
+  };
+  const removeSkill = async (skill: string) => {
+    try {
+      const response = await fetch('/api/removeSkill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill }),
+      });
+  
+      const data = await response.json();
+      if (response.ok) {
+        setSkills(skills.filter(s => s !== skill));
+        setMessage("Skill removed successfully");
+      } else {
+        setMessage(data.message || "Failed to remove skill");
+      }
+    } catch (error) {
+      setMessage("Failed to remove skill");
+    }
+  };
    const experienceDisplay = experience ? 
     experience.replace(/_/g, ' ').toLowerCase() : 
     "Not specified";
@@ -357,16 +401,15 @@ export default function Profile({ user }: ProfileProps) {
                 Age (optional)
               </label>
               <input
-  type="number"
-  min={19}
-  max={60}
-  value={age || ""}
-  onChange={(e) => setAge(Number(e.target.value))}
-  className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
-  placeholder="Enter your age"
-  aria-label="Age"
-/>
-
+                type="number"
+                min={19}
+                max={60}
+                value={age || ""}
+                onChange={(e) => setAge(Number(e.target.value))}
+                className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter your age"
+                aria-label="Age"
+              />
             </div>
   
             <div className="mb-4">
@@ -425,6 +468,50 @@ export default function Profile({ user }: ProfileProps) {
                 </button>
               </div>
             </div>
+
+            {/* Skills Section */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-white mb-2">Skills</label>
+              {skills.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {skills.map((skill, index) => (
+                    <div
+                      key={index}
+                      className="relative bg-purple-100 text-purple-800 px-3 py-1 rounded-full flex items-center"
+                    >
+                      <span>{skill}</span>
+                      <button
+  onClick={() => removeSkill(skill)}
+  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
+  title="Remove"
+>
+  ×
+</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+  
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add skill"
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  className="w-full p-2 rounded border border-teal-300 bg-white text-teal-900"
+                />
+               <button
+  onClick={() => {
+    if (newSkill && !skills.includes(newSkill)) {
+      addSkill(newSkill);
+    }
+  }}
+  className="bg-white text-teal-700 px-3 rounded hover:bg-teal-100 transition"
+>
+  Add
+</button>
+              </div>
+            </div>
   
             <div className="flex gap-2 mt-4">
               <button
@@ -440,6 +527,7 @@ export default function Profile({ user }: ProfileProps) {
                   setExperience(user.experience);
                   setAge(user.age);
                   setEducationLevel(user.educationLevel || []);
+                  setSkills(user.skills || []);
                 }}
                 className="flex-1 bg-teal-800 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
               >
@@ -464,6 +552,16 @@ export default function Profile({ user }: ProfileProps) {
                   <li key={index}>{edu}</li>
                 ))}
               </ul>
+            </div>
+            <div>
+              <p className="text-sm text-teal-200">Skills</p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {skills.map((skill, index) => (
+                  <span key={index} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         )}
