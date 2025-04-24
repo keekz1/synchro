@@ -85,3 +85,71 @@
   font-size: 18px;
   color: #666;
 }
+/* Make sure actions are better spaced and touch-friendly */
+.friend-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+}
+
+/* Improve menu button accessibility */
+.menu-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.menu-button:active {
+  background-color: #f0f0f0;
+}
+
+/* Three dot icon spacing */
+.menu-button .dot {
+  font-size: 18px;
+  margin: 0 1px;
+}
+
+/* Dropdown menu */
+.friend-menu {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+  min-width: 140px;
+  padding: 8px 0;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Menu item styling */
+.menu-item {
+  width: 100%;
+  padding: 10px 15px;
+  text-align: left;
+  font-size: 14px;
+  background: none;
+  border: none;
+  color: #d00;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background-color: #f8f8f8;
+}
