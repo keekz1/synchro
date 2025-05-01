@@ -151,7 +151,7 @@ model User {
   friendRequestsSent     FriendRequest[] @relation("Sender")
   friendRequestsReceived FriendRequest[] @relation("Receiver")
   accounts               Account[]
-  hrPreferences HRPreferences[]  // Changed from HRPreferences? to HRPreferences[]
+  hrPreferences HRPreferences[]  
 
   isTwoFactorEnabled Boolean @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
@@ -159,15 +159,14 @@ model User {
   friendshipsAsUserA     Friendship[]   @relation("Friendship_userA")
   friendshipsAsUserB     Friendship[]   @relation("Friendship_userB")
   
-  // Add these fields to complete the Message relation
-  messagesSent           Message[]      @relation("MessagesSent")
+   messagesSent           Message[]      @relation("MessagesSent")
   messagesReceived       Message[]      @relation("MessagesReceived")
-  skills                 String[]       // No need for @db.Array here
-    age        Int?              // Add this line
+  skills                 String[]     
+    age        Int?               
 
-  experience   ExperienceLevel?  // Add this new field
-  educationLevel String[] @default([]) // Add this line
-  openToWork             Boolean        @default(false) // Added openToWork toggle
+  experience   ExperienceLevel?  
+  educationLevel String[] @default([])  
+  openToWork             Boolean        @default(false)  
 
   rejectedRequestsSent     RejectedRequest[] @relation("rejectedBySender")
   rejectedRequestsReceived RejectedRequest[] @relation("rejectedByReceiver")
@@ -182,8 +181,7 @@ model Friendship {
   userB    User   @relation("Friendship_userB", fields: [userBId], references: [id])
   createdAt DateTime @default(now())
 
-  // Ensure uniqueness to prevent duplicate friendships
-  @@unique([userAId, userBId])
+   @@unique([userAId, userBId])
 
 }
 
@@ -191,7 +189,7 @@ model FriendRequest {
   id          String   @id @default(cuid()) @map("_id")
   senderId    String
   receiverId  String
-  status      String   // "pending", "accepted", or "rejected"
+  status      String    
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -220,7 +218,7 @@ model Message {
   text        String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  status      String   @default("sending") // Add this field for message status
+  status      String   @default("sending")  
 
   sender      User     @relation("MessagesSent", fields: [senderId], references: [id])
   receiver    User     @relation("MessagesReceived", fields: [receiverId], references: [id])
@@ -245,7 +243,7 @@ model Account {
 }
 
 model VerificationToken {
-  id      String   @id @map("_id") @default(cuid())  // Map 'id' to MongoDB's '_id'
+  id      String   @id @map("_id") @default(cuid())   
   email   String
   token   String   @unique
   expires DateTime
@@ -275,7 +273,7 @@ model TwoFactorToken{
 
 model TwoFactorConfirmation {
   id     String @id @map("_id") @default(cuid())
-  userId String                     // Add this line
+  userId String                     
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId])
@@ -299,9 +297,13 @@ model HRPreferences {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Change to one-to-many relationship
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // Add compound unique constraint if needed
-  @@unique([id, userId])
+   @@unique([id, userId])
+}
+model DeleteReason {
+  id        String    @id @default(cuid()) @map("_id")
+  userId    String
+  reason    String
+  createdAt DateTime @default(now())
 }

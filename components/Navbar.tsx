@@ -25,7 +25,7 @@ export default function Navbar() {
 
   return (
     <div ref={navRef} className="relative">
-      {/* Main Navigation Bar */}
+      {/* Main   */}
       <AnimatePresence>
         {isNavVisible && (
           <motion.nav
@@ -55,7 +55,7 @@ export default function Navbar() {
                 <NavLink href="/self-growth" text="Personal growth" />
               </div>
 
-              {/* Mobile Menu Button */}
+              {/* Phone Button*/}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="md:hidden text-black focus:outline-none transition-transform hover:scale-110"
@@ -89,7 +89,7 @@ export default function Navbar() {
         </svg>
       </motion.button>
 
-      {/* Mobile Menu */}
+      {/* phone Menu */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -115,7 +115,7 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Settings-specific Navbar */}
+      {/* settings nav */}
       {isSettingsPage && (
         <motion.nav
           initial={{ opacity: 0, y: 20 }}
@@ -141,7 +141,7 @@ export default function Navbar() {
   );
 }
 
-//
+ 
 const NavLink = ({ href, text }: { href: string; text: string }) => (
   <Link
     href={href}

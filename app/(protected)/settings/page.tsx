@@ -25,14 +25,19 @@ import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { settings } from "@/actions/settings";
 import { Pencil } from "lucide-react";
+ import { useRouter } from "next/navigation";
+ import { logout } from "@/actions/logout";  
 
 const SettingsPage = () => {
   const user = useCurrentUser();
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
-  const [isPending, startTransition] = useTransition();
+   const [isPending, startTransition] = useTransition();
   const [isEditing, setIsEditing] = useState(false);
+  const [deleteReason, setDeleteReason] = useState<string>("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { update } = useSession();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
@@ -47,15 +52,21 @@ const SettingsPage = () => {
   });
 
   useEffect(() => {
-    form.reset({
-      password: undefined,
-      newPassword: undefined,
-      name: user?.name || undefined,
-      email: user?.email || undefined,
-      role: user?.role || UserRole.USER,
-      isTwoFactorEnabled: user?.isTwoFactorEnabled || false,
-    });
-  }, [user, form]);
+     if (!user) {
+ 
+      router.push("/auth/login");
+    } else {
+      form.reset({
+        password: undefined,
+        newPassword: undefined,
+        name: user.name || undefined,
+        email: user.email || undefined,
+        role: user.role || UserRole.USER,
+        isTwoFactorEnabled: user.isTwoFactorEnabled || false,
+      });
+    }
+  }, [user, form, router]);
+  
 
   const onSubmit = (values: z.infer<typeof SettingsSchema>) => {
     setError(undefined);
@@ -74,10 +85,32 @@ const SettingsPage = () => {
         .catch(() => setError("Something went wrong!"));
     });
   };
+ 
+  const handleDeleteAccount = async () => {
+    try {
+      const res = await fetch('/api/delete-user', {
+        method: 'DELETE'
+      });
+  
+       await logout();
+      window.location.href = '/auth/login';
+  
+    } catch (error) {
+      await logout();
+      window.location.href = '/auth/login';
+    }
+  };
+  const deleteReasons = [
+    "I no longer need this account",
+    "I have privacy concerns",
+    "I'm not satisfied with the service",
+    "I found a better alternative",
+    "Other",
+  ];
 
   return (
-<div className="h-screen w-full flex flex-col gap-y-10 items-center justify-center bg-[radial-gradient(ellipse_at_top,_#99f6e4,_#134e4a)] from-teal-300 to-teal-900">
-<Card className="w-full max-w-[90%] md:max-w-[600px] mx-auto">
+    <div className="h-screen w-full flex flex-col gap-y-10 items-center justify-center bg-[radial-gradient(ellipse_at_top,_#99f6e4,_#134e4a)] from-teal-300 to-teal-900">
+      <Card className="w-full max-w-[90%] md:max-w-[600px] mx-auto">
         <CardHeader>
           <div className="flex justify-between items-center">
             <p className="text-2xl font-semibold">⚙️ Settings</p>
@@ -118,7 +151,6 @@ const SettingsPage = () => {
                     )}
                   />
 
-                  {/* Email Field */}
                   {user?.isOAuth === false && (
                     <FormField
                       control={form.control}
@@ -140,7 +172,6 @@ const SettingsPage = () => {
                     />
                   )}
 
-                  {/* Role Field */}
                   <FormField
                     control={form.control}
                     name="role"
@@ -167,7 +198,6 @@ const SettingsPage = () => {
                     )}
                   />
 
-                  {/* 2FA Field */}
                   {user?.isOAuth === false && (
                     <FormField
                       control={form.control}
@@ -190,7 +220,6 @@ const SettingsPage = () => {
                   )}
                 </div>
 
-                {/* Password Fields */}
                 {user?.isOAuth === false && isEditing && (
                   <>
                     <FormField
@@ -249,6 +278,61 @@ const SettingsPage = () => {
               )}
             </form>
           </Form>
+
+          {/* Delete Account Section */}
+          <div className="mt-8 pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-red-600">Danger Zone</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Once you delete your account, there is no going back. Please be certain.
+            </p>
+
+            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+              Delete Account
+            </Button>
+
+            {/* Custom Delete Confirmation Dialog */}
+            {showDeleteDialog && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full">
+                  <h3 className="text-lg font-semibold mb-2">Are you absolutely sure?</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    This action cannot be undone. This will permanently delete your account.
+                  </p>
+
+                  <Select onValueChange={(value) => setDeleteReason(value)}>
+                    <SelectTrigger className="mb-4">
+                      <SelectValue placeholder="Select a reason (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {deleteReasons.map((reason) => (
+                        <SelectItem key={reason} value={reason}>
+                          {reason}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+             
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowDeleteDialog(false)}
+                      disabled={isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteAccount}
+                      disabled={isPending}
+                    >
+                      {isPending ? "Deleting..." : "Delete Account"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

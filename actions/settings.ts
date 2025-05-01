@@ -25,8 +25,7 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
         values.isTwoFactorEnabled = undefined;
       }
   
-      // Email change verification
-      if (values.email && values.email !== user.email) {
+       if (values.email && values.email !== user.email) {
         const existingUser = await getUserByEmail(values.email);
         if (existingUser && existingUser.id !== user.id) {
           return { error: "Email already in use" };
@@ -36,16 +35,14 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
         return { success: "Verification email sent" };
       }
   
-      // Prepare update data
-      const updateData: any = {
+       const updateData: any = {
         name: values.name,
         email: values.email,
         role: values.role,
         isTwoFactorEnabled: values.isTwoFactorEnabled,
       };
   
-      // Only handle passwords if newPassword is provided
-      if (values.newPassword && values.newPassword.trim() !== "") {
+       if (values.newPassword && values.newPassword.trim() !== "") {
         if (!values.password || values.password.trim() === "") {
           return { error: "Current password is required" };
         }

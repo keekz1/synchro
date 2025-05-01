@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth'; // Import auth from NextAuth instance
+import { auth } from '@/auth';  
 import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    // Get the session
-    const session = await auth();
-    console.log("Session Data:", session); // Debugging
-
+     const session = await auth();
+    console.log("Session Data:", session);  
     if (!session || !session.user || !session.user.email) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Get user details
-    const user = await db.user.findUnique({
+     const user = await db.user.findUnique({
       where: { email: session.user.email },
       select: { id: true, name: true, email: true },
     });

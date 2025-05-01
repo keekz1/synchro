@@ -16,7 +16,7 @@ import { getStorage } from 'firebase/storage';
  const app = initializeApp(firebaseConfig);
 
  export const db = getFirestore(app);
-export const functions = getFunctions(app, "europe-west2"); // Using London region
-export const storage = getStorage(app); // 🔹 Add Firebase Storage
+export const functions = getFunctions(app, "europe-west2"); //  London region
+export const storage = getStorage(app);  
 
  export { app };
