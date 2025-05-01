@@ -1,10 +1,9 @@
-// app/api/delete-user/route.ts
 "use server";
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 
-export async function DELETE(request: Request) {
+export async function DELETE() {   
   try {
     const session = await auth();
     
@@ -15,14 +14,14 @@ export async function DELETE(request: Request) {
       );
     }
 
-     await db.user.delete({
+    await db.user.delete({
       where: { id: session.user.id },
       include: {
         accounts: true  
       }
     });
 
-     const response = NextResponse.json(
+    const response = NextResponse.json(
       { 
         success: true,
         message: 'Account permanently deleted'
@@ -30,7 +29,7 @@ export async function DELETE(request: Request) {
       { status: 200 }
     );
     
-     ['next-auth.session-token', 'next-auth.csrf-token'].forEach(cookie => {
+    ['next-auth.session-token', 'next-auth.csrf-token'].forEach(cookie => {
       response.cookies.set({
         name: cookie,
         value: '',

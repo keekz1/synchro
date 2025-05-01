@@ -126,9 +126,9 @@ export default function Navbar() {
         >
           <div className="flex justify-between items-center w-full max-w-full p-4">
             <div className="flex gap-2">
-              <SettingsButton href="/server" label="Server" active={pathname?.startsWith("/server")} />
+              <SettingsButton href="/server" label="Server Side view" active={pathname?.startsWith("/server")} />
               <SettingsButton href="/client" label="Client" active={pathname?.startsWith("/client")} />
-              <SettingsButton href="/admin" label="Admin" active={pathname?.startsWith("/admin")} />
+             {/* <SettingsButton href="/admin" label="Admin" active={pathname?.startsWith("/admin")} /> */}
               <SettingsButton href="/settings" label="Settings" active={pathname === "/settings"} />
             </div>
             <div className="flex justify-end">
