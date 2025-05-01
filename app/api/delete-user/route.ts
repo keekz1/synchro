@@ -35,9 +35,9 @@ export async function DELETE() {
         value: '',
         expires: new Date(0),
         path: '/',
-        secure: true, // Force HTTPS in production
+        secure: true,  
         sameSite: 'lax',
-        domain: '.wesynchro.com' // Critical fix: Remove https:// and add leading dot
+        domain: '.wesynchro.com' 
       });
     });
 
