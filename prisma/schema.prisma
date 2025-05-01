@@ -150,7 +150,7 @@ model User {
   
   friendRequestsSent     FriendRequest[] @relation("Sender")
   friendRequestsReceived FriendRequest[] @relation("Receiver")
-  accounts Account[] @relation("AccountToUser", onDelete: Cascade)
+  accounts Account[] @relation("AccountToUser")  
   hrPreferences HRPreferences[]  
 
   isTwoFactorEnabled Boolean @default(false)
@@ -238,7 +238,7 @@ model Account {
   id_token           String?
   session_state      String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation("AccountToUser", fields: [userId], references: [id], onDelete: Cascade)
   @@unique([provider, providerAccountId])
 }
 
