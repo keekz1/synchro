@@ -38,6 +38,7 @@ const SettingsPage = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { update } = useSession();
   const router = useRouter();
+  const [deleteError, setDeleteError] = useState<string | undefined>();
 
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
@@ -86,26 +87,32 @@ const SettingsPage = () => {
     });
   };
  
-
   const handleDeleteAccount = async () => {
+    setDeleteError(undefined);
     try {
-       await fetch('/api/delete-user', {
+      const response = await fetch('/api/delete-user', {
         method: 'DELETE',
         body: JSON.stringify({ reason: deleteReason }),
         headers: {
           'Content-Type': 'application/json'
         }
       });
-  
-      await logout();
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Account deletion failed');
+      }
+
+       await logout();
       window.location.href = '/auth/login';
-  
+
     } catch (error) {
-      console.error('Delete error:', error);   
-      await logout();
-      window.location.href = '/auth/login';
+      console.error('Delete error:', error);
+      setDeleteError(error instanceof Error ? error.message : 'Deletion failed');
+      setShowDeleteDialog(false);
     }
   };
+
   const deleteReasons = [
     "I no longer need this account",
     "I have privacy concerns",
@@ -317,6 +324,7 @@ const SettingsPage = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {deleteError && <FormError message={deleteError} />}
 
              
                   <div className="flex justify-end gap-2 mt-4">

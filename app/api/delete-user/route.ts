@@ -1,50 +1,55 @@
+// app/api/delete-user/route.ts
 "use server";
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { logout } from '@/actions/logout';
 
-export async function DELETE( ) {
+export async function DELETE(request: Request) {
   try {
     const session = await auth();
-    const response = NextResponse.json(null);
-
-     if (!session?.user) {
-      await logout();
-      return response;
-    }
-
-     const user = await db.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true }
-    });
-
-     if (!user) {
-      await logout();
+    
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'User not found - session terminated' },
-        { status: 404 }
+        { error: 'Unauthorized - No active session' }, 
+        { status: 401 }
       );
     }
 
-     await db.user.delete({ 
-      where: { 
-        id: user.id 
-      }  
+     await db.user.delete({
+      where: { id: session.user.id },
+      include: {
+        accounts: true  
+      }
     });
 
-     await logout();
-
-    return NextResponse.json(
-      { success: true, message: 'Account deleted and session terminated' },
+     const response = NextResponse.json(
+      { 
+        success: true,
+        message: 'Account permanently deleted'
+      }, 
       { status: 200 }
     );
+    
+     ['next-auth.session-token', 'next-auth.csrf-token'].forEach(cookie => {
+      response.cookies.set({
+        name: cookie,
+        value: '',
+        expires: new Date(0),
+        path: '/',
+      });
+    });
 
-  } catch  {
-    console.error('Error deleting user:');
-    await logout();  
+    return response;
+
+  } catch (error) {
+    console.error('Account deletion failed:', error);
     return NextResponse.json(
-      { error: 'Internal server error - session terminated' },
+      { 
+        error: 'Failed to delete account',
+        details: process.env.NODE_ENV === 'development' 
+          ? error instanceof Error ? error.message : String(error)
+          : undefined
+      },
       { status: 500 }
     );
   }
