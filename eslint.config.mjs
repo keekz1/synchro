@@ -12,7 +12,8 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
    {
-    files: ["lib/prisma.ts"],
+    files: ["lib/prisma.ts",      "lib/db.ts"  
+    ],
     rules: {
       "no-var": "off", 
       "vars-on-top": "off"  
