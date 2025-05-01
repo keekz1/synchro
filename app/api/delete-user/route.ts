@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 
-export async function DELETE(request: Request) {
+export async function DELETE () {
   try {
      const session = await auth();
     console.log('[DELETE] Auth session:', {
