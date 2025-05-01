@@ -3,51 +3,55 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 
-export async function DELETE() {   
+export async function DELETE() {
   try {
+    console.log('[DELETE] Start account deletion');
     const session = await auth();
     
     if (!session?.user?.id) {
+      console.error('[DELETE] No session found');
       return NextResponse.json(
-        { error: 'Unauthorized - No active session' }, 
+        { error: 'Unauthorized' }, 
         { status: 401 }
       );
     }
 
-    await db.user.delete({
+    console.log(`[DELETE] Deleting user ${session.user.id}`);
+    const deleteResult = await db.user.delete({
       where: { id: session.user.id },
-      include: {
-        accounts: true  
-      }
+      include: { accounts: true }
     });
+    console.log('[DELETE] User deleted:', deleteResult);
 
     const response = NextResponse.json(
-      { 
-        success: true,
-        message: 'Account permanently deleted'
-      }, 
+      { success: true },
       { status: 200 }
     );
-    
-    ['next-auth.session-token', 'next-auth.csrf-token'].forEach(cookie => {
+
+    const cookies = ['next-auth.session-token', 'next-auth.csrf-token'];
+    cookies.forEach(cookie => {
       response.cookies.set({
         name: cookie,
         value: '',
         expires: new Date(0),
         path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        domain: 'https://wesynchro.com/'  
       });
     });
 
+    console.log('[DELETE] Account deletion completed');
     return response;
 
   } catch (error) {
-    console.error('Account deletion failed:', error);
+    console.error('[DELETE] Error:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to delete account',
-        details: process.env.NODE_ENV === 'development' 
-          ? error instanceof Error ? error.message : String(error)
-          : undefined
+        error: 'Deletion failed',
+        ...(process.env.NODE_ENV === 'development' && {
+          details: error instanceof Error ? error.message : String(error)
+        })
       },
       { status: 500 }
     );
