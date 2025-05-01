@@ -150,7 +150,7 @@ model User {
   
   friendRequestsSent     FriendRequest[] @relation("Sender")
   friendRequestsReceived FriendRequest[] @relation("Receiver")
-  accounts               Account[]
+  accounts Account[] @relation("AccountToUser", onDelete: Cascade)
   hrPreferences HRPreferences[]  
 
   isTwoFactorEnabled Boolean @default(false)

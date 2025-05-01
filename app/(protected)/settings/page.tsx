@@ -92,27 +92,27 @@ const SettingsPage = () => {
     try {
       const response = await fetch('/api/delete-user', {
         method: 'DELETE',
-        body: JSON.stringify({ reason: deleteReason }),
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        // Remove the body since your backend isn't using it
+        // If you want to keep the reason, modify your backend to accept it
       });
-
+  
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Account deletion failed');
       }
-
-       await logout();
+  
+      await logout();
       window.location.href = '/auth/login';
-
+  
     } catch (error) {
       console.error('Delete error:', error);
       setDeleteError(error instanceof Error ? error.message : 'Deletion failed');
       setShowDeleteDialog(false);
     }
   };
-
   const deleteReasons = [
     "I no longer need this account",
     "I have privacy concerns",
