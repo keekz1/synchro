@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { logout } from '@/actions/logout';
 
-export async function DELETE(request: Request) {
+export async function DELETE( ) {
   try {
     const session = await auth();
     const response = NextResponse.json(null);

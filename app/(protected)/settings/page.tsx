@@ -86,16 +86,22 @@ const SettingsPage = () => {
     });
   };
  
+
   const handleDeleteAccount = async () => {
     try {
-      const res = await fetch('/api/delete-user', {
-        method: 'DELETE'
+       await fetch('/api/delete-user', {
+        method: 'DELETE',
+        body: JSON.stringify({ reason: deleteReason }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
   
-       await logout();
+      await logout();
       window.location.href = '/auth/login';
   
     } catch (error) {
+      console.error('Delete error:', error);   
       await logout();
       window.location.href = '/auth/login';
     }
