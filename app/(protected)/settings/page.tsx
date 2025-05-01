@@ -90,13 +90,13 @@ const SettingsPage = () => {
   const handleDeleteAccount = async () => {
     setDeleteError(undefined);
     try {
-      const result = await deleteUser();
+      const result = await deleteUser(deleteReason);  
       
       if (result.error) {
         throw new Error(result.error);
       }
   
-       window.location.href = "/auth/login";
+      window.location.href = "/auth/login";
     } catch (error) {
       console.error('Delete error:', error);
       setDeleteError(error instanceof Error ? error.message : 'Deletion failed');

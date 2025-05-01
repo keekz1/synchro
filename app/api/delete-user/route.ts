@@ -6,7 +6,8 @@ import { logout } from "@/actions/logout";
 
 export const deleteUser = async () => {
   try {
-     const user = await currentUser();
+ 
+    const user = await currentUser();
     if (!user?.id) return { error: "Unauthorized" };
 
      const dbUser = await db.user.findUnique({
