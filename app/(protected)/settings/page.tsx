@@ -95,8 +95,7 @@ const SettingsPage = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        // Remove the body since your backend isn't using it
-        // If you want to keep the reason, modify your backend to accept it
+        body: JSON.stringify({ reason: deleteReason })  
       });
   
       if (!response.ok) {
