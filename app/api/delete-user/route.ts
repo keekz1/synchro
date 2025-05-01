@@ -3,54 +3,83 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
-    console.log('[DELETE] Start account deletion');
-    const session = await auth();
-    
+     const session = await auth();
+    console.log('[DELETE] Auth session:', {
+      userId: session?.user?.id,
+      email: session?.user?.email,
+      sessionValid: !!session?.user
+    });
+
     if (!session?.user?.id) {
-      console.error('[DELETE] No session found');
+      console.error('[DELETE] No valid session found');
       return NextResponse.json(
-        { error: 'Unauthorized' }, 
+        { 
+          error: 'Unauthorized',
+          solution: 'Ensure you have an active session and cookies are enabled'
+        }, 
         { status: 401 }
       );
     }
 
-    console.log(`[DELETE] Deleting user ${session.user.id}`);
-    const deleteResult = await db.user.delete({
-      where: { id: session.user.id },
-      include: { accounts: true }
-    });
-    console.log('[DELETE] User deleted:', deleteResult);
+     console.log(`[DELETE] Starting deletion for user ${session.user.id}`);
+    const deleteResult = await db.$transaction([
+      db.account.deleteMany({
+        where: { userId: session.user.id }
+      }),
+      db.user.delete({
+        where: { id: session.user.id }
+      })
+    ]);
+    console.log('[DELETE] Deletion successful:', deleteResult);
 
-    const response = NextResponse.json(
-      { success: true },
+     const response = NextResponse.json(
+      { 
+        success: true,
+        message: 'Account permanently deleted'
+      },
       { status: 200 }
     );
 
-    const cookies = ['next-auth.session-token', 'next-auth.csrf-token'];
-    cookies.forEach(cookie => {
+     const authCookies = [
+      'next-auth.session-token',
+      'next-auth.csrf-token',
+      '__Secure-next-auth.session-token'
+    ];
+
+    authCookies.forEach(cookie => {
       response.cookies.set({
         name: cookie,
         value: '',
         expires: new Date(0),
         path: '/',
-        secure: true,  
-        sameSite: 'lax',
-        domain: '.wesynchro.com' 
+        secure: true,
+        sameSite: 'none', 
+        domain: process.env.NODE_ENV === 'production' 
+          ? '.wesynchro.com' 
+          : 'localhost'
       });
     });
 
-    console.log('[DELETE] Account deletion completed');
+    console.log('[DELETE] Session terminated and cookies cleared');
     return response;
 
   } catch (error) {
-    console.error('[DELETE] Error:', error);
+    console.error('[DELETE] Failure:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
     return NextResponse.json(
       { 
-        error: 'Deletion failed',
-        ...(process.env.NODE_ENV === 'development' && {
-          details: error instanceof Error ? error.message : String(error)
+        error: 'Account deletion failed',
+        solution: 'Try again or contact support',
+        ...(process.env.NODE_ENV !== 'production' && {
+          debug: {
+            message: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString()
+          }
         })
       },
       { status: 500 }

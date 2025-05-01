@@ -7,8 +7,7 @@ export async function DELETE() {
   try {
     console.log('[DELETE] Starting account deletion process');
     
-    // Get session using the same method as current-user endpoint
-    const session = await auth();
+     const session = await auth();
     console.log("Session Data:", session);
     
     if (!session?.user?.email) {
@@ -19,10 +18,9 @@ export async function DELETE() {
       );
     }
 
-    // Find user by email (same as current-user endpoint)
-    const user = await db.user.findUnique({
+     const user = await db.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true } // Only need ID for deletion
+      select: { id: true } 
     });
 
     if (!user) {
@@ -35,22 +33,19 @@ export async function DELETE() {
 
     console.log(`[DELETE] Deleting user ID: ${user.id}`);
     
-    // Perform deletion (including related accounts)
-    await db.user.delete({
+     await db.user.delete({
       where: { id: user.id },
       include: { accounts: true }
     });
 
     console.log('[DELETE] User successfully deleted');
 
-    // Create response and clear cookies
-    const response = NextResponse.json(
+     const response = NextResponse.json(
       { success: true, message: 'Account deleted' },
       { status: 200 }
     );
 
-    // Clear auth cookies
-    ['next-auth.session-token', 'next-auth.csrf-token'].forEach(cookie => {
+     ['next-auth.session-token', 'next-auth.csrf-token'].forEach(cookie => {
       response.cookies.set({
         name: cookie,
         value: '',
@@ -58,7 +53,7 @@ export async function DELETE() {
         path: '/',
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        domain: '.wesynchro.com' // Important: leading dot for subdomains
+        domain: '.wesynchro.com'  
       });
     });
 
