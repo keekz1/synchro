@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { settings } from "@/actions/settings";
 import { Pencil } from "lucide-react";
  import { useRouter } from "next/navigation";
- import { logout } from "@/actions/logout";  
+ import { deleteUser } from "@/actions/delete-user";
 
 const SettingsPage = () => {
   const user = useCurrentUser();
@@ -90,22 +90,13 @@ const SettingsPage = () => {
   const handleDeleteAccount = async () => {
     setDeleteError(undefined);
     try {
-      const response = await fetch('/api/delete-user', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reason: deleteReason })  
-      });
-  
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Account deletion failed');
+      const result = await deleteUser();
+      
+      if (result.error) {
+        throw new Error(result.error);
       }
   
-      await logout();
-      window.location.href = '/auth/login';
-  
+       window.location.href = "/auth/login";
     } catch (error) {
       console.error('Delete error:', error);
       setDeleteError(error instanceof Error ? error.message : 'Deletion failed');

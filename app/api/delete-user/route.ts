@@ -1,42 +1,33 @@
- "use server";
-import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-import { db } from '@/lib/db';
+"use server";
 
-export async function DELETE(request: Request) {
+import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { logout } from "@/actions/logout";
+
+export const deleteUser = async () => {
   try {
-    const token = await getToken({ req: request });
-    
-    if (!token?.sub) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
+     const user = await currentUser();
+    if (!user?.id) return { error: "Unauthorized" };
 
-    // Optional: Get the reason from the request body
-    const { reason } = await request.json();
-    console.log('Deletion reason:', reason); // Log the reason or store it
+     const dbUser = await db.user.findUnique({
+      where: { id: user.id }
+    });
+    if (!dbUser) return { error: "User not found" };
 
-    await db.$transaction([
+     await db.$transaction([
       db.account.deleteMany({
-        where: { userId: token.sub }
+        where: { userId: user.id }
       }),
       db.user.delete({
-        where: { id: token.sub }
+        where: { id: user.id }
       })
     ]);
 
-    return NextResponse.json(
-      { success: true, message: 'Account deleted' },
-      { status: 200 }
-    );
+     await logout();
 
+    return { success: "Account deleted successfully" };
   } catch (error) {
-    console.error('[DELETE] Error:', error);
-    return NextResponse.json(
-      { error: 'Account deletion failed' },
-      { status: 500 }
-    );
+    console.error("Delete User Error:", error);
+    return { error: "Failed to delete account" };
   }
-}
+};

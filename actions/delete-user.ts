@@ -1,28 +1,33 @@
 "use server";
 
-import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-export const deleteUser = async (userId: string, reason: string) => {
+import { db } from "@/lib/db";
+import { logout } from "@/actions/logout";
+
+export const deleteUser = async () => {
   try {
-    // Check if we're on the client side (window is defined)
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+     const user = await currentUser();
+    if (!user?.id) return { error: "Unauthorized" };
 
-    const res = await fetch(`${baseUrl}/api/delete-user`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId, reason }),
+     const dbUser = await db.user.findUnique({
+      where: { id: user.id }
     });
+    if (!dbUser) return { error: "User not found" };
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      return { error: errorData.message || "Failed to delete user." };
-    }
+     await db.$transaction([
+      db.account.deleteMany({
+        where: { userId: user.id }
+      }),
+      db.user.delete({
+        where: { id: user.id }
+      })
+    ]);
 
-    return { success: true };
+     await logout();
+
+    return { success: "Account deleted successfully" };
   } catch (error) {
-    console.error("deleteUser error:", error);
-    return { error: "Network error" };
+    console.error("Delete User Error:", error);
+    return { error: "Failed to delete account" };
   }
 };
