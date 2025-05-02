@@ -56,12 +56,14 @@ export default function CollabPage() {
   const [showSuggestedUsers, setShowSuggestedUsers] = useState<boolean>(false);
   const [showRequests, setShowRequests] = useState<boolean>(false);
 
-   const { data: usersData } = useSWR<User[]>("/api/users", fetcher, {
+  // Fetch all users every 20 seconds
+  const { data: usersData } = useSWR<User[]>("/api/users", fetcher, {
     refreshInterval: 20000,
     revalidateOnFocus: false
   });
 
-   const { data: friendsData, mutate: mutateFriends } = useSWR<User[]>(
+  // Fetch friends every 20 seconds
+  const { data: friendsData, mutate: mutateFriends } = useSWR<User[]>(
     session?.user?.id ? `/api/users/${session.user.id}/friends` : null,
     fetcher, {
       refreshInterval: 20000,
@@ -69,7 +71,8 @@ export default function CollabPage() {
     }
   );
 
-   const { data: pendingData } = useSWR<FriendRequest[]>(
+  // Fetch pending requests every 20 seconds
+  const { data: pendingData } = useSWR<FriendRequest[]>(
     session?.user?.id ? `/api/friendRequest/pending/${session.user.id}` : null,
     fetcher, {
       refreshInterval: 20000,
@@ -100,7 +103,7 @@ export default function CollabPage() {
  useEffect(() => {
   const reloadTimer = setInterval(() => {
     window.location.reload();
-  }, 1800000);
+  }, 2000000);
 
   return () => clearInterval(reloadTimer);
 }, []); 
