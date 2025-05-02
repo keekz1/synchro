@@ -259,7 +259,7 @@ export default function Profile({ user }: ProfileProps) {
         </div>
       )}
   
-      {/* Open to Work Toggle */}
+      {/* Open to Work   */}
       <div className="mt-4 bg-white/10 p-4 rounded-lg flex justify-between items-center">
         <div>
           <h3 className="font-semibold text-white">Open to Work</h3>

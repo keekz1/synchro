@@ -1,8 +1,10 @@
 "use server";
 
 import { currentUser } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db as prismaDb } from "@/lib/db";  
 import { logout } from "@/actions/logout";
+import { db as firestore } from "@/lib/firebase";  
+import { collection ,   getDocs,  writeBatch } from "firebase/firestore";
 
 export const deleteUser = async (reason?: string) => {
   try {
@@ -12,7 +14,7 @@ export const deleteUser = async (reason?: string) => {
     }
 
      if (reason) {
-      await db.deleteReason.create({
+      await prismaDb.deleteReason.create({
         data: {
           userId: user.id,
           reason: reason,
@@ -21,8 +23,30 @@ export const deleteUser = async (reason?: string) => {
       });
     }
 
-     await db.$transaction([
-       db.message.deleteMany({
+     const batch = writeBatch(firestore);
+    
+     const sentRequestsRef = collection(firestore, "users", user.id, "sentFriendRequests");
+    const sentRequestsSnapshot = await getDocs(sentRequestsRef);
+    sentRequestsSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+     const receivedRequestsRef = collection(firestore, "users", user.id, "friendRequests");
+    const receivedRequestsSnapshot = await getDocs(receivedRequestsRef);
+    receivedRequestsSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+     const notificationsRef = collection(firestore, "users", user.id, "notifications");
+    const notificationsSnapshot = await getDocs(notificationsRef);
+    notificationsSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+     await batch.commit();
+
+     await prismaDb.$transaction([
+       prismaDb.message.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -31,7 +55,7 @@ export const deleteUser = async (reason?: string) => {
         }
       }),
       
-       db.friendRequest.deleteMany({
+       prismaDb.friendRequest.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -40,7 +64,7 @@ export const deleteUser = async (reason?: string) => {
         }
       }),
       
-       db.rejectedRequest.deleteMany({
+       prismaDb.rejectedRequest.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -49,7 +73,7 @@ export const deleteUser = async (reason?: string) => {
         }
       }),
       
-       db.friendship.deleteMany({
+       prismaDb.friendship.deleteMany({
         where: {
           OR: [
             { userAId: user.id },
@@ -58,19 +82,19 @@ export const deleteUser = async (reason?: string) => {
         }
       }),
       
-       db.hRPreferences.deleteMany({
+       prismaDb.hRPreferences.deleteMany({
         where: { userId: user.id }
       }),
       
-       db.twoFactorConfirmation.deleteMany({
+       prismaDb.twoFactorConfirmation.deleteMany({
         where: { userId: user.id }
       }),
       
-       db.account.deleteMany({
+       prismaDb.account.deleteMany({
         where: { userId: user.id }
       }),
       
-       db.user.delete({
+       prismaDb.user.delete({
         where: { id: user.id }
       })
     ]);
@@ -78,14 +102,14 @@ export const deleteUser = async (reason?: string) => {
      await logout();
 
     return { 
-      success: "Account and all related data deleted successfully",
+      success: " deleted successfully",
       redirectUrl: "/auth/login"
     };
 
   } catch (error) {
     console.error("Complete User Deletion Error:", error);
     return { 
-      error: error instanceof Error ? error.message : "Failed to delete account and related data"
+      error: error instanceof Error ? error.message : "Failed to delete account"
     };
   }
 };
