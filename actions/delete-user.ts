@@ -6,14 +6,12 @@ import { logout } from "@/actions/logout";
 
 export const deleteUser = async (reason?: string) => {
   try {
-    // 1. Get and validate current user
-    const user = await currentUser();
+     const user = await currentUser();
     if (!user?.id) {
       return { error: "Unauthorized" };
     }
 
-    // 2. Store deletion reason if provided
-    if (reason) {
+     if (reason) {
       await db.deleteReason.create({
         data: {
           userId: user.id,
@@ -23,10 +21,8 @@ export const deleteUser = async (reason?: string) => {
       });
     }
 
-    // 3. Perform complete user data deletion in transaction
-    await db.$transaction([
-      // Delete all related messages
-      db.message.deleteMany({
+     await db.$transaction([
+       db.message.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -35,8 +31,7 @@ export const deleteUser = async (reason?: string) => {
         }
       }),
       
-      // Delete all friend requests
-      db.friendRequest.deleteMany({
+       db.friendRequest.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -45,8 +40,7 @@ export const deleteUser = async (reason?: string) => {
         }
       }),
       
-      // Delete all rejected requests
-      db.rejectedRequest.deleteMany({
+       db.rejectedRequest.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -55,8 +49,7 @@ export const deleteUser = async (reason?: string) => {
         }
       }),
       
-      // Delete all friendships
-      db.friendship.deleteMany({
+       db.friendship.deleteMany({
         where: {
           OR: [
             { userAId: user.id },
@@ -65,29 +58,24 @@ export const deleteUser = async (reason?: string) => {
         }
       }),
       
-      // Delete HR preferences
-      db.hRPreferences.deleteMany({
+       db.hRPreferences.deleteMany({
         where: { userId: user.id }
       }),
       
-      // Delete two-factor confirmation
-      db.twoFactorConfirmation.deleteMany({
+       db.twoFactorConfirmation.deleteMany({
         where: { userId: user.id }
       }),
       
-      // Delete accounts
-      db.account.deleteMany({
+       db.account.deleteMany({
         where: { userId: user.id }
       }),
       
-      // Finally delete the user
-      db.user.delete({
+       db.user.delete({
         where: { id: user.id }
       })
     ]);
 
-    // 4. Force logout after deletion
-    await logout();
+     await logout();
 
     return { 
       success: "Account and all related data deleted successfully",
