@@ -10,16 +10,7 @@ import SuggestedUsers from "@/components/SuggestedUsers";
 import { Prisma } from "@prisma/client";
 import Notification from "@/components/Notification";
 import '@fortawesome/fontawesome-free/css/all.min.css';
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  collection,
-  query,
-  where,
-  getDocs,
-  getFirestore
-} from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, where, onSnapshot, getFirestore } from "firebase/firestore";
 import { app } from "@/lib/firebase";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -56,106 +47,94 @@ export default function CollabPage() {
   const [showSuggestedUsers, setShowSuggestedUsers] = useState<boolean>(false);
   const [showRequests, setShowRequests] = useState<boolean>(false);
 
-  // Fetch all users every 20 seconds
-  const { data: usersData } = useSWR<User[]>("/api/users", fetcher, {
-    refreshInterval: 20000,
+  const { data: usersData } = useSWR<User[]>('/api/users', fetcher, { 
+    revalidateIfStale: false,
     revalidateOnFocus: false
   });
 
-  // Fetch friends every 20 seconds
   const { data: friendsData, mutate: mutateFriends } = useSWR<User[]>(
-    session?.user?.id ? `/api/users/${session.user.id}/friends` : null,
-    fetcher, {
-      refreshInterval: 20000,
-      revalidateOnFocus: false
+    session?.user?.id ? `/api/users/${session.user.id}/friends` : null, 
+    fetcher,
+    { 
+      revalidateIfStale: false
     }
   );
 
-  // Fetch pending requests every 20 seconds
   const { data: pendingData } = useSWR<FriendRequest[]>(
     session?.user?.id ? `/api/friendRequest/pending/${session.user.id}` : null,
-    fetcher, {
-      refreshInterval: 20000,
-      revalidateOnFocus: false
+    fetcher,
+    { 
+      revalidateIfStale: false
     }
   );
 
   const friends: User[] = friendsData || [];
   const pendingRequests: FriendRequest[] = pendingData || [];
-  const suggestedUsers = session?.user?.id
-    ? (usersData || []).filter(user => 
-        user.id !== session.user.id &&
-        !friends.some(f => f.id === user.id)
-      )
-    : [];
+  const suggestedUsers: User[] = (usersData || []).filter(user => 
+    !friends.some(friend => friend.id === user.id) && 
+    user.id !== session?.user?.id
+  );
 
   const allPendingRequests: FriendRequest[] = [
     ...pendingRequests,
-    ...realTimeRequests.filter(
-      (r) => !pendingRequests.some((pr) => pr.id === r.id)
+    ...realTimeRequests.filter(r => 
+      !pendingRequests.some(pr => pr.id === r.id)
     )
   ];
 
   const receivedRequests: FriendRequest[] = allPendingRequests.filter(
-    (req) => req.receiverId === session?.user?.id && req.status === "pending"
+    (request) => request.receiverId === session?.user?.id && request.status === "pending"
   );
 
- useEffect(() => {
-  const reloadTimer = setInterval(() => {
-    window.location.reload();
-  }, 2000000);
-
-  return () => clearInterval(reloadTimer);
-}, []); 
- useEffect(() => {
+  // Firebase real-time listener
+  useEffect(() => {
     if (!session?.user?.id) return;
+
     const db = getFirestore(app);
     const q = query(
       collection(db, "users", session.user.id, "friendRequests"),
       where("status", "==", "pending")
     );
 
-    const fetchRequests = async () => {
-      try {
-        const snapshot = await getDocs(q);
-        const newReqs = snapshot.docs.map(d => ({
-          ...d.data(),
-          id: d.id
-        }) as FriendRequest);
-        setRealTimeRequests(newReqs);
-      } catch (err) {
-        console.error("Error fetching requests:", err);
-      }
-    };
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newRequests = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as FriendRequest[];
+      setRealTimeRequests(newRequests);
+    });
 
-     fetchRequests();
-    const interval = setInterval(fetchRequests, 20000);
-    return () => clearInterval(interval);
+    return () => unsubscribe();
   }, [session?.user?.id, setRealTimeRequests]);
 
-  const handleNavbarClick = (section: string) => {
+  const handleNavbarClick = (section: string): void => {
     setShowFriends(section === "friends");
     setShowSuggestedUsers(section === "suggested");
     setShowRequests(section === "requests");
   };
 
-  const handleRequestUpdate = async (requestId: string) => {
-    setRealTimeRequests(realTimeRequests.filter((r) => r.id !== requestId));
+  const handleRequestUpdate = async (requestId: string): Promise<void> => {
+    setRealTimeRequests(realTimeRequests.filter(request => request.id !== requestId));
     await mutateFriends();
   };
 
-  const handleSendFriendRequest = async (receiverId: string) => {
+  const handleSendFriendRequest = async (receiverId: string): Promise<void> => {
     if (!session?.user?.id) return;
+  
     try {
       addSentRequest(receiverId);
-      const resp = await axios.post("/api/friendRequest/send", {
+      
+      const response = await axios.post("/api/friendRequest/send", {
         senderId: session.user.id,
-        receiverId
+        receiverId,
       });
-      const request = resp.data.request || resp.data;
+
+      const request = response.data?.request || response.data;
+      
       if (!request?.id) throw new Error("Failed to get request ID");
+
       const db = getFirestore(app);
-      await setDoc(
+       await setDoc(
         doc(db, "users", receiverId, "friendRequests", request.id),
         {
           id: request.id,
@@ -164,8 +143,8 @@ export default function CollabPage() {
           status: "pending",
           sender: {
             id: request.sender?.id,
-            name: request.sender?.name || "",
-            email: request.sender?.email || "",
+            name: request.sender?.name || '',
+            email: request.sender?.email || '',
             image: request.sender?.image || null
           },
           createdAt: serverTimestamp(),
@@ -173,21 +152,23 @@ export default function CollabPage() {
         },
         { merge: true }
       );
+      
       toast.success("Friend request sent!");
     } catch (error) {
       removeSentRequest(receiverId);
-      toast.error(
-        error instanceof Error ? error.message : "Request already sent"
-      );
+      toast.error(error instanceof Error ? error.message : "Seems you already sent a request");
     }
   };
 
-  const isRequestSentOrReceived = (userId: string): boolean =>
-    allPendingRequests.some(
-      (req) => req.sender?.id === userId || req.receiver?.id === userId
-    ) || sentRequests.has(userId);
+  const isRequestSentOrReceived = (userId: string): boolean => {
+    return (
+      allPendingRequests.some(
+        (request) => request.sender?.id === userId || request.receiver?.id === userId
+      ) || sentRequests.has(userId)
+    );
+  };
 
-  if (status === "loading") {
+  if (status === "loading" || !session?.user?.id) {
     return (
       <div className="collab-page">
         <nav className="discord-navbar">
@@ -213,7 +194,7 @@ export default function CollabPage() {
           onClick={() => handleNavbarClick("friends")}
           aria-label="Friends"
         >
-          <i className="fas fa-users" />
+          <i className="fas fa-users"></i>
         </a>
         <hr />
         <a
@@ -222,7 +203,7 @@ export default function CollabPage() {
           onClick={() => handleNavbarClick("suggested")}
           aria-label="Suggested Users"
         >
-          <i className="fas fa-user-plus" />
+          <i className="fas fa-user-plus"></i>
         </a>
         <a
           href="#"
@@ -231,7 +212,7 @@ export default function CollabPage() {
           aria-label="Friend Requests"
         >
           <div className="icon-container">
-            <i className="fas fa-bell" />
+            <i className="fas fa-bell"></i>
             {receivedRequests.length > 0 && (
               <span className="notification-badge">
                 {receivedRequests.length > 9 ? "9+" : receivedRequests.length}
@@ -242,13 +223,7 @@ export default function CollabPage() {
       </nav>
 
       <div className="main-content">
-        {showFriends && (
-          <Friends
-            friends={friends}
-            loading={false}
-            currentUserId={session?.user?.id || ""}
-          />
-        )}
+        {showFriends && <Friends friends={friends} loading={false} currentUserId={session?.user?.id || ''} />}
         {showSuggestedUsers && (
           <SuggestedUsers
             users={suggestedUsers}
@@ -272,3 +247,5 @@ export default function CollabPage() {
     </div>
   );
 }
+
+ 
