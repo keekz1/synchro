@@ -27,18 +27,28 @@ const Friends: React.FC<FriendsProps> = ({ friends, loading, currentUserId, onUn
   const [isUnfriending, setIsUnfriending] = useState<string | null>(null);
   const [friendsList, setFriendsList] = useState<User[]>(friends); 
   const menuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-useEffect(() => {
-  if (!currentUserId) return;
-  const unsubscribe = onSnapshot(doc(db, "users", currentUserId), (doc) => {
-    if (doc.exists()) {
-      console.log("Updated friends:", doc.data().friends);
-      const updatedFriends = doc.data().friends || [];
-      setFriendsList(updatedFriends);
-    }
-  });
-
-  return () => unsubscribe();
-}, [currentUserId]);
+  useEffect(() => {
+    if (!currentUserId) return;
+  
+    const unsubscribe = onSnapshot(doc(db, "users", currentUserId), async (docSnap) => {
+      if (docSnap.exists()) {
+        const friendIds = docSnap.data().friends || [];
+  
+         const friendDocs = await Promise.all(
+          friendIds.map(async (id: string) => {
+            const userDoc = await getDoc(doc(db, "users", id));
+            return userDoc.exists() ? { id, ...userDoc.data() } as User : null;
+          })
+        );
+  
+         const validFriends = friendDocs.filter(Boolean) as User[];
+        setFriendsList(validFriends);
+      }
+    });
+  
+    return () => unsubscribe();
+  }, [currentUserId]);
+  
 
 
    useEffect(() => {

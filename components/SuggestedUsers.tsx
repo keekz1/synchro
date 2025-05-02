@@ -51,15 +51,13 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
       try {
         const response = await axios.get<RejectedRequest[]>(`/api/users/${userId}/rejected-requests`);
         
-        // Rejections where I was sender (my requests got rejected)
-        const rejectionSenderIds = response.data
+         const rejectionSenderIds = response.data
           .filter((r) => r.senderId === userId)
           .map((r) => r.receiverId);
           
         setRejectedByUsers(new Set(rejectionSenderIds));
   
-        // Rejections where I was receiver (users I rejected)
-        const myRejections = response.data.filter((r) => r.receiverId === userId);
+         const myRejections = response.data.filter((r) => r.receiverId === userId);
         setUsersRejectedByMe(myRejections);
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -105,8 +103,7 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
     }
   };
   const handleSendRequest = async (receiverId: string) => {
-    // Optimistically add to sentRequests
-    setSentRequests(prev => new Set(prev).add(receiverId));
+     setSentRequests(prev => new Set(prev).add(receiverId));
   
     try {
       const response = await axios.post(
@@ -133,8 +130,7 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
         throw new Error(response.data.error || "Failed to send request");
       }
     } catch (error) {
-      // Rollback UI if the request fails
-      setSentRequests(prev => {
+       setSentRequests(prev => {
         const updated = new Set(prev);
         updated.delete(receiverId);
         return updated;
@@ -160,16 +156,14 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   
   const handleOverrideRejection = async (receiverId: string) => {
     try {
-      //  remove from rejected list
-      await axios.delete(`/api/users/${userId}/rejected-requests`, {
+       await axios.delete(`/api/users/${userId}/rejected-requests`, {
         data: { 
           targetUserId: receiverId,
           override: true 
         }
       });
       
-      // Then send new request
-      const response = await axios.post("/api/friendRequest/send", { receiverId });
+       const response = await axios.post("/api/friendRequest/send", { receiverId });
       
       if (response.data.success) {
         setSentRequests(prev => new Set(prev).add(receiverId));
