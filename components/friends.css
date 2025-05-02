@@ -1,5 +1,4 @@
-/* General Styles */
-.friends-section {
+ .friends-section {
   padding: 20px;
   background-color: #ffffff;
   border-radius: 10px;
@@ -19,8 +18,7 @@
   text-align: center;
 }
 
-/* Friends List */
-.friends-list {
+ .friends-list {
   list-style-type: none;
   padding: 0;
   margin: 0;
@@ -48,22 +46,22 @@
 }
 
 .friend-info {
-  display: flex;  /* Align items horizontally */
-  align-items: center;  /* Center the items vertically */
+  display: flex;   
+  align-items: center;   
 }
 
 .avatar-img {
-  width: 40px; /* Adjust size as needed */
-  height: 40px; /* Maintain the square aspect */
-  border-radius: 60%; /* Make the image circular */
-  object-fit: cover; /* Ensure the image maintains its aspect ratio */
-  border: 2px solid #ddd; /* Optional: adds a border around the image */
+  width: 40px; 
+  height: 40px;  
+  border-radius: 60%;  
+  object-fit: cover; 
+  border: 2px solid #ddd;  
 }
 
 
 .friend-name {
-  font-size: 16px;  /* Adjust font size as needed */
-  font-weight: 500;  /* Make the name bold or adjust weight */
+  font-size: 16px;   
+  font-weight: 500;  
   margin-left: 5px;
 
 }
@@ -73,8 +71,7 @@
   color: #666;
 }
 
-/* Loading and Empty States */
-.loading {
+ .loading {
   text-align: center;
   font-size: 18px;
   color: #0070f3;
@@ -85,16 +82,14 @@
   font-size: 18px;
   color: #666;
 }
-/* Make sure actions are better spaced and touch-friendly */
-.friend-actions {
+ .friend-actions {
   position: relative;
   display: flex;
   align-items: center;
   margin-left: 10px;
 }
 
-/* Improve menu button accessibility */
-.menu-button {
+ .menu-button {
   background: transparent;
   border: none;
   cursor: pointer;
@@ -112,14 +107,12 @@
   background-color: #f0f0f0;
 }
 
-/* Three dot icon spacing */
-.menu-button .dot {
+ .menu-button .dot {
   font-size: 18px;
   margin: 0 1px;
 }
 
-/* Dropdown menu */
-.friend-menu {
+ .friend-menu {
   position: absolute;
   top: 45px;
   right: 0;
@@ -138,8 +131,7 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* Menu item styling */
-.menu-item {
+ .menu-item {
   width: 100%;
   padding: 10px 15px;
   text-align: left;

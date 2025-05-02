@@ -51,8 +51,7 @@ const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
       try {
         const response = await axios.get<RejectedRequest[]>(`/api/users/${userId}/rejected-requests`);
         
-        // Rejections where I was sender (my requests got rejected)
-        const rejectionSenderIds = response.data
+         const rejectionSenderIds = response.data
           .filter((r) => r.senderId === userId)
           .map((r) => r.receiverId);
           

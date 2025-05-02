@@ -25,26 +25,23 @@ const Friends: React.FC<FriendsProps> = ({ friends, loading, currentUserId, onUn
   const router = useRouter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isUnfriending, setIsUnfriending] = useState<string | null>(null);
-  const [friendsList, setFriendsList] = useState<User[]>(friends); // State to hold the list of friends
+  const [friendsList, setFriendsList] = useState<User[]>(friends); 
   const menuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+useEffect(() => {
+  if (!currentUserId) return;
+  const unsubscribe = onSnapshot(doc(db, "users", currentUserId), (doc) => {
+    if (doc.exists()) {
+      console.log("Updated friends:", doc.data().friends);
+      const updatedFriends = doc.data().friends || [];
+      setFriendsList(updatedFriends);
+    }
+  });
 
-  // Real-time Firestore listener to update friends list
-  useEffect(() => {
-    if (!currentUserId) return; // Only set up the listener if currentUserId is available
+  return () => unsubscribe();
+}, [currentUserId]);
 
-    const unsubscribe = onSnapshot(doc(db, "users", currentUserId), (doc) => {
-      if (doc.exists()) {
-        const updatedFriends = doc.data().friends || [];
-        // Update state with the new friends list
-        setFriendsList(updatedFriends);
-      }
-    });
 
-    return () => unsubscribe(); // Clean up the listener on component unmount
-  }, [currentUserId]);
-
-  // Close menu when clicking outside
-  useEffect(() => {
+   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (openMenuId && menuRefs.current[openMenuId] && 
           !menuRefs.current[openMenuId]?.contains(event.target as Node)) {
@@ -73,23 +70,19 @@ const Friends: React.FC<FriendsProps> = ({ friends, loading, currentUserId, onUn
     setIsUnfriending(friendId);
     
     try {
-      // First, check if the documents exist
-      const currentUserRef = doc(db, "users", currentUserId);
+       const currentUserRef = doc(db, "users", currentUserId);
       const friendUserRef = doc(db, "users", friendId);
       
-      // Use the new API endpoint
-      const response = await axios.post('/api/removeFriend', {
+       const response = await axios.post('/api/removeFriend', {
         friendId
       });
       
       if (response.data.success) {
         try {
-          // Get document snapshots to check if they exist
-          const currentUserDoc = await getDoc(currentUserRef);
+           const currentUserDoc = await getDoc(currentUserRef);
           const friendUserDoc = await getDoc(friendUserRef);
           
-          // Only update if documents exist
-          if (currentUserDoc.exists()) {
+           if (currentUserDoc.exists()) {
             await updateDoc(currentUserRef, {
               friends: arrayRemove(friendId)
             });
@@ -105,8 +98,7 @@ const Friends: React.FC<FriendsProps> = ({ friends, loading, currentUserId, onUn
             console.warn(`Friend user document (${friendId}) doesn't exist`);
           }
           
-          // Optional: Delete chat between users
-          try {
+           try {
             const chatId = [currentUserId, friendId].sort().join('_');
             const chatRef = doc(db, "chats", chatId);
             const chatDoc = await getDoc(chatRef);
@@ -118,8 +110,7 @@ const Friends: React.FC<FriendsProps> = ({ friends, loading, currentUserId, onUn
             console.warn("Could not delete chat:", chatError);
           }
 
-          // Immediately remove the friend from the UI without refreshing
-          setFriendsList(prevFriends => prevFriends.filter(friend => friend.id !== friendId));
+           setFriendsList(prevFriends => prevFriends.filter(friend => friend.id !== friendId));
 
           toast.success("Successfully unfriended");
           if (onUnfriendSuccess) onUnfriendSuccess();
