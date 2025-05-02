@@ -24,7 +24,7 @@ interface ProfileProps {
 
 export default function Profile({ user }: ProfileProps) {
    const [role, setRole] = useState(user.role.replace(/_/g, " "));
-  const [image, setImage] = useState(user.image || "https://via.placeholder.com/100");
+  const [image, setImage] = useState(user.image || "/images/cat.png");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [rolesFromDb, setRolesFromDb] = useState<string[]>([]);
@@ -259,7 +259,7 @@ export default function Profile({ user }: ProfileProps) {
         </div>
       )}
   
-      {/* Open to Work   */}
+      {/* Opentowork  */}
       <div className="mt-4 bg-white/10 p-4 rounded-lg flex justify-between items-center">
         <div>
           <h3 className="font-semibold text-white">Open to Work</h3>
@@ -297,7 +297,7 @@ export default function Profile({ user }: ProfileProps) {
         </button>
       </div>
   
-      {/* Role Section */}
+      {/* Role  */}
       <div className="mt-6 bg-white/10 p-4 rounded-lg">
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-semibold text-white">Your Role</h3>
@@ -358,7 +358,7 @@ export default function Profile({ user }: ProfileProps) {
         )}
       </div>
   
-      {/* Profile Details Section */}
+      {/* Profile Details  */}
       <div className="mt-6 bg-white/10 p-4 rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold text-white">Profile Details</h3>
@@ -469,7 +469,7 @@ export default function Profile({ user }: ProfileProps) {
               </div>
             </div>
 
-            {/* Skills Section */}
+            {/* Skills   */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-white mb-2">Skills</label>
               {skills.length > 0 && (

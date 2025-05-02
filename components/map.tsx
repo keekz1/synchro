@@ -234,7 +234,7 @@ const MapComponent: React.FC = () => {
     });
   }, [emit]);
   function getDistanceInMiles(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const R = 3958.8; // Radius of Earth in miles
+    const R = 3958.8;  
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -325,7 +325,7 @@ const MapComponent: React.FC = () => {
           user.lat,
           user.lng
         );
-        // Only show same-role users within 10 miles
+        // within 10 miles
         return distance <= 10 && user.role === userRole;
       });
     
@@ -395,8 +395,7 @@ const MapComponent: React.FC = () => {
   const handleUpdateTicket = (ticketId: string) => {
     if (!editTicketMessage.trim() || !socket) return;
     
-    // Optimistic update
-    setTickets(tickets.map(ticket => 
+     setTickets(tickets.map(ticket => 
       ticket.id === ticketId 
         ? {...ticket, message: editTicketMessage} 
         : ticket

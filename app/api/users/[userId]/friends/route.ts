@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// NextRequest is the correct type for handling requests
-export async function GET(req: NextRequest) {
+ export async function GET(req: NextRequest) {
   try {
-    // Extracting the userId directly from req.nextUrl.pathname
-    const pathname = req.nextUrl.pathname; // Example: /api/users/123/friends
-    const userId = pathname.split('/')[3]; // Extract userId by splitting the pathname
+     const pathname = req.nextUrl.pathname;  
+    const userId = pathname.split('/')[3];  
 
-    // Ensure userId is valid (not undefined or empty)
-    if (!userId) {
+     if (!userId) {
       return NextResponse.json(
         { error: "User ID is required" },
         { status: 400 }
       );
     }
 
-    // Get unique friendships using Prisma
-    const friendships = await db.friendship.findMany({
+     const friendships = await db.friendship.findMany({
       where: {
         OR: [
           { userAId: userId },
@@ -30,8 +26,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Deduplication logic
-    const seen = new Set<string>();
+     const seen = new Set<string>();
     const friends = friendships.flatMap(friendship => {
       const friend = friendship.userAId === userId ? 
         friendship.userB : 

@@ -149,11 +149,11 @@ useEffect(() => {
                 <div className="friend-info">
                   <div className="friend-avatar">
                     <img 
-                      src={friend.image || "/default-avatar.png"} 
+                      src={friend.image || "https://i.imgur.com/DUC8BHW_d.png?maxwidth=520&shape=thumb&fidelity=high"} 
                       alt={friend.name} 
                       className="avatar-img" 
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/default-avatar.png";
+                        (e.target as HTMLImageElement).src = "https://i.imgur.com/DUC8BHW_d.png?maxwidth=520&shape=thumb&fidelity=high";
                       }}
                     />
                   </div>

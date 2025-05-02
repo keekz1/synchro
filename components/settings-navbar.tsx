@@ -1,5 +1,4 @@
-// app/(protected)/settings/_components/settings-navbar.tsx
-"use client";
+ "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
