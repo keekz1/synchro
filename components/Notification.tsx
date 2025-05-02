@@ -16,8 +16,7 @@ import {
   setDoc,
   getDocs,        
   writeBatch,    
-  deleteDoc       
-} from "firebase/firestore";
+ } from "firebase/firestore";
 import "@/components/notifications.css";
 import { DocumentSnapshot } from "firebase/firestore";
 interface User {
@@ -95,8 +94,7 @@ const Notifications: React.FC<NotificationsProps> = ({
 
 const cleanUpDeletedSenderRequests = async (senderId: string) => {
   try {
-    // 1. Clean up Firestore requests
-    const q = query(
+     const q = query(
       collection(db, "users", userId, "friendRequests"),
       where("senderId", "==", senderId)
     );
@@ -104,13 +102,18 @@ const cleanUpDeletedSenderRequests = async (senderId: string) => {
     const querySnapshot = await getDocs(q);
     const batch = writeBatch(db);
     
-    querySnapshot.forEach((doc: DocumentSnapshot) => {  // Add type annotation here
+    querySnapshot.forEach((doc: DocumentSnapshot) => {   
       batch.delete(doc.ref);
     });
     
     await batch.commit();
 
-   } catch (error) {
+     setRealTimeRequests(prev => prev.filter(r => r.senderId !== senderId));
+    
+     onRequestUpdate(`deleted-sender-${senderId}`);
+
+    toast.info(`Requests from deleted account removed`);
+  } catch (error) {
     console.error("Error cleaning up deleted sender requests:", error);
   }
 };
