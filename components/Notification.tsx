@@ -13,10 +13,13 @@ import {
   collection, 
   query, 
   where,
-  setDoc
+  setDoc,
+  getDocs,        
+  writeBatch,    
+  deleteDoc       
 } from "firebase/firestore";
 import "@/components/notifications.css";
-
+import { DocumentSnapshot } from "firebase/firestore";
 interface User {
   id: string;
   name: string;
@@ -65,25 +68,52 @@ const Notifications: React.FC<NotificationsProps> = ({
     fetchRejectedRequests();
   }, [userId]);
 
-  useEffect(() => {
-    if (!userId) return;
-  
+ useEffect(() => {
+  if (!userId) return;
+
+   const senderIds = [
+    ...new Set([
+      ...pendingRequests.map(r => r.senderId),
+      ...realTimeRequests.map(r => r.senderId)
+    ])
+  ];
+
+  if (senderIds.length === 0) return;
+
+   const unsubscribes = senderIds.map(senderId => {
+    const senderRef = doc(db, "users", senderId);
+    
+    return onSnapshot(senderRef, (doc) => {
+      if (!doc.exists()) {
+         cleanUpDeletedSenderRequests(senderId);
+      }
+    });
+  });
+
+  return () => unsubscribes.forEach(unsub => unsub());
+}, [userId, pendingRequests, realTimeRequests]);
+
+const cleanUpDeletedSenderRequests = async (senderId: string) => {
+  try {
+    // 1. Clean up Firestore requests
     const q = query(
       collection(db, "users", userId, "friendRequests"),
-      where("status", "==", "pending")
+      where("senderId", "==", senderId)
     );
-  
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const newRequests = querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
-      })) as FriendRequest[];
-      setRealTimeRequests(newRequests);
+    
+    const querySnapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    
+    querySnapshot.forEach((doc: DocumentSnapshot) => {  // Add type annotation here
+      batch.delete(doc.ref);
     });
-  
-    return () => unsubscribe();
-  }, [userId]);
+    
+    await batch.commit();
 
+   } catch (error) {
+    console.error("Error cleaning up deleted sender requests:", error);
+  }
+};
   const handleAcceptFriendRequest = async (requestId: string, receiverId: string) => {
     try {
       const { data } = await axios.post<{ request: FriendRequest }>("/api/friendRequest/accept", { requestId });

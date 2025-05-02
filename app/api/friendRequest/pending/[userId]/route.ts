@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
-    const userId = url.pathname.split("/").pop(); // Extract userId from URL
+    const userId = url.pathname.split("/").pop();  
 
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
