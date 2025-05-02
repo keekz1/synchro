@@ -4,16 +4,16 @@ import { currentUser } from "@/lib/auth";
 import { db as prismaDb } from "@/lib/db";  
 import { logout } from "@/actions/logout";
 import { db as firestore } from "@/lib/firebase";  
-import { collection ,   getDocs,  writeBatch } from "firebase/firestore";
+import { collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 
 export const deleteUser = async (reason?: string) => {
   try {
-     const user = await currentUser();
+    const user = await currentUser();
     if (!user?.id) {
       return { error: "Unauthorized" };
     }
 
-     if (reason) {
+    if (reason) {
       await prismaDb.deleteReason.create({
         data: {
           userId: user.id,
@@ -23,8 +23,22 @@ export const deleteUser = async (reason?: string) => {
       });
     }
 
-     const batch = writeBatch(firestore);
-    
+     const allFriendRequests = await prismaDb.friendRequest.findMany({
+      where: {
+        OR: [
+          { senderId: user.id },
+          { receiverId: user.id }
+        ]
+      },
+      select: {
+        id: true,
+        senderId: true,
+        receiverId: true
+      }
+    });
+
+    const batch = writeBatch(firestore);
+
      const sentRequestsRef = collection(firestore, "users", user.id, "sentFriendRequests");
     const sentRequestsSnapshot = await getDocs(sentRequestsRef);
     sentRequestsSnapshot.forEach(doc => {
@@ -37,16 +51,35 @@ export const deleteUser = async (reason?: string) => {
       batch.delete(doc.ref);
     });
 
+     for (const request of allFriendRequests) {
+       if (request.senderId === user.id) {
+        const receiverRequestRef = collection(firestore, "users", request.receiverId, "friendRequests");
+        const q = query(receiverRequestRef, where("id", "==", request.id));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+      }
+       else if (request.receiverId === user.id) {
+        const senderRequestRef = collection(firestore, "users", request.senderId, "sentFriendRequests");
+        const q = query(senderRequestRef, where("id", "==", request.id));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+      }
+    }
+
      const notificationsRef = collection(firestore, "users", user.id, "notifications");
     const notificationsSnapshot = await getDocs(notificationsRef);
     notificationsSnapshot.forEach(doc => {
       batch.delete(doc.ref);
     });
 
-     await batch.commit();
+    await batch.commit();
 
      await prismaDb.$transaction([
-       prismaDb.message.deleteMany({
+      prismaDb.message.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -54,8 +87,7 @@ export const deleteUser = async (reason?: string) => {
           ]
         }
       }),
-      
-       prismaDb.friendRequest.deleteMany({
+      prismaDb.friendRequest.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -63,8 +95,7 @@ export const deleteUser = async (reason?: string) => {
           ]
         }
       }),
-      
-       prismaDb.rejectedRequest.deleteMany({
+      prismaDb.rejectedRequest.deleteMany({
         where: {
           OR: [
             { senderId: user.id },
@@ -72,8 +103,7 @@ export const deleteUser = async (reason?: string) => {
           ]
         }
       }),
-      
-       prismaDb.friendship.deleteMany({
+      prismaDb.friendship.deleteMany({
         where: {
           OR: [
             { userAId: user.id },
@@ -81,28 +111,24 @@ export const deleteUser = async (reason?: string) => {
           ]
         }
       }),
-      
-       prismaDb.hRPreferences.deleteMany({
+      prismaDb.hRPreferences.deleteMany({
         where: { userId: user.id }
       }),
-      
-       prismaDb.twoFactorConfirmation.deleteMany({
+      prismaDb.twoFactorConfirmation.deleteMany({
         where: { userId: user.id }
       }),
-      
-       prismaDb.account.deleteMany({
+      prismaDb.account.deleteMany({
         where: { userId: user.id }
       }),
-      
-       prismaDb.user.delete({
+      prismaDb.user.delete({
         where: { id: user.id }
       })
     ]);
 
-     await logout();
+    await logout();
 
     return { 
-      success: " deleted successfully",
+      success: "Account and all related data deleted successfully",
       redirectUrl: "/auth/login"
     };
 
