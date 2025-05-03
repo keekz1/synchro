@@ -1,31 +1,32 @@
- .friends-section {
-  padding: 20px;
+.friends-section {
+  padding: 1rem;
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
 }
 
 .friends-title {
-  font-size: 24px;
+  font-size: clamp(1.25rem, 5vw, 1.5rem);
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
   color: #333;
 }
 
 .empty-message {
-  font-size: 16px;
+  font-size: 1rem;
   color: #888;
   text-align: center;
 }
 
- .friends-list {
+.friends-list {
   list-style-type: none;
   padding: 0;
   margin: 0;
 }
 
 .friend-item {
-  margin-bottom: 15px;
+  margin-bottom: 0.75rem;
 }
 
 .friend-card {
@@ -33,11 +34,12 @@
   justify-content: space-between;
   align-items: center;
   background-color: #ffffff;
-  padding: 15px;
+  padding: 0.75rem;
   border-radius: 10px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
 }
 
 .friend-card:hover {
@@ -46,31 +48,44 @@
 }
 
 .friend-info {
-  display: flex;   
-  align-items: center;   
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;  
 }
 
 .avatar-img {
-  width: 40px; 
-  height: 40px;  
-  border-radius: 60%;  
-  object-fit: cover; 
-  border: 2px solid #ddd;  
+  width: 3rem;
+  height: 3rem;
+  min-width: 3rem; 
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ddd;
 }
 
+.friend-details {
+  margin-left: 0.75rem;
+  min-width: 0;  
+  overflow: hidden;
+}
 
 .friend-name {
-  font-size: 16px;   
-  font-weight: 500;  
-  margin-left: 5px;
-
+  font-size: clamp(0.875rem, 4vw, 1rem);
+  font-weight: 500;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .friend-email {
-  font-size: 14px;
+  font-size: clamp(0.75rem, 3vw, 0.875rem);
   color: #666;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
  .loading {
   text-align: center;
   font-size: 18px;
