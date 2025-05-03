@@ -6,7 +6,7 @@ import { GoogleMap, useJsApiLoader, Circle } from '@react-google-maps/api';
 import CustomMarker from './Map/CustomMarker';
 import { useSocket } from '@/contexts/SocketContext';
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, addDoc, updateDoc, doc, serverTimestamp ,deleteDoc} from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 
 const regions = ["London", "Manchester", "Birmingham", "Edinburgh", "Liverpool", "Bristol", "Glasgow"];
@@ -26,7 +26,8 @@ interface Ticket {
   message: string;
   creatorId: string;
   creatorName: string;
-  createdAt?: Date;
+  createdAt: Date;
+  expireAt: Date;  
 }
 
 const MapComponent: React.FC = () => {
@@ -49,37 +50,38 @@ const MapComponent: React.FC = () => {
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  // Firestore setup
-  const ticketsCollection = userRegion ? collection(db, `tickets_${userRegion}`) : null;
+   const ticketsCollection = userRegion ? collection(db, `tickets_${userRegion}`) : null;
   const ticketsQuery = ticketsCollection ? query(ticketsCollection, orderBy("createdAt", "asc")) : null;
   const [ticketsSnapshot] = useCollection(ticketsQuery);
 
-  const tickets = useMemo(() => {
-    if (!ticketsSnapshot || !currentLocation) return [];
-    
-    return ticketsSnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          lat: data.lat,
-          lng: data.lng,
-          message: data.message,
-          creatorId: data.creatorId,
-          creatorName: data.creatorName,
-          createdAt: data.createdAt?.toDate()
-        } as Ticket;
-      })
-      .filter(ticket => {
-        const distance = getDistanceInMiles(
-          currentLocation.lat,
-          currentLocation.lng,
-          ticket.lat,
-          ticket.lng
-        );
-        return distance <= 10;
-      });
-  }, [ticketsSnapshot, currentLocation]);
+ const tickets = useMemo(() => {
+  if (!ticketsSnapshot || !currentLocation) return [];
+  
+  return ticketsSnapshot.docs
+    .map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        lat: data.lat,
+        lng: data.lng,
+        message: data.message,
+        creatorId: data.creatorId,
+        creatorName: data.creatorName,
+        createdAt: data.createdAt?.toDate(),
+        expireAt: data.expireAt?.toDate()  
+      } as Ticket;
+    })
+    .filter(ticket => {
+      const distance = getDistanceInMiles(
+        currentLocation.lat,
+        currentLocation.lng,
+        ticket.lat,
+        ticket.lng
+      );
+      const isExpired = new Date() > ticket.expireAt; 
+      return distance <= 10 && !isExpired;  
+    });
+}, [ticketsSnapshot, currentLocation]);
 
   const MemoizedCircle = React.memo(({ center }: { center: { lat: number; lng: number } }) => (
     <Circle
@@ -462,14 +464,24 @@ const MapComponent: React.FC = () => {
   const handleTicketSubmit = async () => {
     if (currentLocation && newTicketMessage.trim() && userRegion) {
       try {
-        await addDoc(collection(db, `tickets_${userRegion}`), {
+        const ticketRef = await addDoc(collection(db, `tickets_${userRegion}`), {
           lat: currentLocation.lat,
           lng: currentLocation.lng,
           message: newTicketMessage,
           creatorId: socket?.id || 'unknown',
           creatorName: userName || 'unknown',
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
+          expireAt: new Date(new Date().getTime() + 7200000)  
         });
+  
+         setTimeout(async () => {
+          try {
+            await deleteDoc(ticketRef);
+          } catch (error) {
+            console.error("Error auto-deleting ticket:", error);
+          }
+        },7200000);
+        
         setNewTicketMessage('');
         setIsCreatingTicket(false);
       } catch (error) {

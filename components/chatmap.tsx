@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp ,deleteDoc} from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 
 const regions = ["London", "Manchester", "Birmingham", "Edinburgh", "Liverpool", "Bristol", "Glasgow"];
@@ -10,13 +10,30 @@ const PublicChatPage = () => {
   const [selectedRegion, setSelectedRegion] = useState("London");  
   const [userRegion, setUserRegion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   const messagesRef = collection(db, `public_messages_${selectedRegion}`);
   const [messagesSnapshot] = useCollection(query(messagesRef, orderBy("createdAt", "asc")));
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-   useEffect(() => {
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const response = await fetch("/api/profile");
+        const data = await response.json();
+        if (response.ok) {
+          setUserName(data.name);
+        }
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      }
+    };
+
+    fetchUserDetails();
+  }, []);
+
+  useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
@@ -45,18 +62,28 @@ const PublicChatPage = () => {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-
+  
     if (userRegion !== selectedRegion) {
       setError(`You are in ${userRegion || "an unknown location"}. You can only send messages in ${selectedRegion}.`);
       return;
     }
-
+  
     try {
-      await addDoc(messagesRef, {
+      const messageRef = await addDoc(messagesRef, {
         text: newMessage,
+        creatorName: userName || "Anonymous",
         createdAt: serverTimestamp(),
+        expireAt: new Date(Date.now() + 86400000)  
       });
-
+  
+       setTimeout(async () => {
+        try {
+          await deleteDoc(messageRef);
+        } catch (error) {
+          console.error("Error auto-deleting message:", error);
+        }
+      }, 86400000);
+  
       setNewMessage("");
       setError(null);
     } catch (error) {
@@ -72,7 +99,7 @@ const PublicChatPage = () => {
 
   return (
     <div className="flex flex-col h-full">
-       <div className="p-2 border-b">
+      <div className="p-2 border-b">
         <label htmlFor="region">Select Region:</label>
         <select
           id="region"
@@ -88,12 +115,20 @@ const PublicChatPage = () => {
         </select>
       </div>
 
-       <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         {messagesSnapshot?.docs.map((doc) => {
-           if (userRegion === selectedRegion) {
+          if (userRegion === selectedRegion) {
+            const message = doc.data();
+             if (new Date() > message.expireAt?.toDate()) return null;
+            
             return (
               <div key={doc.id} className="p-2 border-b">
-                {doc.data().text}
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold text-sm text-purple-600">
+                    {message.creatorName}:
+                  </span>
+                  <span className="flex-1 text-gray-800">{message.text}</span>
+                </div>
               </div>
             );
           }
@@ -102,15 +137,16 @@ const PublicChatPage = () => {
         <div ref={messagesEndRef} />
       </div>
 
-       {error && <p className="text-red-500 p-2">{error}</p>}
+      {error && <p className="text-red-500 p-2">{error}</p>}
 
-       <div className="p-2 border-t">
+      <div className="p-2 border-t">
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           className="w-full p-2 border rounded"
           placeholder="Type a message..."
+          onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
         />
         <button
           onClick={handleSendMessage}
