@@ -20,7 +20,7 @@ export default function Home() {
   "text-6xl font-semibold text-white drop-shadow-md",
   font.className,
   )}>
-🔐Synchro
+🙋‍♂️Synchro
   </h1>
   <p className="text-white text-lg">
     Connect with like-minded people

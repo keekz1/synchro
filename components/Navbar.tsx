@@ -49,9 +49,10 @@ export default function Navbar() {
                 {role === UserRole.HR && (
                   <NavLink href="/hr-dashboard" text="HR Dashboard" />
                 )}
-                <NavLink href="/settings" text="Settings" />
-                <NavLink href="/collab" text="Collab" />
+                 <NavLink href="/collab" text="Collab" />
                 <NavLink href="/self-growth" text="Personal growth" />
+                <NavLink href="/⚙️settings" text="Settings" />
+
               </div>
 
               {/* Phone Button*/}
@@ -106,9 +107,10 @@ export default function Navbar() {
               {role === UserRole.HR && (
                 <MobileNavLink href="/hr-dashboard" text="HR Dashboard" onClick={() => setIsMenuOpen(false)} />
               )}
-              <MobileNavLink href="/settings" text="Settings" onClick={() => setIsMenuOpen(false)} />
-              <MobileNavLink href="/collab" text="Collab" onClick={() => setIsMenuOpen(false)} />
+               <MobileNavLink href="/collab" text="Collab" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/self-growth" text="Personal Development" onClick={() => setIsMenuOpen(false)} />
+              <MobileNavLink href="/settings" text="⚙️Settings" onClick={() => setIsMenuOpen(false)} />
+
             </div>
           </motion.div>
         )}
