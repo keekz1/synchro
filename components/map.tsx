@@ -5,7 +5,12 @@ import FloatingChat from "@/components/FloatingChat";
 import { GoogleMap, useJsApiLoader, Circle } from '@react-google-maps/api';
 import CustomMarker from './Map/CustomMarker';
 import { useSocket } from '@/contexts/SocketContext';
- 
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { useCollection } from "react-firebase-hooks/firestore";
+
+const regions = ["London", "Manchester", "Birmingham", "Edinburgh", "Liverpool", "Bristol", "Glasgow"];
+
 interface User {
   id: string;
   lat: number;
@@ -21,6 +26,7 @@ interface Ticket {
   message: string;
   creatorId: string;
   creatorName: string;
+  createdAt?: Date;
 }
 
 const MapComponent: React.FC = () => {
@@ -30,7 +36,6 @@ const MapComponent: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userImage, setUserImage] = useState<string | null>(null);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [newTicketMessage, setNewTicketMessage] = useState('');
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -38,9 +43,44 @@ const MapComponent: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
   const [editTicketMessage, setEditTicketMessage] = useState('');
+  const [userRegion, setUserRegion] = useState<string | null>(null);
+
   const { socket, isConnected, emit } = useSocket();
   const locationCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Firestore setup
+  const ticketsCollection = userRegion ? collection(db, `tickets_${userRegion}`) : null;
+  const ticketsQuery = ticketsCollection ? query(ticketsCollection, orderBy("createdAt", "asc")) : null;
+  const [ticketsSnapshot] = useCollection(ticketsQuery);
+
+  const tickets = useMemo(() => {
+    if (!ticketsSnapshot || !currentLocation) return [];
+    
+    return ticketsSnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          lat: data.lat,
+          lng: data.lng,
+          message: data.message,
+          creatorId: data.creatorId,
+          creatorName: data.creatorName,
+          createdAt: data.createdAt?.toDate()
+        } as Ticket;
+      })
+      .filter(ticket => {
+        const distance = getDistanceInMiles(
+          currentLocation.lat,
+          currentLocation.lng,
+          ticket.lat,
+          ticket.lng
+        );
+        return distance <= 10;
+      });
+  }, [ticketsSnapshot, currentLocation]);
+
   const MemoizedCircle = React.memo(({ center }: { center: { lat: number; lng: number } }) => (
     <Circle
       center={center}
@@ -61,8 +101,7 @@ const MapComponent: React.FC = () => {
     libraries: ['places'],
   });
 
-
-  const mapStyle = [
+   const mapStyle = [
     {
       "elementType": "geometry",
       "stylers": [
@@ -233,6 +272,7 @@ const MapComponent: React.FC = () => {
       return newVisibility;
     });
   }, [emit]);
+
   function getDistanceInMiles(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 3958.8;  
     const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -243,7 +283,26 @@ const MapComponent: React.FC = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
-  
+
+  useEffect(() => {
+    const determineRegion = async (lat: number, lng: number) => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+        );
+        const data = await response.json();
+        const city = data.address.city || data.address.town || data.address.village;
+        setUserRegion(regions.includes(city) ? city : null);
+      } catch (err) {
+        console.error("Error fetching location:", err);
+      }
+    };
+
+    if (currentLocation) {
+      determineRegion(currentLocation.lat, currentLocation.lng);
+    }
+  }, [currentLocation]);
+
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
@@ -258,15 +317,15 @@ const MapComponent: React.FC = () => {
         console.error("Error fetching user details:", error);
       }
     };
-  
+
     fetchUserDetails();
     setIsVisible(JSON.parse(localStorage.getItem("isVisible") ?? "true"));
-  
+
     if (!socket) {
       setMapError("Connecting to server...");
       return;
     }
-  
+
     const handleConnect = () => {
       setIsConnecting(false);
       setMapError(null);
@@ -285,7 +344,7 @@ const MapComponent: React.FC = () => {
           });
         }
       }
-  
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const realLocation = { 
@@ -304,17 +363,17 @@ const MapComponent: React.FC = () => {
         { enableHighAccuracy: true, timeout: 10000 }
       );
     };
-  
+
     const handleConnectError = () => {
       setMapError("Connection issues - retrying...");
       setIsConnecting(true);
     };
-  
+
     const handleDisconnect = () => {
       setMapError("Reconnecting...");
       setIsConnecting(true);
     };
-  
+
     const handleNearbyUsers = (data: User[]) => {
       if (!userRole || !currentLocation) return;
     
@@ -325,7 +384,6 @@ const MapComponent: React.FC = () => {
           user.lat,
           user.lng
         );
-        // within 10 miles
         return distance <= 10 && user.role === userRole;
       });
     
@@ -341,50 +399,23 @@ const MapComponent: React.FC = () => {
     
       setNearbyUsers(Array.from(uniqueUsers.values()));
     };
-    
-    const handleNewTicket = (ticket: Ticket) => {
-      if (currentLocation) {
-        const distance = getDistanceInMiles(currentLocation.lat, currentLocation.lng, ticket.lat, ticket.lng);
-        if (distance <= 10) {
-          setTickets((prev) => [...prev, ticket]);
-        }
-      }
-    };
-    
-  
+
     socket?.on("connect", handleConnect);
     socket?.on("connect_error", handleConnectError);
     socket?.on("disconnect", handleDisconnect);
     socket?.on("nearby-users", handleNearbyUsers);
-    socket?.on("new-ticket", handleNewTicket);
-    socket?.on("all-tickets", (data: Ticket[]) => {
-      if (!currentLocation) return;
-      const nearbyTickets = data.filter(ticket => {
-        const distance = getDistanceInMiles(currentLocation.lat, currentLocation.lng, ticket.lat, ticket.lng);
-        return distance <= 10;
-      });
-      setTickets(nearbyTickets);
-    });
- socket?.on("ticket-updated", (updatedTicket: Ticket) => {
-  setTickets(tickets.map(ticket => 
-    ticket.id === updatedTicket.id ? updatedTicket : ticket
-  ));
-});
-      
+
     if (socket && !isConnected) {
       socket.connect();
     } else if (isConnected) {
       handleConnect();
     }
-  
+
     return () => {
       socket?.off("connect", handleConnect);
       socket?.off("connect_error", handleConnectError);
       socket?.off("disconnect", handleDisconnect);
       socket?.off("nearby-users", handleNearbyUsers);
-      socket?.off("new-ticket", handleNewTicket);
-      socket?.off("all-tickets", setTickets);
-      
       locationCache.current.clear();
     };
   }, [socket, isConnected, emit, generatePersistentOffset, debouncedLocationUpdate, userRole, userName, userImage]);
@@ -392,22 +423,22 @@ const MapComponent: React.FC = () => {
   const handleCreateTicket = () => {
     setIsCreatingTicket((prev) => !prev);
   };
-  const handleUpdateTicket = (ticketId: string) => {
-    if (!editTicketMessage.trim() || !socket) return;
-    
-     setTickets(tickets.map(ticket => 
-      ticket.id === ticketId 
-        ? {...ticket, message: editTicketMessage} 
-        : ticket
-    ));
-    
-    emit('update-ticket', {
-      id: ticketId,
-      message: editTicketMessage
-    });
-    
-    setEditingTicketId(null);
+
+  const handleUpdateTicket = async (ticketId: string) => {
+    if (!editTicketMessage.trim() || !userRegion) return;
+
+    try {
+      const ticketRef = doc(db, `tickets_${userRegion}`, ticketId);
+      await updateDoc(ticketRef, {
+        message: editTicketMessage,
+        updatedAt: serverTimestamp()
+      });
+      setEditingTicketId(null);
+    } catch (error) {
+      console.error("Error updating ticket:", error);
+    }
   };
+
   const handleMapLoad = (map: google.maps.Map): void => {
     console.log("Map loaded", map);
   };
@@ -428,19 +459,22 @@ const MapComponent: React.FC = () => {
     };
   }, [isCreatingTicket]);
 
-  const handleTicketSubmit = () => {
-    if (currentLocation && newTicketMessage.trim() && socket) {
-      const ticket: Ticket = {
-        id: Date.now().toString(),
-        lat: currentLocation.lat,
-        lng: currentLocation.lng,
-        message: newTicketMessage,
-        creatorId: socket.id || 'unknown',
-        creatorName: userName || 'unknown',
-      };
-      emit('create-ticket', ticket);
-      setNewTicketMessage('');
-      setIsCreatingTicket(false);
+  const handleTicketSubmit = async () => {
+    if (currentLocation && newTicketMessage.trim() && userRegion) {
+      try {
+        await addDoc(collection(db, `tickets_${userRegion}`), {
+          lat: currentLocation.lat,
+          lng: currentLocation.lng,
+          message: newTicketMessage,
+          creatorId: socket?.id || 'unknown',
+          creatorName: userName || 'unknown',
+          createdAt: serverTimestamp()
+        });
+        setNewTicketMessage('');
+        setIsCreatingTicket(false);
+      } catch (error) {
+        console.error("Error creating ticket:", error);
+      }
     }
   };
 
@@ -452,92 +486,95 @@ const MapComponent: React.FC = () => {
   return (
     <div className={styles.container} ref={mapContainerRef}>
       <GoogleMap
-  mapContainerClassName={styles.map}
-  center={currentLocation}
-  zoom={15}
-  options={{
-    styles: mapStyle,
-    disableDefaultUI: true,
-    fullscreenControl: false,
-    restriction: {
-      latLngBounds: {
-        north: 85,
-        south: -60,
-        west: -170,
-        east: 180,
-      },
-      strictBounds: true,
-    },
-    keyboardShortcuts: false,
-  }}
-  onLoad={handleMapLoad}
->
-  {isVisible && (
-    <>
-      <MemoizedCircle 
-        key={`circle-${isVisible}`}
-        center={currentLocation} 
-      />
-      {nearbyUsers.map((user) => (
-        <CustomMarker key={user.id} user={user} />
-      ))}
-    </>
-  )}
-<div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
-  <h3>Tickets</h3>
-  {tickets.length > 0 ? (
-    tickets.map((ticket) => (
-      <div key={ticket.id} className={styles.ticketItem}>
-        <strong>{ticket.creatorName}</strong>
-        {editingTicketId === ticket.id ? (
-          <div className={styles.editForm}>
-            <textarea
-              value={editTicketMessage}
-              onChange={(e) => setEditTicketMessage(e.target.value)}
-              className={styles.editTextarea}
-              aria-label="Edit ticket message"
-              placeholder="Edit your ticket message"
-            />
-            <div className={styles.editButtons}>
-              <button 
-                onClick={() => handleUpdateTicket(ticket.id)}
-                className={styles.saveButton}
-                aria-label="Save changes"
-              >
-                Save
-              </button>
-              <button 
-                onClick={() => setEditingTicketId(null)}
-                className={styles.cancelButton}
-                aria-label="Cancel editing"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
+        mapContainerClassName={styles.map}
+        center={currentLocation}
+        zoom={15}
+        options={{
+          styles: mapStyle,
+          disableDefaultUI: true,
+          fullscreenControl: false,
+          restriction: {
+            latLngBounds: {
+              north: 85,
+              south: -60,
+              west: -170,
+              east: 180,
+            },
+            strictBounds: true,
+          },
+          keyboardShortcuts: false,
+        }}
+        onLoad={handleMapLoad}
+      >
+        {isVisible && (
           <>
-            <p>{ticket.message}</p>
-            {ticket.creatorId === socket?.id && (
-              <button 
-                onClick={() => {
-                  setEditingTicketId(ticket.id);
-                  setEditTicketMessage(ticket.message);
-                }}
-                className={styles.editButton}
-                aria-label={`Edit ticket from ${ticket.creatorName}`}
-              >
-                Edit
-              </button>
-            )}
+            <MemoizedCircle 
+              key={`circle-${isVisible}`}
+              center={currentLocation} 
+            />
+            {nearbyUsers.map((user) => (
+              <CustomMarker key={user.id} user={user} />
+            ))}
           </>
         )}
-      </div>
-    ))
-  ) : (
-    <p>No tickets yet</p>
-  )}
-</div>
+        <div className={`${styles.ticketSidebar} ${isOpen ? "" : styles.hidden}`}>
+          <h3>Tickets</h3>
+          {!userRegion && (
+            <div className={styles.error}>Tickets not available in your current region</div>
+          )}
+          {tickets.length > 0 ? (
+            tickets.map((ticket) => (
+              <div key={ticket.id} className={styles.ticketItem}>
+                <strong>{ticket.creatorName}</strong>
+                {editingTicketId === ticket.id ? (
+                  <div className={styles.editForm}>
+                    <textarea
+                      value={editTicketMessage}
+                      onChange={(e) => setEditTicketMessage(e.target.value)}
+                      className={styles.editTextarea}
+                      aria-label="Edit ticket message"
+                      placeholder="Edit your ticket message"
+                    />
+                    <div className={styles.editButtons}>
+                      <button 
+                        onClick={() => handleUpdateTicket(ticket.id)}
+                        className={styles.saveButton}
+                        aria-label="Save changes"
+                      >
+                        Save
+                      </button>
+                      <button 
+                        onClick={() => setEditingTicketId(null)}
+                        className={styles.cancelButton}
+                        aria-label="Cancel editing"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p>{ticket.message}</p>
+                    {ticket.creatorId === socket?.id && (
+                      <button 
+                        onClick={() => {
+                          setEditingTicketId(ticket.id);
+                          setEditTicketMessage(ticket.message);
+                        }}
+                        className={styles.editButton}
+                        aria-label={`Edit ticket from ${ticket.creatorName}`}
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            ))
+          ) : (
+            <p>No tickets yet</p>
+          )}
+        </div>
         <button 
           className={styles.ticketToggleButton} 
           onClick={() => setIsOpen(!isOpen)}

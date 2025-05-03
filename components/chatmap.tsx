@@ -88,8 +88,7 @@ const PublicChatPage = () => {
         </select>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
+       <div className="flex-1 overflow-y-auto p-4">
         {messagesSnapshot?.docs.map((doc) => {
            if (userRegion === selectedRegion) {
             return (
@@ -103,11 +102,9 @@ const PublicChatPage = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Error Message */}
-      {error && <p className="text-red-500 p-2">{error}</p>}
+       {error && <p className="text-red-500 p-2">{error}</p>}
 
-      {/* Input */}
-      <div className="p-2 border-t">
+       <div className="p-2 border-t">
         <input
           type="text"
           value={newMessage}
