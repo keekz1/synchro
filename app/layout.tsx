@@ -27,8 +27,7 @@ export const metadata: Metadata = {
 };
 
 
-// This component will only be rendered on the client side
-function ClientLayout({ children }: { children: React.ReactNode }) {
+ function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
             <SWRConfigProvider>

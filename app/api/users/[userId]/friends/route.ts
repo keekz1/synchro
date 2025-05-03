@@ -1,43 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
- export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-     const pathname = req.nextUrl.pathname;  
-    const userId = pathname.split('/')[3];  
+    const userId = req.nextUrl.pathname.split("/")[3];
 
-     if (!userId) {
+    if (!userId) {
       return NextResponse.json(
         { error: "User ID is required" },
         { status: 400 }
       );
     }
 
-     const friendships = await db.friendship.findMany({
-      where: {
-        OR: [
-          { userAId: userId },
-          { userBId: userId }
-        ]
-      },
+    const user = await db.user.findUnique({
+      where: { id: userId },
       include: {
-        userA: true,
-        userB: true
-      }
+        friendshipsAsUserA: {
+          include: { userB: true },
+        },
+        friendshipsAsUserB: {
+          include: { userA: true },
+        },
+      },
     });
 
-     const seen = new Set<string>();
-    const friends = friendships.flatMap(friendship => {
-      const friend = friendship.userAId === userId ? 
-        friendship.userB : 
-        friendship.userA;
-      
-      if (seen.has(friend.id)) return [];
-      seen.add(friend.id);
-      return [friend];
-    });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
-    return NextResponse.json(friends, { status: 200 });
+    const friends = [
+      ...user.friendshipsAsUserA.map(f => f.userB),
+      ...user.friendshipsAsUserB.map(f => f.userA),
+    ];
+
+     const uniqueFriends = Array.from(
+      new Map(friends.map(friend => [friend.id, friend])).values()
+    );
+
+    return NextResponse.json(uniqueFriends, { status: 200 });
 
   } catch (error) {
     console.error("[FRIENDS_GET]", error);

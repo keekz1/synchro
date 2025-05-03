@@ -1,5 +1,4 @@
-/* Suggested Users Section */
-.suggested-users {
+ .suggested-users {
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -14,7 +13,7 @@
   
   .user-cards-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Adjusted min-width */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));  
     gap: 20px;
   }
   
@@ -76,8 +75,7 @@
     cursor: not-allowed;
   }
   
-  /* Loading and Empty States */
-  .loading {
+   .loading {
     text-align: center;
     font-size: 18px;
     color: #0070f3;
@@ -90,27 +88,26 @@
   }
   @media (max-width: 768px) {
     .suggested-users {
-      padding: 10px; /* Reduced padding for small screens */
+      padding: 10px;  
     }
   
     .user-cards-container {
-      grid-template-columns: 1fr; /* Stacks cards on small screens */
+      grid-template-columns: 1fr;  
     }
   
     .user-card {
-      padding: 10px; /* Adjust padding for better fit */
+      padding: 10px; 
     }
   
     .user-name {
-      font-size: 16px; /* Adjust font size for mobile */
+      font-size: 16px;  
     }
   
     .request-button {
-      padding: 6px 12px; /* Adjust button size for mobile */
+      padding: 6px 12px;  
     }
   }
-  /* suggested.css additions */
-.rejected-label {
+ .rejected-label {
   color: #ef4444;
   font-size: 0.9rem;
   padding: 8px 12px;
@@ -118,8 +115,7 @@
   border-radius: 4px;
   background-color: #fef2f2;
 }
-/* Suggested Container */
-.suggested-container {
+ .suggested-container {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
@@ -145,8 +141,7 @@
   background: #e0e0e0;
 }
 
-/* Rejected Users Section */
-.rejected-users-section {
+ .rejected-users-section {
   margin-bottom: 30px;
   padding: 15px;
   background: #f9f9f9;
@@ -191,8 +186,7 @@
   background: #e0e0e0;
 }
 
-/* Toast Button */
-.toast-action-button {
+ .toast-action-button {
   background: #4CAF50;
   color: white;
   border: none;
@@ -205,10 +199,8 @@
 .toast-action-button:hover {
   background: #45a049;
 }
-/* Add these styles to your suggested.css file */
-
-/* Rejected Users Section */
-.rejected-users-section {
+ 
+ .rejected-users-section {
   margin: 2rem 0;
   padding: 1.5rem;
   background-color: #f8f9fa;
@@ -300,8 +292,7 @@
   color: #212529;
 }
 
-/* Toggle Button */
-.toggle-rejected-btn {
+ .toggle-rejected-btn {
   padding: 0.5rem 1rem;
   background-color: #e9ecef;
   color: #495057;
@@ -318,8 +309,7 @@
   background-color: #dee2e6;
 }
 
-/* Empty State */
-.rejected-users-list:empty::after {
+ .rejected-users-list:empty::after {
   content: "No rejected users found";
   display: block;
   width: 100%;
@@ -329,8 +319,7 @@
   font-style: italic;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
+ @media (max-width: 768px) {
   .rejected-users-list {
     grid-template-columns: 1fr;
   }
@@ -351,5 +340,5 @@
   width: 60px;
   height: 60px;
   border-radius: 60%;
-  object-fit: cover; /* Ensures image fills the space */
+  object-fit: cover; 
 }

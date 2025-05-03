@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useRef, useEffect, RefCallback } from "react";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { doc, updateDoc, arrayRemove, deleteDoc, getDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, onSnapshot, collection, query, where, deleteDoc } from "firebase/firestore";
 import axios from "axios";
+import useSWR from "swr";
 import { toast } from "sonner";
 import "../components/friends.css";
 
@@ -15,156 +16,125 @@ interface User {
 }
 
 interface FriendsProps {
-  friends: User[];
-  loading: boolean;
   currentUserId: string;
   onUnfriendSuccess?: () => void;
 }
 
-const Friends: React.FC<FriendsProps> = ({ friends, loading, currentUserId, onUnfriendSuccess }) => {
+const fetcher = (url: string) => axios.get(url).then(res => res.data);
+
+const Friends: React.FC<FriendsProps> = ({ currentUserId, onUnfriendSuccess }) => {
   const router = useRouter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isUnfriending, setIsUnfriending] = useState<string | null>(null);
-  const [friendsList, setFriendsList] = useState<User[]>(friends); 
-  const menuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const { data: friends, error, isLoading, mutate } = useSWR<User[]>(
+    currentUserId ? `/api/users/${currentUserId}/friends` : null,
+    fetcher,
+    { refreshInterval: 20000, revalidateOnFocus: false }
+  );
+
   useEffect(() => {
     if (!currentUserId) return;
-  
-    const unsubscribe = onSnapshot(doc(db, "users", currentUserId), async (docSnap) => {
-      if (docSnap.exists()) {
-        const friendIds = docSnap.data().friends || [];
-  
-         const friendDocs = await Promise.all(
-          friendIds.map(async (id: string) => {
-            const userDoc = await getDoc(doc(db, "users", id));
-            return userDoc.exists() ? { id, ...userDoc.data() } as User : null;
-          })
-        );
-  
-         const validFriends = friendDocs.filter(Boolean) as User[];
-        setFriendsList(validFriends);
-      }
+    const db = getFirestore();
+
+    const userUnsub = onSnapshot(doc(db, "users", currentUserId), () => {
+      mutate();
     });
-  
-    return () => unsubscribe();
-  }, [currentUserId]);
-  
 
+    const notifQ = query(
+      collection(db, "notifications"),
+      where("userIds", "array-contains", currentUserId),
+      where("type", "==", "friend_removed")
+    );
+    const notifUnsub = onSnapshot(notifQ, snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === "added") {
+          mutate();
+          deleteDoc(change.doc.ref).catch(console.error);
+        }
+      });
+    });
 
-   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (openMenuId && menuRefs.current[openMenuId] && 
-          !menuRefs.current[openMenuId]?.contains(event.target as Node)) {
+    return () => {
+      userUnsub();
+      notifUnsub();
+    };
+  }, [currentUserId, mutate]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        openMenuId &&
+        menuRefs.current[openMenuId] &&
+        !menuRefs.current[openMenuId]!.contains(e.target as Node)
+      ) {
         setOpenMenuId(null);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenuId]);
 
-  const toggleMenu = (friendId: string, e: React.MouseEvent) => {
+  const toggleMenu = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpenMenuId(openMenuId === friendId ? null : friendId);
+    setOpenMenuId(openMenuId === id ? null : id);
   };
 
   const handleUnfriend = async (friendId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!currentUserId || !friendId) {
-      console.error("User or Friend ID is missing:", currentUserId, friendId);
-      toast.error("User or friend ID is missing. Please try again.");
+    if (!currentUserId) {
+      toast.error("Missing user ID");
       return;
     }
-    
     setIsUnfriending(friendId);
-    
     try {
-       const currentUserRef = doc(db, "users", currentUserId);
-      const friendUserRef = doc(db, "users", friendId);
-      
-       const response = await axios.post('/api/removeFriend', {
-        friendId
-      });
-      
-      if (response.data.success) {
-        try {
-           const currentUserDoc = await getDoc(currentUserRef);
-          const friendUserDoc = await getDoc(friendUserRef);
-          
-           if (currentUserDoc.exists()) {
-            await updateDoc(currentUserRef, {
-              friends: arrayRemove(friendId)
-            });
-          } else {
-            console.warn(`Current user document (${currentUserId}) doesn't exist`);
-          }
-          
-          if (friendUserDoc.exists()) {
-            await updateDoc(friendUserRef, {
-              friends: arrayRemove(currentUserId)
-            });
-          } else {
-            console.warn(`Friend user document (${friendId}) doesn't exist`);
-          }
-          
-           try {
-            const chatId = [currentUserId, friendId].sort().join('_');
-            const chatRef = doc(db, "chats", chatId);
-            const chatDoc = await getDoc(chatRef);
-            
-            if (chatDoc.exists()) {
-              await deleteDoc(chatRef);
-            }
-          } catch (chatError) {
-            console.warn("Could not delete chat:", chatError);
-          }
-
-           setFriendsList(prevFriends => prevFriends.filter(friend => friend.id !== friendId));
-
-          toast.success("Successfully unfriended");
-          if (onUnfriendSuccess) onUnfriendSuccess();
-        } catch (firestoreError) {
-          console.error("Firestore update error:", firestoreError);
-          toast.error("Error updating friendship status in the database");
-        }
+      const res = await axios.post("/api/removeFriend", { friendId });
+      if (res.data.success) {
+        toast.success("Friend removed");
+        onUnfriendSuccess?.();
       } else {
-        toast.error(response.data.error || "Failed to unfriend");
+        toast.error(res.data.error || "Failed to remove friend");
       }
-    } catch (error) {
-      console.error("Error unfriending:", error);
-      if (axios.isAxiosError(error)) {
-        toast.error(error.response?.data?.error || "Failed to unfriend");
-      } else {
-        toast.error("Failed to unfriend. Please try again.");
-      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to remove friend");
     } finally {
       setIsUnfriending(null);
       setOpenMenuId(null);
     }
   };
 
-  if (loading) return <p className="loading">Loading friends...</p>;
+  if (isLoading) return    <div className="collab-page flex items-center justify-center h-screen">
+  <i className="fas fa-spinner fa-spin text-3xl text-gray-600"></i>
+</div>;
+  if (error) return <p className="error">Error loading friends</p>;
 
   return (
     <div className="friends-section">
       <h1 className="friends-title">Friends</h1>
-      {friendsList.length === 0 ? (
-        <p className="empty-message">You have no friends yet. Start adding some!</p>
+      {friends && friends.length === 0 ? (
+        <p className="empty-message">You have no friends yet.</p>
       ) : (
         <ul className="friends-list">
-          {friendsList.map((friend) => (
+          {friends?.map(friend => (
             <li key={friend.id} className="friend-item">
-              <div className="friend-card" onClick={() => router.push(`/chat/${friend.id}`)}>
+              <div
+                className="friend-card"
+                onClick={() => router.push(`/chat/${friend.id}`)}
+              >
                 <div className="friend-info">
                   <div className="friend-avatar">
-                    <img 
-                      src={friend.image || "https://i.imgur.com/DUC8BHW_d.png?maxwidth=520&shape=thumb&fidelity=high"} 
-                      alt={friend.name} 
-                      className="avatar-img" 
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "https://i.imgur.com/DUC8BHW_d.png?maxwidth=520&shape=thumb&fidelity=high";
-                      }}
+                    <img
+                      src={
+                        friend.image ||
+                        "https://i.imgur.com/DUC8BHW_d.png"
+                      }
+                      alt={friend.name}
+                      className="avatar-img"
+                      onError={e =>
+                        (e.currentTarget.src =
+                          "https://i.imgur.com/DUC8BHW_d.png")
+                      }
                     />
                   </div>
                   <div className="friend-details">
@@ -172,18 +142,14 @@ const Friends: React.FC<FriendsProps> = ({ friends, loading, currentUserId, onUn
                     <p className="friend-email">{friend.email}</p>
                   </div>
                 </div>
-                
                 <div className="friend-actions">
-                  <button 
+                  <button
                     className="menu-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleMenu(friend.id, e);
-                    }}
+                    onClick={e => toggleMenu(friend.id, e)}
                     disabled={isUnfriending === friend.id}
                   >
                     {isUnfriending === friend.id ? (
-                      <span className="loading-spinner"></span>
+                      <span className="loading-spinner" />
                     ) : (
                       <>
                         <span className="dot">•</span>
@@ -192,24 +158,22 @@ const Friends: React.FC<FriendsProps> = ({ friends, loading, currentUserId, onUn
                       </>
                     )}
                   </button>
-                  
-
                   {openMenuId === friend.id && (
-                    <div 
-                      ref={(el) => {
-                        if (el) {
-                          menuRefs.current[friend.id] = el;
-                        }
+                    <div
+                      ref={el => {
+                        menuRefs.current[friend.id] = el || null;
                       }}
                       className="friend-menu"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={e => e.stopPropagation()}
                     >
-                      <button 
+                      <button
                         className="menu-item unfriend-button"
-                        onClick={(e) => handleUnfriend(friend.id, e)}
+                        onClick={e => handleUnfriend(friend.id, e)}
                         disabled={isUnfriending === friend.id}
                       >
-                        {isUnfriending === friend.id ? "Unfriending..." : "Unfriend"}
+                        {isUnfriending === friend.id
+                          ? "Unfriending..."
+                          : "Unfriend"}
                       </button>
                     </div>
                   )}

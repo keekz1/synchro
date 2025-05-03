@@ -42,8 +42,7 @@ export default function Navbar() {
                 Synchro
               </Link>
 
-              {/* Desktop Navigation */}
-              <div className="hidden md:flex space-x-6">
+               <div className="hidden md:flex space-x-6">
                 <NavLink href="/" text="Home" />
                 <NavLink href="/map" text="Map" />
                 <NavLink href="/profile" text="Profile" />

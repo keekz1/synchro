@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { db as prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { z } from "zod";
+import { 
+  getFirestore, 
+  doc, 
+  deleteDoc, 
+  updateDoc, 
+  arrayRemove,
+  collection,
+  setDoc,
+  serverTimestamp
+} from "firebase/firestore";
+import { app } from "@/lib/firebase";
 
 const requestSchema = z.object({
   friendId: z.string().min(1, "Friend ID is required")
@@ -22,7 +33,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { friendId } = requestSchema.parse(body);
 
-    // Delete the friendship between the users
+    // Delete from Prisma database
     await prisma.friendship.deleteMany({
       where: {
         OR: [
@@ -32,7 +43,6 @@ export async function POST(req: Request) {
       }
     });
 
-    // Delete the friend requests between the users (both sent and received)
     await prisma.friendRequest.deleteMany({
       where: {
         OR: [
@@ -42,13 +52,46 @@ export async function POST(req: Request) {
       }
     });
 
+    // Delete from Firestore (for real-time updates)
+    const db = getFirestore(app);
+    const chatId = [userId, friendId].sort().join('_');
+    
+    try {
+      // Delete the chat document if it exists
+      await deleteDoc(doc(db, "chats", chatId));
+      
+      // Remove friend references from both users' friend lists
+      const userRef = doc(db, "users", userId);
+      const friendRef = doc(db, "users", friendId);
+      
+      await updateDoc(userRef, {
+        friends: arrayRemove(friendId)
+      });
+      
+      await updateDoc(friendRef, {
+        friends: arrayRemove(userId)
+      });
+      
+      // Create a real-time event in Firestore to notify both users
+      const notificationRef = doc(collection(db, "notifications"));
+      await setDoc(notificationRef, {
+        type: "friend_removed",
+        userIds: [userId, friendId],
+        timestamp: serverTimestamp()
+      });
+
+    } catch (firestoreError) {
+      console.error("Firestore update error:", firestoreError);
+      // Continue even if Firestore updates fail
+    }
+
     return NextResponse.json({
       success: true,
-      message: "Friendship and friend requests removed successfully"
+      message: "Friendship removed successfully"
     });
 
   } catch (error) {
-    console.error("Error removing friendship and friend requests:", error);
+    console.error("Error removing friendship:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

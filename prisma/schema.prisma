@@ -158,7 +158,7 @@ model User {
 
   friendshipsAsUserA     Friendship[]   @relation("Friendship_userA")
   friendshipsAsUserB     Friendship[]   @relation("Friendship_userB")
-  
+ 
    messagesSent           Message[]      @relation("MessagesSent")
   messagesReceived       Message[]      @relation("MessagesReceived")
   skills                 String[]     

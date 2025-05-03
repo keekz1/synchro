@@ -8,7 +8,9 @@ interface LogoutButtonProps {
 
 export const LogoutButton = ({ children }: LogoutButtonProps) => {
   const onClick = () => {
-    logout();
+     sessionStorage.removeItem("visited_/collab");
+
+     logout();
   };
 
   return (
