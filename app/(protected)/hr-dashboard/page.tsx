@@ -18,8 +18,7 @@ import { useCurrentRole } from "@/hooks/use-current-role";
 import { Input } from "@/components/ui/input";
 import { MatchedUsers } from "@/components/MatchedUsers";
 
-// Types
-type LocationPreference = "REMOTE" | "HYBRID" | "ONSITE";
+ type LocationPreference = "REMOTE" | "HYBRID" | "ONSITE";
 type EducationLevel = "Bachelor's" | "Master's" | "PhD" | "Diploma" | "High School";
 
 interface PreferenceSet {
@@ -60,15 +59,14 @@ interface DbPreference {
   minExperience: number;
   locationType: string;
   educationLevel: string[];
-  minAge: number | null;  // Changed from number | undefined
-  maxAge: number | null;  // Changed from number | undefined
+  minAge: number | null;   
+  maxAge: number | null;  
   role: string;
   updatedAt: Date;
   createdAt: Date;
-  userId: string;  // Added this since it appears in the error
+  userId: string;   
 }
-// Constants
-const educationOptions: EducationLevel[] = [
+ const educationOptions: EducationLevel[] = [
   "Bachelor's",
   "Master's",
   "PhD",
@@ -76,8 +74,7 @@ const educationOptions: EducationLevel[] = [
   "High School",
 ];
 
-// Utility Functions
-const filterValidEducationLevels = (levels: string[]): EducationLevel[] => {
+ const filterValidEducationLevels = (levels: string[]): EducationLevel[] => {
   return levels.filter((level): level is EducationLevel =>
     educationOptions.includes(level as EducationLevel)
   );
@@ -96,8 +93,7 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
     maxAge: dbPrefs.maxAge ?? undefined
   };
 };
-// Main Component
-const HRPage = () => {
+ const HRPage = () => {
   const role = useCurrentRole();
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [preferenceSets, setPreferenceSets] = useState<PreferenceSet[]>([]);
@@ -108,8 +104,7 @@ const HRPage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingPreferenceId, setEditingPreferenceId] = useState<string | null>(null);
 
-  // Form state
-  const [preferences, setPreferences] = useState({
+   const [preferences, setPreferences] = useState({
     requiredSkills: [] as string[],
     minExperience: 1,
     locationType: "HYBRID" as LocationPreference,
@@ -129,8 +124,7 @@ const HRPage = () => {
       try {
         setLoading(true);
   
-        // Fetch roles - fixed version
-        const rolesResponse = await fetch("/api/role");
+         const rolesResponse = await fetch("/api/role");
         if (!rolesResponse.ok) throw new Error("Failed to fetch roles");
         const roleStrings: string[] = await rolesResponse.json();
         
@@ -140,8 +134,7 @@ const HRPage = () => {
         }));
         setRoles(rolesData);
   
-        // Fetch HR preferences
-        const prefResult = await getAllHRPreferences();
+         const prefResult = await getAllHRPreferences();
         if (prefResult.error) {
           toast.error(prefResult.error);
         } else if (prefResult.preferences) {
@@ -161,8 +154,7 @@ const HRPage = () => {
           }
         }
   
-        // Fetch candidate analysis
-        const analysisResult = await getCandidateSkillsAnalysis();
+         const analysisResult = await getCandidateSkillsAnalysis();
         if (analysisResult?.error) {
           toast.error(analysisResult.error);
           setSkillAnalysis(null);
@@ -377,7 +369,7 @@ const HRPage = () => {
   return (
     <div className="min-h-screen w-full p-6 bg-slate-50">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Preference Sets Selector */}
+        {/* Preference sets selector */}
         <Card>
           <CardHeader>
             <h2 className="text-xl font-bold">Your Preference Sets</h2>
@@ -447,7 +439,7 @@ const HRPage = () => {
           </CardContent>
         </Card>
   
-        {/* Current Active Preference Display */}
+        {/* Current  preference Display */}
         {activePreference && (
           <Card id="current-preferences">
             <CardHeader className="flex flex-row justify-between items-center">
@@ -725,7 +717,7 @@ const HRPage = () => {
                     </div>
                   </div>
   
-                  {/* Matched Users Component */}
+                  {/* Matched users*/}
                   <MatchedUsers
                     preference={{
                       requiredSkills: activePreference.requiredSkills,
@@ -742,7 +734,7 @@ const HRPage = () => {
           </Card>
         )}
   
-        {/* Create New Form */}
+        {/* Create new form */}
         {(!activePreference || !isEditing) && (
           <Card>
             <CardHeader>

@@ -117,7 +117,21 @@ export default function Profile({ user }: ProfileProps) {
       setIsSavingProfile(false);
     }
   };
-
+  const handleOpenToWorkToggle = async (newValue: boolean) => {
+    setIsOpenToWork(newValue);
+    try {
+      await fetch("/api/updatexpag", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          openToWork: newValue,
+         }),
+      });
+    } catch (error) {
+      console.error("Failed to update status", error);
+      setIsOpenToWork(!newValue);  
+    }
+  };
   const updateRole = async (newRole: string) => {
     setLoading(true);
     setMessage("");
@@ -352,8 +366,8 @@ export default function Profile({ user }: ProfileProps) {
             </p>
           </div>
           <button
-            onClick={() => setIsOpenToWork(!isOpenToWork)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+onClick={() => handleOpenToWorkToggle(!isOpenToWork)}
+className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
               isOpenToWork ? 'bg-blue-600' : 'bg-gray-300'
             }`}
             aria-label={isOpenToWork ? 'Set as not open to work' : 'Set as open to work'}

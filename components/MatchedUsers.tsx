@@ -2,7 +2,13 @@
 import { useEffect, useState } from "react";
 import { User, UserRole, ExperienceLevel } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, FileText } from "lucide-react";
+
+interface CVData {
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface MatchedUser extends User {
   matchScore: number;
@@ -10,9 +16,9 @@ interface MatchedUser extends User {
   educationLevel: string[];
   experience: ExperienceLevel | null;
   age: number | null;
-  openToWork: boolean; 
+  openToWork: boolean;
+  cv?: CVData | null;
 }
-
 
 interface MatchedUsersProps {
   preference: {
@@ -44,18 +50,14 @@ export const MatchedUsers = ({ preference }: MatchedUsersProps) => {
     try {
       const response = await fetch("/api/users/match", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(preference),
       });
-  
+
       if (!response.ok) throw new Error("Failed to fetch matched users");
-  
+
       const data = await response.json();
-  
-       const filteredUsers = data.users.filter((user: MatchedUser) => user.openToWork);
-  
+      const filteredUsers = data.users.filter((user: MatchedUser) => user.openToWork);
       setMatchedUsers(filteredUsers);
     } catch (error) {
       console.error("Error fetching matched users:", error);
@@ -63,29 +65,17 @@ export const MatchedUsers = ({ preference }: MatchedUsersProps) => {
       setLoading(false);
     }
   };
-  
 
   useEffect(() => {
-    if (preference.role) {
-      fetchMatchedUsers();
-    }
+    if (preference.role) fetchMatchedUsers();
   }, [preference]);
 
   return (
     <div className="mt-6 border-t pt-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Matched Candidates</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchMatchedUsers}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
+        <Button variant="outline" size="sm" onClick={fetchMatchedUsers} disabled={loading}>
+          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           Refresh
         </Button>
       </div>
@@ -105,18 +95,30 @@ export const MatchedUsers = ({ preference }: MatchedUsersProps) => {
                       {user.email} • {experienceYears} years experience
                     </p>
                   </div>
-                  <Button variant="outline" size="sm">
-                    View Profile
-                  </Button>
+                  <div className="flex gap-2">
+                    {user.cv?.content && (
+                      <a 
+                        href={user.cv.content} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline" size="sm">
+                          <FileText className="mr-2 h-4 w-4" />
+                          View CV
+                        </Button>
+                      </a>
+                    )}
+                    <Button variant="outline" size="sm">
+                      View Profile
+                    </Button>
+                  </div>
                 </div>
                 <div className="mt-2">
                   <p className="text-sm">
-                    <span className="font-medium">Skills:</span>{" "}
-                    {user.skills?.join(", ")}
+                    <span className="font-medium">Skills:</span> {user.skills?.join(", ")}
                   </p>
                   <p className="text-sm">
-                    <span className="font-medium">Education:</span>{" "}
-                    {user.educationLevel?.join(", ")}
+                    <span className="font-medium">Education:</span> {user.educationLevel?.join(", ")}
                   </p>
                   {user.age && (
                     <p className="text-sm">
