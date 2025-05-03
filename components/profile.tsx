@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Pencil } from "lucide-react";
 import { ExperienceLevel } from "@prisma/client";
 import Image from "next/image";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { getStorage, ref, uploadBytes, getDownloadURL  } from "firebase/storage";
 import { app } from "@/lib/firebase";  
  
 interface User {
@@ -242,9 +242,9 @@ export default function Profile({ user }: ProfileProps) {
       setMessage("CV uploaded successfully!");
       setCvFile(null);
   
-    } catch (error: any) {
-      setMessage(error.message || "Failed to upload CV");
-      console.error("Upload error:", error);
+    } catch   {
+      setMessage(  "Failed to upload CV");
+      console.error("Upload error: ");
     } finally {
       setIsUploadingCV(false);
     }
