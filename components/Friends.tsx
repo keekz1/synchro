@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect  } from "react";
 import { useRouter } from "next/navigation";
 import { getFirestore, doc, onSnapshot, collection, query, where, deleteDoc } from "firebase/firestore";
-import axios, { AxiosError } from "axios";
+import axios    from "axios";
 import useSWR from "swr";
 import { toast } from "sonner";
 import "../components/friends.css";
