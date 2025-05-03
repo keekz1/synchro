@@ -2,7 +2,7 @@
 
 import { currentUser } from "@/lib/auth";
 import { db as prismaDb } from "@/lib/db";  
-import { logout } from "@/actions/logout";
+import { logout } from "@/actions/logoutAdelete";
 import { db as firestore } from "@/lib/firebase";  
 import { collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 
