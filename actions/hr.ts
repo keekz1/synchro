@@ -12,6 +12,7 @@ interface HRPreferences {
   requiredSkills: string[];
   minExperience: number;
   locationType: LocationPreference;
+  hiringLocation: string[]; 
   educationLevel?: string[];
   minAge?: number;
   maxAge?: number;
@@ -43,7 +44,10 @@ export const saveHRPreferences = async (preferences: HRPreferences) => {
   }
 
   try {
-    // Check if user has reached maximum preference sets
+     if (!preferences.hiringLocation || preferences.hiringLocation.length === 0) {
+      return { error: "At least one hiring location is required" };
+    }
+
     const existingCount = await db.hRPreferences.count({
       where: { userId: user.id }
     });
@@ -63,6 +67,7 @@ export const saveHRPreferences = async (preferences: HRPreferences) => {
       ...preferences,
       minAge: preferences.minAge ?? 19,
       educationLevel: preferences.educationLevel || [],
+      hiringLocation: preferences.hiringLocation  
     };
 
     const result = await db.hRPreferences.create({
@@ -76,7 +81,6 @@ export const saveHRPreferences = async (preferences: HRPreferences) => {
       success: "Preferences saved successfully!",
       preferences: result 
     };
-
   } catch (error) {
     console.error("Error saving HR preferences:", error);
     return { error: "Failed to save preferences" };
@@ -90,6 +94,10 @@ export const updateHRPreferences = async (id: string, preferences: Partial<HRPre
   }
 
   try {
+     if (preferences.hiringLocation && preferences.hiringLocation.length === 0) {
+      return { error: "At least one hiring location is required" };
+    }
+
     const result = await db.hRPreferences.update({
       where: { 
         id_userId: {
@@ -102,15 +110,13 @@ export const updateHRPreferences = async (id: string, preferences: Partial<HRPre
 
     return { 
       success: true,
-      preference: result  // renamed to `preference` to match frontend
+      preference: result  
     };
   } catch (error) {
     console.error("Error updating HR preferences:", error);
     return { error: "Failed to update preferences" };
   }
 };
-
-
 export const getAllHRPreferences = async () => {
   const user = await currentUser();
   if (!user || user.role !== UserRole.HR) {
@@ -139,7 +145,7 @@ export const getHRPreferenceById = async (id: string) => {
   try {
     const preference = await db.hRPreferences.findUnique({
       where: { 
-        id_userId: {  // Using compound unique identifier
+        id_userId: {  
           id,
           userId: user.id
         }
@@ -148,7 +154,7 @@ export const getHRPreferenceById = async (id: string) => {
 
     if (!preference) {
       return { error: "Preference set not found" };
-    }
+    } 
 
     return { preference };
   } catch (error) {
@@ -166,7 +172,7 @@ export const deleteHRPreference = async (id: string) => {
   try {
     await db.hRPreferences.delete({
       where: { 
-        id_userId: {  // Using compound unique identifier
+        id_userId: {   
           id,
           userId: user.id
         }
@@ -187,8 +193,7 @@ export const getCandidateSkillsAnalysis = async (preferenceId?: string) => {
   }
 
   try {
-    // If preferenceId is provided, filter candidates based on those preferences
-    let whereClause: any = { 
+     let whereClause: any = { 
       role: UserRole.USER,
       skills: { isEmpty: false } 
     };
@@ -196,7 +201,7 @@ export const getCandidateSkillsAnalysis = async (preferenceId?: string) => {
     if (preferenceId) {
       const preference = await db.hRPreferences.findUnique({
         where: { 
-          id_userId: {  // Using compound unique identifier
+          id_userId: {  
             id: preferenceId,
             userId: user.id
           }

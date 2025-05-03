@@ -27,6 +27,7 @@ interface PreferenceSet {
   requiredSkills: string[];
   minExperience: number;
   locationType: LocationPreference;
+  hiringLocation: string[];  
   educationLevel: EducationLevel[];
   minAge: number;
   maxAge?: number;
@@ -34,7 +35,6 @@ interface PreferenceSet {
   updatedAt: Date;
   createdAt: Date;
 }
-
 type SkillAnalysis = {
   skill: string;
   count: number;
@@ -58,15 +58,16 @@ interface DbPreference {
   requiredSkills: string[];
   minExperience: number;
   locationType: string;
+  hiringLocation?: string[];  
   educationLevel: string[];
-  minAge: number | null;   
-  maxAge: number | null;  
+  minAge: number | null;
+  maxAge: number | null;
   role: string;
   updatedAt: Date;
   createdAt: Date;
-  userId: string;   
+  userId: string;
 }
- const educationOptions: EducationLevel[] = [
+  const educationOptions: EducationLevel[] = [
   "Bachelor's",
   "Master's",
   "PhD",
@@ -83,12 +84,16 @@ interface DbPreference {
 const isValidLocationType = (value: string): value is LocationPreference => {
   return ["REMOTE", "HYBRID", "ONSITE"].includes(value);
 };
-
 const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
+   const hiringLocation = Array.isArray(dbPrefs.hiringLocation) 
+    ? dbPrefs.hiringLocation.filter((item): item is string => typeof item === 'string')
+    : [];
+  
   return {
     ...dbPrefs,
     locationType: isValidLocationType(dbPrefs.locationType) ? dbPrefs.locationType : "HYBRID",
     educationLevel: filterValidEducationLevels(dbPrefs.educationLevel || []),
+    hiringLocation,  
     minAge: dbPrefs.minAge ?? 19,
     maxAge: dbPrefs.maxAge ?? undefined
   };
@@ -103,10 +108,12 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editingPreferenceId, setEditingPreferenceId] = useState<string | null>(null);
+  const [newLocation, setNewLocation] = useState("");
 
-   const [preferences, setPreferences] = useState({
+  const [preferences, setPreferences] = useState({
     requiredSkills: [] as string[],
     minExperience: 1,
+    hiringLocation: [] as string[],  
     locationType: "HYBRID" as LocationPreference,
     educationLevel: [] as EducationLevel[],
     minAge: 19,
@@ -133,12 +140,14 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
           label: role.replace(/_/g, ' ')
         }));
         setRoles(rolesData);
-  
-         const prefResult = await getAllHRPreferences();
+        const prefResult = await getAllHRPreferences();
         if (prefResult.error) {
           toast.error(prefResult.error);
         } else if (prefResult.preferences) {
-          const transformed = prefResult.preferences.map(transformDbPreferences);
+           const transformed = prefResult.preferences.map(pref => 
+            transformDbPreferences(pref as unknown as DbPreference)
+          );
+          
           setPreferenceSets(transformed);
           if (transformed.length > 0) {
             setActivePreference(transformed[0]);
@@ -146,6 +155,7 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
               requiredSkills: transformed[0].requiredSkills,
               minExperience: transformed[0].minExperience,
               locationType: transformed[0].locationType,
+              hiringLocation: transformed[0].hiringLocation,
               educationLevel: transformed[0].educationLevel,
               minAge: transformed[0].minAge,
               maxAge: transformed[0].maxAge,
@@ -153,7 +163,6 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
             });
           }
         }
-  
          const analysisResult = await getCandidateSkillsAnalysis();
         if (analysisResult?.error) {
           toast.error(analysisResult.error);
@@ -209,7 +218,8 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
     try {
       const result = await saveHRPreferences({
         ...preferences,
-        name: newPreferenceName
+        name: newPreferenceName,
+        hiringLocation: preferences.hiringLocation 
       });
 
       if (result.success && result.preferences) {
@@ -256,6 +266,7 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
           minExperience: pref.minExperience,
           locationType: pref.locationType,
           educationLevel: pref.educationLevel,
+          hiringLocation: pref.hiringLocation,  
           minAge: pref.minAge,
           maxAge: pref.maxAge,
           role: pref.role,
@@ -275,6 +286,9 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
       requiredSkills: pref.requiredSkills,
       minExperience: pref.minExperience,
       locationType: pref.locationType,
+      hiringLocation: preferences.hiringLocation , 
+
+
       educationLevel: pref.educationLevel,
       minAge: pref.minAge,
       maxAge: pref.maxAge,
@@ -291,6 +305,8 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
         minExperience: activePreference.minExperience,
         locationType: activePreference.locationType,
         educationLevel: activePreference.educationLevel,
+        hiringLocation: preferences.hiringLocation,  
+
         minAge: activePreference.minAge,
         maxAge: activePreference.maxAge,
         role: activePreference.role,
@@ -310,6 +326,9 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
           requiredSkills: pref.requiredSkills,
           minExperience: pref.minExperience,
           locationType: pref.locationType,
+          hiringLocation: preferences.hiringLocation,
+  
+
           educationLevel: pref.educationLevel,
           minAge: pref.minAge,
           maxAge: pref.maxAge,
@@ -441,59 +460,67 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
   
         {/* Current  preference Display */}
         {activePreference && (
-          <Card id="current-preferences">
-            <CardHeader className="flex flex-row justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold">
-                  {activePreference.name} Preferences
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Last updated: {new Date(activePreference.updatedAt).toLocaleString()}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {isEditing ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={cancelEditing}
-                    >
-                      <X className="mr-2 h-4 w-4" />
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={saveEditedPreference}
-                      disabled={loading}
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Changes
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRefresh}
-                      disabled={loading}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Refresh
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => startEditing(activePreference)}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                  </>
-                )}
-              </div>
+  <Card id="current-preferences">
+    <CardHeader className="flex flex-row justify-between items-center">
+      <div>
+        <h2 className="text-xl font-bold">
+          {activePreference.name} Preferences
+        </h2>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            Last updated: {new Date(activePreference.updatedAt).toLocaleString()}
+          </span>
+          <span>•</span>
+          <span className="font-medium">
+            {activePreference.locationType === "REMOTE" 
+              ? "Remote" 
+              : activePreference.hiringLocation }
+          </span>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        {isEditing ? (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={cancelEditing}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={saveEditedPreference}
+              disabled={loading}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Save Changes
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => startEditing(activePreference)}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          </>
+        )}
+      </div>
             </CardHeader>
             <CardContent>
               {isEditing && editingPreferenceId === activePreference.id ? (
@@ -516,7 +543,54 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
                       ))}
                     </select>
                   </div>
-  
+                  <div className="space-y-2">
+  <h2 className="text-lg font-medium">Hiring Locations</h2>
+  <div className="flex gap-2">
+    <Input
+      placeholder="Add location (e.g. New York)"
+      value={newLocation}
+      onChange={(e) => setNewLocation(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && newLocation) {
+          setPreferences(prev => ({
+            ...prev,
+            hiringLocation: [...prev.hiringLocation, newLocation]
+          }));
+          setNewLocation('');
+        }
+      }}
+    />
+    <Button
+      onClick={() => {
+        if (newLocation) {
+          setPreferences(prev => ({
+            ...prev,
+            hiringLocation: [...prev.hiringLocation, newLocation]
+          }));
+          setNewLocation('');
+        }
+      }}
+    >
+      Add
+    </Button>
+  </div>
+  <div className="flex flex-wrap gap-2 mt-2">
+    {preferences.hiringLocation.map((location, index) => (
+      <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+        <span>{location}</span>
+        <button 
+          onClick={() => setPreferences(prev => ({
+            ...prev,
+            hiringLocation: prev.hiringLocation.filter((_, i) => i !== index)
+          }))}
+          className="text-red-500"
+        >
+          ×
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
                   <div className="space-y-2">
                     <h2 className="text-lg font-medium">Required Skills</h2>
                     {skillAnalysis?.mostCommonSkills?.length ? (
@@ -719,15 +793,16 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
   
                   {/* Matched users*/}
                   <MatchedUsers
-                    preference={{
-                      requiredSkills: activePreference.requiredSkills,
-                      minExperience: activePreference.minExperience,
-                      educationLevel: activePreference.educationLevel,
-                      minAge: activePreference.minAge,
-                      maxAge: activePreference.maxAge,
-                      role: activePreference.role as UserRole,
-                    }}
-                  />
+  preference={{
+    requiredSkills: activePreference.requiredSkills,
+    minExperience: activePreference.minExperience,
+    educationLevel: activePreference.educationLevel,
+    minAge: activePreference.minAge,
+    maxAge: activePreference.maxAge,
+    role: activePreference.role as UserRole,
+    hiringLocation: activePreference.hiringLocation || []  
+  }}
+/>
                 </>
               )}
             </CardContent>
@@ -788,6 +863,56 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
                   </p>
                 )}
               </div>
+              {preferences.locationType !== "REMOTE" && (
+        <div className="space-y-2">
+          <h2 className="text-lg font-medium">Hiring Locations</h2>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add location (e.g. New York)"
+              value={newLocation}
+              onChange={(e) => setNewLocation(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newLocation) {
+                  setPreferences(prev => ({
+                    ...prev,
+                    hiringLocation: [...prev.hiringLocation, newLocation]
+                  }));
+                  setNewLocation('');
+                }
+              }}
+            />
+            <Button
+              onClick={() => {
+                if (newLocation) {
+                  setPreferences(prev => ({
+                    ...prev,
+                    hiringLocation: [...prev.hiringLocation, newLocation]
+                  }));
+                  setNewLocation('');
+                }
+              }}
+            >
+              Add
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {preferences.hiringLocation.map((location, index) => (
+              <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                <span>{location}</span>
+                <button 
+                  onClick={() => setPreferences(prev => ({
+                    ...prev,
+                    hiringLocation: prev.hiringLocation.filter((_, i) => i !== index)
+                  }))}
+                  className="text-red-500"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
   
               <div className="space-y-2">
                 <h2 className="text-lg font-medium">Minimum Experience</h2>

@@ -17,6 +17,8 @@ interface User {
   age?: number;
   educationLevel: string[];
   openToWork: boolean;
+  preferredAreas: string[];
+
   skills: string[];
   cv?: {
     content?: string;   
@@ -54,6 +56,22 @@ export default function Profile({ user }: ProfileProps) {
     fileName?: string;
     fileSize?: number;
   } | null>(user.cv || null);
+  const [preferredAreas, setPreferredAreas] = useState<string[]>(user.preferredAreas || []);
+const [newPreferredArea, setNewPreferredArea] = useState("");
+ const UK_REGIONS = [
+  "London",
+  "South East England",
+  "South West England",
+  "East of England",
+  "West Midlands",
+  "East Midlands",
+  "Yorkshire and the Humber",
+  "North West England",
+  "North East England",
+  "Scotland",
+  "Wales",
+  "Northern Ireland"
+] as const;
   useEffect(() => {
     async function fetchData() {
       try {
@@ -68,6 +86,8 @@ export default function Profile({ user }: ProfileProps) {
         setEducationLevel(profileData.educationLevel || []);
         setIsOpenToWork(profileData.openToWork);
         setSkills(profileData.skills || []);
+        setPreferredAreas(profileData.preferredAreas || []);  
+
         
          if (profileData.cv) {
           setUserCV(profileData.cv);
@@ -92,6 +112,7 @@ export default function Profile({ user }: ProfileProps) {
           age: age || null,
           educationLevel,
           openToWork: isOpenToWork,
+          preferredAreas,
           skills
         }),
       });
@@ -558,9 +579,79 @@ className={`relative inline-flex h-6 w-11 items-center rounded-full transition-c
                     </div>
                   ))}
                 </div>
+                
               </div>
             </div>
-
+{/* Preferred Work Area Section */}
+<div className="mt-6">
+  <label className="block text-sm font-medium text-gray-700 mb-3">Preferred Work Areas (UK Regions)</label>
+  <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-blue-500 transition-colors">
+    {isEditingProfile ? (
+      <div className="space-y-4">
+    <div className="flex gap-2">
+  <select
+    value={newPreferredArea}
+    onChange={(e) => setNewPreferredArea(e.target.value)}
+    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+    aria-label="Select UK region"   
+    title="Select UK region"       
+  >
+    <option value="">Select UK region</option>
+    {UK_REGIONS.map(region => (
+      <option key={region} value={region}>{region}</option>
+    ))}
+  </select>
+  <button
+    onClick={() => {
+      if (newPreferredArea && !preferredAreas.includes(newPreferredArea)) {
+        setPreferredAreas([...preferredAreas, newPreferredArea]);
+        setNewPreferredArea("");
+      }
+    }}
+    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+    aria-label="Add selected region"  
+  >
+    Add
+  </button>
+</div>
+        
+        <div className="flex flex-wrap gap-2">
+          {preferredAreas.map((area, index) => (
+            <div key={index} className="bg-blue-50 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2">
+              <span>{area}</span>
+              <button
+                onClick={() => setPreferredAreas(preferredAreas.filter((_, i) => i !== index))}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div className="flex flex-col items-center">
+        {preferredAreas.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+          {preferredAreas.map((area, index) => (
+            <span key={index} className="bg-blue-50 text-blue-800 px-3 py-1 rounded-full">
+              {area}
+            </span>
+          ))}
+        </div>
+        ) : (
+          <div className="text-center text-gray-500">
+            <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <p className="mt-2">No preferred areas selected</p>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+</div>
             {/* CV   */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">CV / Resume</label>
@@ -711,6 +802,28 @@ className={`relative inline-flex h-6 w-11 items-center rounded-full transition-c
               </div>
             </div>
             <div className="md:col-span-2">
+      <h3 className="text-sm font-medium text-gray-500 mb-2">Preferred Work Areas</h3>
+      <div className="border border-gray-200 rounded-lg p-4">
+        {preferredAreas.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {preferredAreas.map((area, index) => (
+              <span key={index} className="bg-blue-50 text-blue-800 px-3 py-1 rounded-full">
+                {area}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500">
+            <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <p className="mt-2">No preferred areas selected</p>
+          </div>
+        )}
+      </div>
+    </div>
+            <div className="md:col-span-2">
               <h3 className="text-sm font-medium text-gray-500 mb-2">Skills</h3>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill, index) => (
@@ -749,9 +862,12 @@ className={`relative inline-flex h-6 w-11 items-center rounded-full transition-c
     </div>
   )}
 </div>               </div>
+
               </div>
+              
             )}
           </div>
+          
         )}
       </section>
     </div>

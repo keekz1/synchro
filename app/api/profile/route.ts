@@ -23,6 +23,7 @@ export async function GET() {
         age: true,
         educationLevel: true,
         openToWork: true,
+        preferredAreas:true,
       },
     });
 

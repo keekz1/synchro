@@ -14,6 +14,7 @@ interface MatchedUser extends User {
   matchScore: number;
   skills: string[];
   educationLevel: string[];
+  preferredAreas: string[];
   experience: ExperienceLevel | null;
   age: number | null;
   openToWork: boolean;
@@ -28,6 +29,7 @@ interface MatchedUsersProps {
     minAge: number;
     maxAge?: number;
     role: UserRole;
+    hiringLocation: string[];
   };
 }
 
@@ -44,6 +46,8 @@ const experienceToYears = (exp: ExperienceLevel | null): number => {
 export const MatchedUsers = ({ preference }: MatchedUsersProps) => {
   const [matchedUsers, setMatchedUsers] = useState<MatchedUser[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const displayLimit = 20;
 
   const fetchMatchedUsers = async () => {
     setLoading(true);
@@ -51,7 +55,10 @@ export const MatchedUsers = ({ preference }: MatchedUsersProps) => {
       const response = await fetch("/api/users/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(preference),
+        body: JSON.stringify({
+          ...preference,
+          hiringLocation: preference.hiringLocation || []
+        }),
       });
 
       if (!response.ok) throw new Error("Failed to fetch matched users");
@@ -70,66 +77,86 @@ export const MatchedUsers = ({ preference }: MatchedUsersProps) => {
     if (preference.role) fetchMatchedUsers();
   }, [preference]);
 
+  const displayedUsers = showAll ? matchedUsers : matchedUsers.slice(0, displayLimit);
+
   return (
     <div className="mt-6 border-t pt-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Matched Candidates</h3>
+        <h3 className="text-lg font-semibold">
+          Matched Candidates ({matchedUsers.length})
+        </h3>
         <Button variant="outline" size="sm" onClick={fetchMatchedUsers} disabled={loading}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           Refresh
         </Button>
       </div>
 
-      {matchedUsers.length > 0 ? (
-        <div className="space-y-4">
-          {matchedUsers.map((user) => {
-            const experienceYears = experienceToYears(user.experience);
-            return (
-              <div key={user.id} className="border rounded-lg p-4">
-                <div className="flex justify-between">
-                  <div>
-                    <h4 className="font-medium">
-                      {user.name} ({user.matchScore}% match)
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      {user.email} • {experienceYears} years experience
-                    </p>
+      {displayedUsers.length > 0 ? (
+        <>
+          <div className="space-y-4">
+            {displayedUsers.map((user) => {
+              const experienceYears = experienceToYears(user.experience);
+              return (
+                <div key={user.id} className="border rounded-lg p-4">
+                  <div className="flex justify-between">
+                    <div>
+                      <h4 className="font-medium">
+                        {user.name} ({user.matchScore}% match)
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {user.email} • {experienceYears} years experience
+                      </p>
+                      {user.preferredAreas?.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          Preferred locations: {user.preferredAreas.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {user.cv?.content && (
+                        <a 
+                          href={user.cv.content} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button variant="outline" size="sm">
+                            <FileText className="mr-2 h-4 w-4" />
+                            View CV
+                          </Button>
+                        </a>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {user.cv?.content && (
-                      <a 
-                        href={user.cv.content} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Button variant="outline" size="sm">
-                          <FileText className="mr-2 h-4 w-4" />
-                          View CV
-                        </Button>
-                      </a>
-                    )}
-                    <Button variant="outline" size="sm">
-                      View Profile
-                    </Button>
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <p className="text-sm">
-                    <span className="font-medium">Skills:</span> {user.skills?.join(", ")}
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-medium">Education:</span> {user.educationLevel?.join(", ")}
-                  </p>
-                  {user.age && (
+                  <div className="mt-2">
                     <p className="text-sm">
-                      <span className="font-medium">Age:</span> {user.age}
+                      <span className="font-medium">Skills:</span> {user.skills?.join(", ")}
                     </p>
-                  )}
+                    <p className="text-sm">
+                      <span className="font-medium">Education:</span> {user.educationLevel?.join(", ")}
+                    </p>
+                    {user.age && (
+                      <p className="text-sm">
+                        <span className="font-medium">Age:</span> {user.age}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          
+          {matchedUsers.length > displayLimit && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setShowAll(!showAll)}
+                className="mt-4"
+              >
+                {showAll ? 'Show Less' : `Show All (${matchedUsers.length})`}
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <p className="text-muted-foreground">
           {loading ? "Searching for matches..." : "No matched candidates found"}

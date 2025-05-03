@@ -168,6 +168,7 @@ model User {
   experience   ExperienceLevel?  
   educationLevel String[] @default([])  
   openToWork             Boolean        @default(false)  
+  preferredAreas         String[]       @default([])  
 
   rejectedRequestsSent     RejectedRequest[] @relation("rejectedBySender")
   rejectedRequestsReceived RejectedRequest[] @relation("rejectedByReceiver")
@@ -306,6 +307,7 @@ model HRPreferences {
   role          String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  hiringLocation String[]  
 
    user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   

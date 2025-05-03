@@ -16,12 +16,14 @@ export async function PUT(req: Request) {
       age: number;
       educationLevel: string[];
       openToWork: boolean;
+      preferredAreas: string[];  
     }> = {};
 
-     if ('experience' in body) updateData.experience = body.experience;
+    if ('experience' in body) updateData.experience = body.experience;
     if ('age' in body) updateData.age = Number(body.age);
     if ('educationLevel' in body) updateData.educationLevel = body.educationLevel;
     if ('openToWork' in body) updateData.openToWork = Boolean(body.openToWork);
+    if ('preferredAreas' in body) updateData.preferredAreas = body.preferredAreas; // Add this line
 
     const updatedUser = await db.user.update({
       where: { email: session.user.email },
@@ -31,7 +33,8 @@ export async function PUT(req: Request) {
     return NextResponse.json({
       success: true,
       openToWork: updatedUser.openToWork,
-     });
+      preferredAreas: updatedUser.preferredAreas  
+    });
 
   } catch (error) {
     console.error("Error updating user data:", error);
