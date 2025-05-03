@@ -11,8 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🛠️ **Ensure FormData is correctly parsed**
-    const formData = await request.formData();
+     const formData = await request.formData();
     if (!formData) {
       return NextResponse.json({ error: "No form data received" }, { status: 400 });
     }
@@ -22,21 +21,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // ✅ **Ensure correct MIME type**
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
     }
 
-    // ✅ **Ensure correct buffer handling**
-    const fileBuffer = await file.arrayBuffer();
+     const fileBuffer = await file.arrayBuffer();
     const storage = getStorage(app);
     const storageRef = ref(storage, `profile_images/${session.user.id}_${file.name}`);
 
     await uploadBytes(storageRef, new Uint8Array(fileBuffer));
 
-    // ✅ **Retrieve URL & update DB**
-    const downloadURL = await getDownloadURL(storageRef);
+     const downloadURL = await getDownloadURL(storageRef);
     await prisma.user.update({
       where: { id: session.user.id },
       data: { image: downloadURL },

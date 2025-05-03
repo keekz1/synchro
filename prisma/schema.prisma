@@ -152,6 +152,7 @@ model User {
   friendRequestsReceived FriendRequest[] @relation("Receiver")
   accounts Account[] @relation("AccountToUser")  
   hrPreferences HRPreferences[]  
+  cv                     CV?            @relation("UserCV")
 
   isTwoFactorEnabled Boolean @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
@@ -183,6 +184,15 @@ model Friendship {
 
    @@unique([userAId, userBId])
 
+}
+ model CV {
+  id        String   @id @default(cuid()) @map("_id")
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String   @unique
+  user      User     @relation("UserCV", fields: [userId], references: [id])
 }
 
 model FriendRequest {

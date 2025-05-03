@@ -31,6 +31,7 @@
     "clsx": "^2.1.1",
     "D": "^1.0.0",
     "firebase": "^11.6.0",
+    "firebase-admin": "^13.3.0",
     "framer-motion": "^12.6.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.483.0",

@@ -22,7 +22,7 @@ export async function GET() {
         experience: true,
         age: true,
         educationLevel: true,
-        openToWork: true,  
+        openToWork: true,
       },
     });
 
@@ -30,7 +30,19 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+     const userCV = await db.cV.findUnique({
+      where: { userId: user.id },
+      select: { 
+        content: true,   
+        createdAt: true,
+        updatedAt: true
+      },
+    });
+
+    return NextResponse.json({
+      ...user,
+      cv: userCV || null,
+    });
   } catch (error) {
     console.error("Error fetching current user:", error);
     return NextResponse.json(
