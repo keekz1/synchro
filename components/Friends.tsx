@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useRef, useEffect, RefCallback } from "react";
+import React, { useState, useRef, useEffect  } from "react";
 import { useRouter } from "next/navigation";
 import { getFirestore, doc, onSnapshot, collection, query, where, deleteDoc } from "firebase/firestore";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import useSWR from "swr";
 import { toast } from "sonner";
 import "../components/friends.css";
-
+ 
 interface User {
   id: string;
   name: string;
@@ -96,9 +96,14 @@ const Friends: React.FC<FriendsProps> = ({ currentUserId, onUnfriendSuccess }) =
       } else {
         toast.error(res.data.error || "Failed to remove friend");
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to remove friend");
-    } finally {
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        toast.error(err.response?.data?.error || "Failed to remove friend");
+      } else {
+        toast.error("An unexpected error occurred.");
+      }
+    }
+    finally {
       setIsUnfriending(null);
       setOpenMenuId(null);
     }
