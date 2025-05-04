@@ -1,5 +1,4 @@
-// app/api/users/[userId]/rejected-requests/[rejectedUserId]/route.ts
-import { NextRequest, NextResponse } from "next/server";
+ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
@@ -8,8 +7,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     const currentUserId = session?.user?.id;
     
-    // Extract both IDs from URL path
-    const url = new URL(request.url);
+     const url = new URL(request.url);
     const pathSegments = url.pathname.split('/');
     const userId = pathSegments[pathSegments.indexOf('users') + 1];
     const rejectedUserId = pathSegments[pathSegments.indexOf('rejected-requests') + 1];

@@ -29,14 +29,12 @@ const CustomMarker: React.FC<CustomMarkerProps> = ({ user }) => {
       return;
     }
 
-    // Create circular clipping path
-    context.beginPath();
+     context.beginPath();
     context.arc(25, 25, 25, 0, Math.PI * 2);
     context.closePath();
     context.clip();
 
-    // Load and draw image
-    const img = new Image();
+     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = user.image;
 
@@ -44,20 +42,17 @@ const CustomMarker: React.FC<CustomMarkerProps> = ({ user }) => {
       if (!isMounted) return;
 
       try {
-        // Draw image centered and scaled to cover
-        const imgAspect = img.width / img.height;
-        const targetAspect = 1; // Square aspect for circle
+         const imgAspect = img.width / img.height;
+        const targetAspect = 1;  
         let drawWidth, drawHeight, dx, dy;
 
         if (imgAspect > targetAspect) {
-          // Landscape image
-          drawHeight = 50;
+           drawHeight = 50;
           drawWidth = img.width * (drawHeight / img.height);
           dx = (50 - drawWidth) / 2;
           dy = 0;
         } else {
-          // Portrait image
-          drawWidth = 50;
+           drawWidth = 50;
           drawHeight = img.height * (drawWidth / img.width);
           dx = 0;
           dy = (50 - drawHeight) / 2;
@@ -65,8 +60,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = ({ user }) => {
 
         context.drawImage(img, dx, dy, drawWidth, drawHeight);
         
-        // Add white border
-        context.beginPath();
+         context.beginPath();
         context.arc(25, 25, 25, 0, Math.PI * 2);
         context.strokeStyle = '#ffffff';
         context.lineWidth = 2;
@@ -88,8 +82,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = ({ user }) => {
     };
   }, [user.image]);
 
-  // Fallback to original image with CSS clipping
-  const finalUrl = error ? user.image : iconUrl;
+   const finalUrl = error ? user.image : iconUrl;
 
 
 
@@ -101,7 +94,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = ({ user }) => {
         icon={{
           url: finalUrl,
           scaledSize: new window.google.maps.Size(50, 50),
-          size: new window.google.maps.Size(50, 50),       // Fixed display size
+          size: new window.google.maps.Size(50, 50),      
 
           anchor: new window.google.maps.Point(25, 25),
         }}
@@ -110,8 +103,7 @@ const CustomMarker: React.FC<CustomMarkerProps> = ({ user }) => {
           zIndex: user.role === 'doctor' ? 1000 : 0
         }}
       />
-      {/* Add global style tag for fallback images */}
-      <style jsx global>{`
+       <style jsx global>{`
         .gm-style img[src="${user.image}"] {
           border-radius: 50% !important;
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);

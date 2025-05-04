@@ -22,7 +22,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ friendId, isTyping }) => {
         } else {
           setError(data.error || "Error fetching friend's name");
         }
-      } catch (err) {  // Changed variable name to 'err' and use it
+      } catch (err) {   
         setError(`Failed to fetch friend's name: ${err instanceof Error ? err.message : "Unknown error"}`);
       } finally {
         setLoading(false);

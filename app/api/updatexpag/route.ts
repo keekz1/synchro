@@ -23,7 +23,7 @@ export async function PUT(req: Request) {
     if ('age' in body) updateData.age = Number(body.age);
     if ('educationLevel' in body) updateData.educationLevel = body.educationLevel;
     if ('openToWork' in body) updateData.openToWork = Boolean(body.openToWork);
-    if ('preferredAreas' in body) updateData.preferredAreas = body.preferredAreas; // Add this line
+    if ('preferredAreas' in body) updateData.preferredAreas = body.preferredAreas;  
 
     const updatedUser = await db.user.update({
       where: { email: session.user.email },

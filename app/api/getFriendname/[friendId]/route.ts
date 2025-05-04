@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const pathSegments = url.pathname.split("/");
-    const friendId = pathSegments[pathSegments.length - 1]; // Get last segment
+    const friendId = pathSegments[pathSegments.length - 1];  //last segm
 
     if (!friendId) {
       return NextResponse.json(

@@ -458,7 +458,7 @@ const transformDbPreferences = (dbPrefs: DbPreference): PreferenceSet => {
           </CardContent>
         </Card>
   
-        {/* Current  preference Display */}
+        {/* Current  preference */}
         {activePreference && (
   <Card id="current-preferences">
     <CardHeader className="flex flex-row justify-between items-center">

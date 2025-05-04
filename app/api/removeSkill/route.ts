@@ -1,5 +1,4 @@
-// app/api/removeSkill/route.ts
-import { NextResponse } from "next/server";
+ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 

@@ -1,5 +1,4 @@
-// src/context/SocketContext.tsx
-"use client";
+ "use client";
 import { createContext, useContext, ReactNode, useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -19,8 +18,7 @@ const SocketContext = createContext<SocketContextType>({
   retryConnection: () => {}
 });
 
-// Environment variables
-const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://api.wesynchro.com";
+ const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://api.wesynchro.com";
 const RECONNECT_MAX_ATTEMPTS = 5;
 const RECONNECT_DELAY_BASE = 3000;
 
@@ -51,9 +49,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         case 'user-location':
           if (!validateLocationData(data)) throw new Error('Invalid location data');
           break;
-        case 'create-ticket':
-          if (!validateTicketData(data)) throw new Error('Invalid ticket data');
-          break;
+         
       }
       return true;
     } catch (err) {
@@ -117,11 +113,9 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     socketInstance.on('nearby-users', (users: any[]) => {
     });
 
-    socketInstance.on('new-ticket', (ticket: any) => {
-    });
+  
 
-    socketInstance.on('all-tickets', (tickets: any[]) => {
-    });
+    
 
     socketRef.current = socketInstance;
 
@@ -169,17 +163,7 @@ function validateLocationData(data: any): boolean {
   );
 }
 
-function validateTicketData(data: any): boolean {
-  return !!(
-    data &&
-    typeof data.lat === 'number' &&
-    typeof data.lng === 'number' &&
-    typeof data.message === 'string' &&
-    typeof data.creatorId === 'string' &&
-    typeof data.creatorName === 'string'
-  );
-}
-
+ 
 function getErrorMessage(err: Error): string {
   const message = err.message.toLowerCase();
   if (message.includes("404")) return "Server endpoint not found";

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
-// Helper function to extract userId from URL
-function getUserIdFromUrl(urlString: string): string | null {
+ function getUserIdFromUrl(urlString: string): string | null {
   try {
     const url = new URL(urlString);
     const pathSegments = url.pathname.split('/');
@@ -35,8 +34,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch valid rejected requests
-    const rejectedRequests = await db.rejectedRequest.findMany({
+     const rejectedRequests = await db.rejectedRequest.findMany({
       where: {
         OR: [
           { senderId: currentUserId },

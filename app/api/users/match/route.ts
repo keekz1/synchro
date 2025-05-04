@@ -62,21 +62,21 @@ if (preference.hiringLocation.length > 0) {
   
    if (!locationMatch) return 0;
 }
-  // Experience match (30 points)
+  // Experience  (30 points)
   const userExperienceYears = user.experience ? experienceToYears(user.experience) : 0;
   if (userExperienceYears >= preference.minExperience) score += 30;
 
-  // Skills match (40 points)
+  // Skills  (40 points)
   const matchedSkills = user.skills.filter(skill => preference.requiredSkills.includes(skill));
   score += (matchedSkills.length / Math.max(1, preference.requiredSkills.length)) * 40;
 
-  // Education match (20 points)
+  // Education  (20 points)
   if (preference.educationLevel.length === 0 || 
       user.educationLevel.some(edu => preference.educationLevel.includes(edu))) {
     score += 20;
   }
 
-  // Age match (10 points)
+  // Age (10 points)
   if (user.age && user.age >= preference.minAge && 
       (preference.maxAge ? user.age <= preference.maxAge : true)) {
     score += 10;

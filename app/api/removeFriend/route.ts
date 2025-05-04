@@ -33,8 +33,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { friendId } = requestSchema.parse(body);
 
-    // Delete from Prisma database
-    await prisma.friendship.deleteMany({
+     await prisma.friendship.deleteMany({
       where: {
         OR: [
           { userAId: userId, userBId: friendId },
@@ -52,16 +51,13 @@ export async function POST(req: Request) {
       }
     });
 
-    // Delete from Firestore (for real-time updates)
-    const db = getFirestore(app);
+     const db = getFirestore(app);
     const chatId = [userId, friendId].sort().join('_');
     
     try {
-      // Delete the chat document if it exists
-      await deleteDoc(doc(db, "chats", chatId));
+       await deleteDoc(doc(db, "chats", chatId));
       
-      // Remove friend references from both users' friend lists
-      const userRef = doc(db, "users", userId);
+       const userRef = doc(db, "users", userId);
       const friendRef = doc(db, "users", friendId);
       
       await updateDoc(userRef, {
@@ -72,8 +68,7 @@ export async function POST(req: Request) {
         friends: arrayRemove(userId)
       });
       
-      // Create a real-time event in Firestore to notify both users
-      const notificationRef = doc(collection(db, "notifications"));
+       const notificationRef = doc(collection(db, "notifications"));
       await setDoc(notificationRef, {
         type: "friend_removed",
         userIds: [userId, friendId],
@@ -82,8 +77,7 @@ export async function POST(req: Request) {
 
     } catch (firestoreError) {
       console.error("Firestore update error:", firestoreError);
-      // Continue even if Firestore updates fail
-    }
+     }
 
     return NextResponse.json({
       success: true,

@@ -282,7 +282,7 @@ const SettingsPage = () => {
             </form>
           </Form>
 
-          {/* Delete Account Section */}
+          {/* Delete account*/}
           <div className="mt-8 pt-4 border-t border-gray-200">
             <h3 className="text-lg font-medium text-red-600">Danger Zone</h3>
             <p className="text-sm text-muted-foreground mb-4">
@@ -293,7 +293,7 @@ const SettingsPage = () => {
               Delete Account
             </Button>
 
-            {/* Custom Delete Confirmation Dialog */}
+            {/* Custom delete confirmation  */}
             {showDeleteDialog && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full">

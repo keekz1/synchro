@@ -11,8 +11,7 @@ export async function POST(request: Request) {
     const { requestId } = acceptSchema.parse(body);
 
      const result = await db.$transaction(async (tx) => {
-      // 1. Get and validate the request
-      const friendRequest = await tx.friendRequest.findUnique({
+       const friendRequest = await tx.friendRequest.findUnique({
         where: { id: requestId },
         include: {
           sender: {
@@ -38,14 +37,12 @@ export async function POST(request: Request) {
         throw new Error('Friend request not found');
       }
 
-      // 2. Update the request status
-      await tx.friendRequest.update({
+       await tx.friendRequest.update({
         where: { id: requestId },
         data: { status: 'ACCEPTED' },
       });
 
-      // 3. Create bidirectional friendships using upsert to avoid duplicates
-      await tx.friendship.upsert({
+       await tx.friendship.upsert({
         where: {
           userAId_userBId: {
             userAId: friendRequest.senderId,
@@ -79,8 +76,7 @@ export async function POST(request: Request) {
       };
     });
 
-    // ... rest of the Firebase and Pusher code remains the same ...
-
+ 
     return NextResponse.json(
       { 
         success: true,

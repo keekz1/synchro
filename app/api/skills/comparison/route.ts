@@ -19,7 +19,7 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get all users with same role (excluding current user)
+ 
     const peers = await db.user.findMany({
       where: {
         role: currentUser.role,
@@ -28,8 +28,7 @@ export async function GET() {
       select: { skills: true }
     });
 
-    // Flatten all peer skills and calculate frequency
-    const skillFrequency: Record<string, number> = {};
+     const skillFrequency: Record<string, number> = {};
     peers.forEach(user => {
       user.skills.forEach(skill => {
         skillFrequency[skill] = (skillFrequency[skill] || 0) + 1;
@@ -41,7 +40,7 @@ export async function GET() {
       .map(([skill, count]) => ({ skill, count }))
       .sort((a, b) => b.count - a.count);
 
-    // Get top 5 and bottom 5 skills
+    //   top 5 and bottom 5 skills
     const mostPopular = sortedSkills.slice(0, 5);
     const leastPopular = sortedSkills.slice(-5).reverse();
 

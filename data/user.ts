@@ -4,13 +4,13 @@ export const getUserByEmail = async (email: string) => {
     try {
       const user = await db.user.findUnique({
         where: { email },
-        select: { id: true, emailVerified:true,isTwoFactorEnabled:true, email: true, name: true, password: true }, // Ensure these fields are selected
+        select: { id: true, emailVerified:true,isTwoFactorEnabled:true, email: true, name: true, password: true }, 
       });
   
-      return user; // Return the full user object
+      return user;  
     } catch (error) {
       console.error("Error fetching user:", error);
-      return null; // Return null if any error occurs
+      return null; 
     }
   };
   
@@ -21,6 +21,6 @@ export const getUserById = async (id: string) => {
     });
     return user;
   } catch {
-    return null; // Return null if any error occurs
+    return null;  
   }
 };

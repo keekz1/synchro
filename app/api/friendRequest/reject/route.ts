@@ -25,8 +25,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { requestId } = rejectSchema.parse(body);
 
-    // Find the request
-    const request = await db.friendRequest.findUnique({
+     const request = await db.friendRequest.findUnique({
       where: { id: requestId },
       include: { sender: true }
     });
@@ -45,8 +44,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Update request status and add to rejected list
-    await db.$transaction([
+     await db.$transaction([
       db.friendRequest.update({
         where: { id: requestId },
         data: { status: 'rejected' }
@@ -59,8 +57,7 @@ export async function POST(req: Request) {
       })
     ]);
 
-    // Update Firestore
-    try {
+     try {
       const requestRef = doc(firestore, 'users', currentUserId, 'friendRequests', requestId);
       await updateDoc(requestRef, {
         status: 'rejected',
@@ -70,8 +67,7 @@ export async function POST(req: Request) {
       console.error('Firestore update failed:', firestoreError);
     }
 
-    // Send notification
-    try {
+     try {
       await pusherServer.trigger(
         `user-${request.sender.id}`,
         "friend-request:rejected",

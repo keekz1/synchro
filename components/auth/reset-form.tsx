@@ -1,5 +1,4 @@
-// components/auth/login-form.tsx
-"use client";
+ "use client";
 
 import * as z from "zod";
 import { useState, useTransition } from "react";
@@ -44,15 +43,12 @@ export const ResetForm = () => {
     startTransition(() => {
       reset(values)
         .then((data) => {
-          // Ensure that error is always a string (or undefined)
-          setError(data?.error ? String(data.error) : ""); // Convert to string if necessary
+           setError(data?.error ? String(data.error) : "");  
   
-          // Ensure success is either a string or undefined
-          setSuccess(data?.success ? String(data.success) : undefined); // Only set a string if success is truthy
+           setSuccess(data?.success ? String(data.success) : undefined);  
         })
         .catch(() => {
-          // Handle any additional errors (e.g., network errors)
-          setError("An error occurred, please try again.");
+           setError("An error occurred, please try again.");
         });
     });
     

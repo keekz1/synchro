@@ -334,7 +334,7 @@ const [newPreferredArea, setNewPreferredArea] = useState("");
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-      {/* Profile Header Section */}
+      {/* Profile header */}
       <div className="text-center mb-8">
         <div className="relative inline-block group">
           <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden">
@@ -471,7 +471,7 @@ className={`relative inline-flex h-6 w-11 items-center rounded-full transition-c
 
         {isEditingProfile ? (
           <div className="space-y-6">
-            {/* Experience and Age */}
+            {/* Experience , Age */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Experience Level</label>
@@ -582,7 +582,7 @@ className={`relative inline-flex h-6 w-11 items-center rounded-full transition-c
                 
               </div>
             </div>
-{/* Preferred Work Area Section */}
+{/* Preferred work area */}
 <div className="mt-6">
   <label className="block text-sm font-medium text-gray-700 mb-3">Preferred Work Areas (UK Regions)</label>
   <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-blue-500 transition-colors">

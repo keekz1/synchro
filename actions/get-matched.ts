@@ -5,14 +5,13 @@ const prisma = new PrismaClient();
 export async function getMatchedUsersForHRPreference() {
     const matchedUsers = await prisma.user.findMany({
     where: {
-      // Ensure the 'age' field is being handled correctly (use a valid number or undefined/null)
-      age: { 
-        gte: 25, // Adjust the age filter as necessary
+       age: { 
+        gte: 25,  
       },
       experience: {
-        equals: ExperienceLevel.ONE_TO_2_YEARS, // Use valid enum for experience
+        equals: ExperienceLevel.ONE_TO_2_YEARS,  
       },
-      role: UserRole.Software_Engineer, // Ensure the correct role is used for filtering
+      role: UserRole.Software_Engineer,  
     }
   });
 

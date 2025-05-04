@@ -34,8 +34,7 @@ export default function SelfGrowthPage() {
   const [error, setError] = useState("");
   const [skillsExpanded, setSkillsExpanded] = useState(false);
 
-  // Load saved data from localStorage on initial render
-  useEffect(() => {
+   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
       try {

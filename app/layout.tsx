@@ -1,5 +1,4 @@
-// app/layout.tsx
-import type { Metadata } from "next";
+ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
@@ -22,7 +21,7 @@ export const metadata: Metadata = {
   title: "Wesynchro",
   description: "The power of connections",
   icons: {
-    icon: "/logo-png.png", //
+    icon: "/logo-png.png",  
   },
 };
 
@@ -52,8 +51,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Toaster/>
-        {/* Client-side components wrapped separately */}
-        <ClientLayout>{children}</ClientLayout>
+         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

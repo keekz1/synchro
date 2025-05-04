@@ -25,7 +25,7 @@ export default function Navbar() {
 
   return (
     <div ref={navRef} className="relative">
-      {/* Main   */}
+      {/* Main */}
       <AnimatePresence>
         {isNavVisible && (
           <motion.nav
@@ -55,8 +55,8 @@ export default function Navbar() {
 
               </div>
 
-              {/* Phone Button*/}
-              <button
+              {/* Phone  */}
+              <Button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="md:hidden text-black focus:outline-none transition-transform hover:scale-110"
                 aria-label="Toggle menu"
@@ -64,13 +64,13 @@ export default function Navbar() {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-              </button>
+              </Button>
             </div>
           </motion.nav>
         )}
       </AnimatePresence>
 
-      {/* Arrow Button */}
+      {/* Arrow  */}
       <motion.button
         onClick={toggleNav}
         whileHover={{ scale: 1.1 }}
