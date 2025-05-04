@@ -27,16 +27,16 @@ export default function Navbar() {
     <div ref={navRef} className="relative">
       {/* Main   */}
       <AnimatePresence>
-        {isNavVisible && (
-          <motion.nav
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            exit={{ y: -100 }}
-            transition={{ type: "spring", damping: 20 }}
-            className={`${
-              isSettingsPage ? "bg-secondary" : "bg-white"
-            } backdrop-blur-sm text-black p-2 fixed top-0 left-0 right-0 z-40 shadow-lg max-h-[60px]`}
-          >
+      {isNavVisible && (
+  <motion.nav
+    initial={{ y: -100 }}
+    animate={{ y: 0 }}
+    exit={{ y: -100 }}
+    transition={{ type: "spring", damping: 20 }}
+    className={`${
+      isSettingsPage ? "bg-secondary" : "bg-white"
+    } text-black p-2 fixed top-0 left-0 right-0 z-40 shadow-lg max-h-[60px] border-b border-gray-200`}
+  >
             <div className="container mx-auto flex justify-between items-center h-full">
               <Link href="/" className="text-xl font-bold hover:text-gray-600 transition-colors">
                 Synchro
@@ -57,14 +57,16 @@ export default function Navbar() {
 
               {/* Phone  */}
               <Button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden text-black focus:outline-none transition-transform hover:scale-110"
-                aria-label="Toggle menu"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </Button>
+  onClick={() => setIsMenuOpen(!isMenuOpen)}
+  variant="ghost" 
+  size="icon"      
+  className="md:hidden text-black hover:text-black focus:outline-none hover:bg-transparent p-2"
+  aria-label="Toggle menu"
+>
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+</Button>
             </div>
           </motion.nav>
         )}
@@ -91,15 +93,15 @@ export default function Navbar() {
 
       {/* phone Menu */}
       <AnimatePresence>
-      {isMenuOpen && (
-  <motion.div
-    initial={{ opacity: 0, y: -20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.25, ease: "easeOut" }}
-    className="md:hidden fixed z-30 bg-white dark:bg-white w-full pt-4 pb-4 shadow-lg border-t border-gray-200"
-    style={{ top: isNavVisible ? '64px' : '4px' }}
-  >
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="md:hidden fixed z-30 bg-white/95 backdrop-blur-sm w-full pt-4 pb-4"
+            style={{ top: isNavVisible ? '64px' : '4px' }}
+          >
             <div className="flex flex-col space-y-3 px-4">
               <MobileNavLink href="/" text="Home" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/map" text="Map" onClick={() => setIsMenuOpen(false)} />
