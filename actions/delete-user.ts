@@ -23,7 +23,7 @@ export const deleteUser = async (reason?: string) => {
       });
     }
 
-     const allFriendRequests = await prismaDb.friendRequest.findMany({
+    const allFriendRequests = await prismaDb.friendRequest.findMany({
       where: {
         OR: [
           { senderId: user.id },
@@ -39,28 +39,27 @@ export const deleteUser = async (reason?: string) => {
 
     const batch = writeBatch(firestore);
 
-     const sentRequestsRef = collection(firestore, "users", user.id, "sentFriendRequests");
+    const sentRequestsRef = collection(firestore, "users", user.id, "sentFriendRequests");
     const sentRequestsSnapshot = await getDocs(sentRequestsRef);
     sentRequestsSnapshot.forEach(doc => {
       batch.delete(doc.ref);
     });
 
-     const receivedRequestsRef = collection(firestore, "users", user.id, "friendRequests");
+    const receivedRequestsRef = collection(firestore, "users", user.id, "friendRequests");
     const receivedRequestsSnapshot = await getDocs(receivedRequestsRef);
     receivedRequestsSnapshot.forEach(doc => {
       batch.delete(doc.ref);
     });
 
-     for (const request of allFriendRequests) {
-       if (request.senderId === user.id) {
+    for (const request of allFriendRequests) {
+      if (request.senderId === user.id) {
         const receiverRequestRef = collection(firestore, "users", request.receiverId, "friendRequests");
         const q = query(receiverRequestRef, where("id", "==", request.id));
         const querySnapshot = await getDocs(q);
         querySnapshot.forEach(doc => {
           batch.delete(doc.ref);
         });
-      }
-       else if (request.receiverId === user.id) {
+      } else if (request.receiverId === user.id) {
         const senderRequestRef = collection(firestore, "users", request.senderId, "sentFriendRequests");
         const q = query(senderRequestRef, where("id", "==", request.id));
         const querySnapshot = await getDocs(q);
@@ -70,7 +69,7 @@ export const deleteUser = async (reason?: string) => {
       }
     }
 
-     const notificationsRef = collection(firestore, "users", user.id, "notifications");
+    const notificationsRef = collection(firestore, "users", user.id, "notifications");
     const notificationsSnapshot = await getDocs(notificationsRef);
     notificationsSnapshot.forEach(doc => {
       batch.delete(doc.ref);
@@ -78,7 +77,7 @@ export const deleteUser = async (reason?: string) => {
 
     await batch.commit();
 
-     await prismaDb.$transaction([
+    await prismaDb.$transaction([
       prismaDb.message.deleteMany({
         where: {
           OR: [
@@ -118,6 +117,9 @@ export const deleteUser = async (reason?: string) => {
         where: { userId: user.id }
       }),
       prismaDb.account.deleteMany({
+        where: { userId: user.id }
+      }),
+      prismaDb.cV.deleteMany({  
         where: { userId: user.id }
       }),
       prismaDb.user.delete({
