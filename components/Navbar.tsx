@@ -25,7 +25,7 @@ export default function Navbar() {
 
   return (
     <div ref={navRef} className="relative">
-      {/* Main */}
+      {/* Main   */}
       <AnimatePresence>
         {isNavVisible && (
           <motion.nav
@@ -51,7 +51,7 @@ export default function Navbar() {
                 )}
                  <NavLink href="/collab" text="Collab" />
                 <NavLink href="/self-growth" text="Personal growth" />
-                <NavLink href="/⚙️settings" text="Settings" />
+                <NavLink href="/settings" text="Settings" />
 
               </div>
 
@@ -70,7 +70,7 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Arrow  */}
+      {/* Arrow   */}
       <motion.button
         onClick={toggleNav}
         whileHover={{ scale: 1.1 }}
