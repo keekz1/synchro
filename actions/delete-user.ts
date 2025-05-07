@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/auth";
 import { db as prismaDb } from "@/lib/db";  
 import { logout } from "@/actions/logoutAdelete";
 import { db as firestore } from "@/lib/firebase";  
+
 import { collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 
 export const deleteUser = async (reason?: string) => {
@@ -14,6 +15,7 @@ export const deleteUser = async (reason?: string) => {
     }
 
     if (reason) {
+      
       await prismaDb.deleteReason.create({
         data: {
           userId: user.id,
