@@ -17,8 +17,7 @@
 - Package Manager: npm
 
 
-   Installations 
-   ## Installation
+    ## Installation
    Clone repository:
     
   - git clone  
