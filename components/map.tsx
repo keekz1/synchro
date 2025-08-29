@@ -386,7 +386,7 @@ const MapComponent: React.FC = () => {
           user.lat,
           user.lng
         );
-        return distance <= 10 && user.role === userRole;
+        return distance <= 10 && user.role ===  "HR" ;
       });
     
       const uniqueUsers = new Map<string, User>();

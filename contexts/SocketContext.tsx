@@ -69,19 +69,20 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketRef.current.disconnect();
       socketRef.current.removeAllListeners();
     }
-    const socketInstance = io("wss://api.wesynchro.com", {
-      path: "/socket.io",
-      transports: ["websocket"],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 3000,
-      secure: true,
-      rejectUnauthorized: process.env.NODE_ENV === 'production',
-      timeout: 10000,
-      query: {
-        clientType: 'web',
-        version: '1.0'
-      }
-    });
+    const socketInstance = io("https://backendfst-ozrh.onrender.com", {
+  path: "/socket.io",
+  transports: ["websocket"], // ← this can be restrictive
+  reconnectionAttempts: 5,
+  reconnectionDelay: 3000,
+  secure: true,
+  rejectUnauthorized: process.env.NODE_ENV === 'production',
+  timeout: 10000,
+  query: {
+    clientType: 'web',
+    version: '1.0'
+  }
+});
+
     const handleConnect = () => {
       setIsConnected(true);
       setConnectionError(null);
