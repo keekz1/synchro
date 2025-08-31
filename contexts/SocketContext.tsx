@@ -71,7 +71,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     }
 const socketInstance = io("https://us-central1-synchronme.cloudfunctions.net/socket", {
   path: "/socket.io",
-  transports: ["websocket"],
+  transports: ["polling"], 
   reconnectionAttempts: 5,
   reconnectionDelay: 3000,
   secure: true,
@@ -82,6 +82,7 @@ const socketInstance = io("https://us-central1-synchronme.cloudfunctions.net/soc
     version: '1.0'
   }
 });
+
 
 
     const handleConnect = () => {
