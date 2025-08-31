@@ -69,9 +69,9 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketRef.current.disconnect();
       socketRef.current.removeAllListeners();
     }
-const socketInstance = io("https://us-central1-synchronme.cloudfunctions.net/socket", {
+    const socketInstance = io("https://backendfst-ozrh.onrender.com", {
   path: "/socket.io",
-  transports: ["polling"], 
+  transports: ["websocket"], // ← this can be restrictive
   reconnectionAttempts: 5,
   reconnectionDelay: 3000,
   secure: true,
@@ -82,8 +82,6 @@ const socketInstance = io("https://us-central1-synchronme.cloudfunctions.net/soc
     version: '1.0'
   }
 });
-
-
 
     const handleConnect = () => {
       setIsConnected(true);
