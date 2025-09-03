@@ -50,6 +50,8 @@ export default function Navbar() {
                   <NavLink href="/hr-dashboard" text="HR Dashboard" />
                 )}
                  <NavLink href="/collab" text="Collab" />
+                 <NavLink href="/chatbot" text="Chat with us " />
+
                 <NavLink href="/self-growth" text="Personal growth" />
                 <NavLink href="/settings" text="Settings" />
 
@@ -110,6 +112,8 @@ export default function Navbar() {
                 <MobileNavLink href="/hr-dashboard" text="HR Dashboard" onClick={() => setIsMenuOpen(false)} />
               )}
                <MobileNavLink href="/collab" text="Collab" onClick={() => setIsMenuOpen(false)} />
+               <MobileNavLink href="/chatbot" text="chat with us" onClick={() => setIsMenuOpen(false)} />
+
               <MobileNavLink href="/self-growth" text="Personal Development" onClick={() => setIsMenuOpen(false)} />
               <MobileNavLink href="/settings" text="⚙️Settings" onClick={() => setIsMenuOpen(false)} />
 
